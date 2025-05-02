@@ -1,0 +1,33 @@
+diff --git a/android/build.gradle b/android/build.gradle
+index 9e6c9e0..f5b8234 100644
+--- a/android/build.gradle
++++ b/android/build.gradle
+@@ -2,14 +2,14 @@ group 'com.aboutyou.dart_packages.sign_in_with_apple'
+ version '1.0-SNAPSHOT'
+ 
+ buildscript {
+-    ext.kotlin_version = '1.6.0'
++    ext.kotlin_version = '1.8.10'
+     repositories {
+         google()
+         mavenCentral()
+     }
+ 
+     dependencies {
+-        classpath 'com.android.tools.build:gradle:3.5.0'
++        classpath 'com.android.tools.build:gradle:7.3.0'
+         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+     }
+ }
+@@ -25,8 +25,10 @@ apply plugin: 'com.android.library'
+ apply plugin: 'kotlin-android'
+ 
+ android {
+-    compileSdkVersion 28
++    compileSdkVersion 33
+     
++    namespace 'com.aboutyou.dart_packages.sign_in_with_apple'
++    
+     sourceSets {
+         main.java.srcDirs += 'src/main/kotlin'
+     }

@@ -1,0 +1,19 @@
+--- AndroidManifest.xml.orig
++++ AndroidManifest.xml
+@@ -1,5 +1,6 @@
+ <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+-    package="com.wpchords.app">
++    package="com.wpchords.app"
++    xmlns:tools="http://schemas.android.com/tools">
+     <!-- Internet permission for Firebase and Google Sign-In -->
+     <uses-permission android:name="android.permission.INTERNET" />
+     <!-- Notification permissions -->
+@@ -9,7 +10,7 @@
+     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+ 
+-    <application
++    <application tools:replace="android:label"
+         android:label="Christian Chords"
+         android:name="${applicationName}"
+         android:icon="@mipmap/ic_launcher">

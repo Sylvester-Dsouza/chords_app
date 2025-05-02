@@ -1,0 +1,12 @@
+diff --git a/android/build.gradle b/android/build.gradle
+index 5a5808c..2b310f7 100644
+--- a/android/build.gradle
++++ b/android/build.gradle
+@@ -22,6 +22,7 @@ android {
+     compileSdkVersion 33
+     
+     defaultConfig {
++        namespace "com.dexterous.flutterlocalnotifications"
+         minSdkVersion 16
+         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+     }
