@@ -432,158 +432,326 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       return;
     }
 
-    // Selected song
-    Song? selectedSong;
+    // Create a set of song IDs that are already in the playlist
+    final Set<String> existingSongIds = {};
 
-    showDialog(
+    // Extract song IDs from the playlist songs
+    for (var song in _songs) {
+      if (song is Map<String, dynamic> && song['id'] != null) {
+        existingSongIds.add(song['id']);
+      }
+    }
+
+    // Set of selected song IDs for multi-select (initially empty)
+    final Set<String> selectedSongIds = {};
+
+    // Show bottom sheet instead of dialog for better scrolling with long lists
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true, // Makes the bottom sheet take up the full screen
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (BuildContext context) {
+        // Calculate available height (80% of screen height)
+        final availableHeight = MediaQuery.of(context).size.height * 0.8;
+
         return StatefulBuilder(
           builder: (context, setState) {
-            return AlertDialog(
-              backgroundColor: const Color(0xFF1E1E1E),
-              title: const Text(
-                'Add Song to Playlist',
-                style: TextStyle(color: Colors.white),
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: availableHeight,
               ),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Select a song from your liked songs:',
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                    const SizedBox(height: 16),
-                    Flexible(
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: _likedSongs.length,
-                        itemBuilder: (context, index) {
-                          final song = _likedSongs[index];
-                          final bool isSelected = selectedSong?.id == song.id;
-
-                          return ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                            title: Text(
-                              song.title,
-                              style: TextStyle(
-                                color: isSelected ? const Color(0xFFFFC701) : Colors.white,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header with close button and selection count
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Add Songs to Playlist',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (selectedSongIds.isNotEmpty)
+                            Text(
+                              '${selectedSongIds.length} selected',
+                              style: const TextStyle(
+                                color: Color(0xFFFFC701),
+                                fontSize: 14,
                               ),
+                            ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Instructions
+                  const Text(
+                    'Select songs from your liked songs:',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Song list (scrollable) - More compact
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _likedSongs.length,
+                      itemBuilder: (context, index) {
+                        final song = _likedSongs[index];
+                        final bool isInPlaylist = existingSongIds.contains(song.id);
+
+                        // Initialize selection state - if song is already in playlist, it's pre-selected
+                        if (isInPlaylist && !selectedSongIds.contains(song.id)) {
+                          // Add to selected songs if it's the first time rendering and song is in playlist
+                          selectedSongIds.add(song.id);
+                        }
+
+                        final bool isSelected = selectedSongIds.contains(song.id);
+
+                        return Container(
+                          decoration: BoxDecoration(
+                            border: index < _likedSongs.length - 1
+                                ? const Border(
+                                    bottom: BorderSide(
+                                      color: Color(0xFF333333),
+                                      width: 0.5,
+                                    ),
+                                  )
+                                : null,
+                            color: isInPlaylist ? const Color(0xFF252525) : null, // Subtle background for existing songs
+                          ),
+                          child: ListTile(
+                            dense: true, // Makes the list tile more compact
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 0.0),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    song.title,
+                                    style: TextStyle(
+                                      color: isSelected ? const Color(0xFFFFC701) : Colors.white,
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                      fontSize: 15, // Slightly smaller font
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (isInPlaylist)
+                                  const Padding(
+                                    padding: EdgeInsets.only(left: 4.0),
+                                    child: Icon(
+                                      Icons.playlist_add_check,
+                                      color: Color(0xFFFFC701),
+                                      size: 16,
+                                    ),
+                                  ),
+                              ],
                             ),
                             subtitle: Text(
                               song.artist,
                               style: TextStyle(
                                 color: isSelected ? Colors.white70 : Colors.grey,
+                                fontSize: 13, // Smaller font for subtitle
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            leading: Radio<Song>(
-                              value: song,
-                              groupValue: selectedSong,
+                            trailing: Checkbox(
+                              value: isSelected,
                               activeColor: const Color(0xFFFFC701),
-                              fillColor: WidgetStateProperty.resolveWith<Color>(
-                                (Set<WidgetState> states) {
-                                  if (states.contains(WidgetState.selected)) {
-                                    return const Color(0xFFFFC701);
-                                  }
-                                  return Colors.grey;
-                                },
+                              checkColor: Colors.black,
+                              side: const BorderSide(color: Colors.grey),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
                               ),
-                              onChanged: (Song? value) {
+                              onChanged: (bool? value) {
                                 setState(() {
-                                  selectedSong = value;
+                                  if (value == true) {
+                                    selectedSongIds.add(song.id);
+                                  } else {
+                                    selectedSongIds.remove(song.id);
+                                  }
                                 });
                               },
                             ),
                             onTap: () {
                               setState(() {
-                                selectedSong = song;
+                                if (selectedSongIds.contains(song.id)) {
+                                  selectedSongIds.remove(song.id);
+                                } else {
+                                  selectedSongIds.add(song.id);
+                                }
                               });
                             },
-                          );
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Action buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Select all button
+                      TextButton.icon(
+                        icon: const Icon(Icons.select_all, color: Colors.grey),
+                        label: Text(
+                          selectedSongIds.length == _likedSongs.length ? 'Deselect All' : 'Select All',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            if (selectedSongIds.length == _likedSongs.length) {
+                              // If all are selected, deselect all except those already in playlist
+                              selectedSongIds.clear();
+                              // Re-add songs that are already in the playlist
+                              for (var song in _likedSongs) {
+                                if (existingSongIds.contains(song.id)) {
+                                  selectedSongIds.add(song.id);
+                                }
+                              }
+                            } else {
+                              // Otherwise, select all
+                              selectedSongIds.clear();
+                              for (var song in _likedSongs) {
+                                selectedSongIds.add(song.id);
+                              }
+                            }
+                          });
                         },
                       ),
-                    ),
-                  ],
-                ),
+
+                      Row(
+                        children: [
+                          // Cancel button
+                          TextButton(
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          // Add button
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFFC701),
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: Text(
+                              'Add ${selectedSongIds.isNotEmpty ? "(${selectedSongIds.length})" : ""}',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            onPressed: () async {
+                              // Add songs to playlist logic
+                              if (selectedSongIds.isNotEmpty) {
+                                // Filter out songs that are already in the playlist
+                                final Set<String> newSongIds = selectedSongIds.difference(existingSongIds);
+
+                                // If no new songs to add, show message and return
+                                if (newSongIds.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('All selected songs are already in the playlist'),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                Navigator.of(context).pop();
+
+                                // Show loading indicator
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Adding ${newSongIds.length} song${newSongIds.length > 1 ? "s" : ""} to playlist...'),
+                                    duration: const Duration(seconds: 1),
+                                    backgroundColor: const Color(0xFF1E1E1E),
+                                  ),
+                                );
+
+                                // Store context before async operations
+                                final scaffoldMessenger = ScaffoldMessenger.of(context);
+                                int successCount = 0;
+                                int failCount = 0;
+
+                                // Add each selected song to the playlist (only new ones)
+                                for (String songId in newSongIds) {
+                                  try {
+                                    await _playlistService.addSongToPlaylist(widget.playlistId, songId);
+                                    successCount++;
+                                  } catch (e) {
+                                    debugPrint('Error adding song $songId to playlist: $e');
+                                    failCount++;
+                                  }
+                                }
+
+                                // Refresh playlist details
+                                await _fetchPlaylistDetails();
+
+                                // Show success/failure message
+                                if (mounted) {
+                                  if (successCount > 0) {
+                                    scaffoldMessenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text('Added $successCount song${successCount > 1 ? "s" : ""} to playlist${failCount > 0 ? " ($failCount failed)" : ""}'),
+                                        backgroundColor: Colors.green,
+                                      ),
+                                    );
+                                  } else if (failCount > 0) {
+                                    scaffoldMessenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text('Failed to add songs to playlist'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                }
+                              } else {
+                                // Show error
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Please select at least one song to add'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              actions: [
-                TextButton(
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-                TextButton(
-                  child: const Text(
-                    'Add',
-                    style: TextStyle(color: Color(0xFFFFC701)),
-                  ),
-                  onPressed: () async {
-                    // Add song to playlist logic
-                    if (selectedSong != null) {
-                      Navigator.of(context).pop();
-
-                      // Show loading indicator
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Adding song to playlist...'),
-                          duration: Duration(seconds: 1),
-                          backgroundColor: Color(0xFF1E1E1E),
-                        ),
-                      );
-
-                      // Store context and song info before async operations
-                      final scaffoldMessenger = ScaffoldMessenger.of(context);
-                      final songTitle = selectedSong!.title;
-
-                      try {
-                        // Add the song to the playlist
-                        await _playlistService.addSongToPlaylist(widget.playlistId, selectedSong!.id);
-
-                        // Refresh playlist details
-                        await _fetchPlaylistDetails();
-
-                        // Show success message
-                        if (mounted) {
-                          scaffoldMessenger.showSnackBar(
-                            SnackBar(
-                              content: Text('Song "$songTitle" added to playlist'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        debugPrint('Error adding song to playlist: $e');
-
-                        // Show error message
-                        if (mounted) {
-                          scaffoldMessenger.showSnackBar(
-                            SnackBar(
-                              content: Text('Failed to add song: $e'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                        }
-                      }
-                    } else {
-                      // Show error
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please select a song to add'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  },
-                ),
-              ],
             );
           },
         );

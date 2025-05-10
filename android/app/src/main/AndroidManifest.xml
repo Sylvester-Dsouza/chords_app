@@ -8,6 +8,8 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Microphone permission for Guitar Tuner -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
         android:label="Christian Chords"
         android:name="${applicationName}"

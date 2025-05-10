@@ -3,8 +3,6 @@ import 'package:provider/provider.dart';
 import '../models/song_request.dart';
 import '../services/song_request_service.dart';
 import '../providers/user_provider.dart';
-import '../widgets/animated_bottom_nav_bar.dart';
-import '../widgets/app_drawer.dart';
 
 class SongRequestScreen extends StatefulWidget {
   const SongRequestScreen({super.key});
@@ -39,9 +37,50 @@ class _SongRequestScreenState extends State<SongRequestScreen> {
     });
 
     try {
+      // Store the current upvote states before fetching
+      Map<String, bool> currentUpvoteStates = {};
+      for (var request in _songRequests) {
+        currentUpvoteStates[request.id] = request.hasUpvoted;
+      }
+
       final requests = await _songRequestService.getAllSongRequests();
+
+      // Debug the hasUpvoted property for each request
+      for (var request in requests) {
+        debugPrint('Song request ${request.id} - ${request.songName} - hasUpvoted: ${request.hasUpvoted}');
+
+        // If we have a local upvote state for this request, use it instead of the server state
+        if (currentUpvoteStates.containsKey(request.id)) {
+          bool localUpvoteState = currentUpvoteStates[request.id]!;
+          if (localUpvoteState != request.hasUpvoted) {
+            debugPrint('Using local upvote state for ${request.id}: $localUpvoteState (server: ${request.hasUpvoted})');
+          }
+        }
+      }
+
       setState(() {
-        _songRequests = requests;
+        // Update the list but preserve local upvote states
+        _songRequests = requests.map((request) {
+          // If we have a local upvote state for this request, use it
+          if (currentUpvoteStates.containsKey(request.id)) {
+            return SongRequest(
+              id: request.id,
+              songName: request.songName,
+              artistName: request.artistName,
+              youtubeLink: request.youtubeLink,
+              spotifyLink: request.spotifyLink,
+              notes: request.notes,
+              status: request.status,
+              upvotes: request.upvotes,
+              customerId: request.customerId,
+              createdAt: request.createdAt,
+              updatedAt: request.updatedAt,
+              hasUpvoted: currentUpvoteStates[request.id]!, // Use local state
+            );
+          }
+          return request; // Use server state
+        }).toList();
+
         _isLoading = false;
       });
     } catch (e) {
@@ -137,20 +176,58 @@ class _SongRequestScreenState extends State<SongRequestScreen> {
       return;
     }
 
+    debugPrint('Handling upvote for song request: ${request.id} - Current hasUpvoted: ${request.hasUpvoted}');
+
+    // Update the UI immediately before API call to provide instant feedback
+    bool newUpvoteState = !request.hasUpvoted; // Toggle the state
+    int newUpvoteCount = newUpvoteState ? request.upvotes + 1 : request.upvotes - 1;
+
+    // Create updated request object
+    final updatedRequest = SongRequest(
+      id: request.id,
+      songName: request.songName,
+      artistName: request.artistName,
+      youtubeLink: request.youtubeLink,
+      spotifyLink: request.spotifyLink,
+      notes: request.notes,
+      status: request.status,
+      upvotes: newUpvoteCount,
+      customerId: request.customerId,
+      createdAt: request.createdAt,
+      updatedAt: request.updatedAt,
+      hasUpvoted: newUpvoteState, // Set to the new state
+    );
+
+    // Update UI immediately
+    setState(() {
+      final index = _songRequests.indexWhere((r) => r.id == request.id);
+      if (index != -1) {
+        _songRequests[index] = updatedRequest;
+        debugPrint('Updated UI for song request: ${request.id} - New hasUpvoted: $newUpvoteState');
+      }
+    });
+
+    // Make API call in the background without refreshing the list
     try {
       bool success;
-      if (request.hasUpvoted) {
+
+      if (!newUpvoteState) {
+        // We're removing an upvote
         success = await _songRequestService.removeUpvote(request.id);
+        debugPrint('Removed upvote, success: $success');
       } else {
+        // We're adding an upvote
         success = await _songRequestService.upvoteSongRequest(request.id);
+        debugPrint('Added upvote, success: $success');
       }
 
-      if (success) {
-        // Update the UI immediately before refreshing from the server
+      if (!success) {
+        // If API call failed, revert the UI change
+        debugPrint('API call failed, reverting UI change');
         setState(() {
           final index = _songRequests.indexWhere((r) => r.id == request.id);
           if (index != -1) {
-            final updatedRequest = SongRequest(
+            final revertedRequest = SongRequest(
               id: request.id,
               songName: request.songName,
               artistName: request.artistName,
@@ -158,29 +235,33 @@ class _SongRequestScreenState extends State<SongRequestScreen> {
               spotifyLink: request.spotifyLink,
               notes: request.notes,
               status: request.status,
-              upvotes: request.hasUpvoted ? request.upvotes - 1 : request.upvotes + 1,
+              upvotes: request.upvotes, // Original upvote count
               customerId: request.customerId,
               createdAt: request.createdAt,
               updatedAt: request.updatedAt,
-              hasUpvoted: !request.hasUpvoted,
+              hasUpvoted: request.hasUpvoted, // Original upvote state
             );
-            _songRequests[index] = updatedRequest;
+            _songRequests[index] = revertedRequest;
           }
         });
-
-        // Refresh the list from the server
-        _fetchSongRequests();
+        _showErrorSnackBar('Failed to update upvote');
       }
     } catch (e) {
       debugPrint('Error handling upvote: $e');
 
-      // Check if the error is because the user already upvoted
+      // Handle specific error cases
       if (e.toString().contains('already upvoted')) {
-        // Update the UI to show as upvoted
+        debugPrint('User already upvoted this request');
+        // Keep the UI showing as upvoted (already updated above)
+      } else if (e.toString().contains('not upvoted')) {
+        debugPrint('User has not upvoted this request');
+        // Keep the UI showing as not upvoted (already updated above)
+      } else {
+        // For other errors, revert the UI change
         setState(() {
           final index = _songRequests.indexWhere((r) => r.id == request.id);
           if (index != -1) {
-            final updatedRequest = SongRequest(
+            final revertedRequest = SongRequest(
               id: request.id,
               songName: request.songName,
               artistName: request.artistName,
@@ -188,16 +269,15 @@ class _SongRequestScreenState extends State<SongRequestScreen> {
               spotifyLink: request.spotifyLink,
               notes: request.notes,
               status: request.status,
-              upvotes: request.upvotes,
+              upvotes: request.upvotes, // Original upvote count
               customerId: request.customerId,
               createdAt: request.createdAt,
               updatedAt: request.updatedAt,
-              hasUpvoted: true,
+              hasUpvoted: request.hasUpvoted, // Original upvote state
             );
-            _songRequests[index] = updatedRequest;
+            _songRequests[index] = revertedRequest;
           }
         });
-      } else {
         _showErrorSnackBar('Failed to update upvote');
       }
     }
@@ -209,8 +289,13 @@ class _SongRequestScreenState extends State<SongRequestScreen> {
       appBar: AppBar(
         title: const Text('Request Song'),
         backgroundColor: const Color(0xFF121212),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
       ),
-      drawer: const AppDrawer(),
       body: Column(
         children: [
           // Header with explanation text
@@ -266,29 +351,7 @@ class _SongRequestScreenState extends State<SongRequestScreen> {
           color: Colors.black,
         ),
       ),
-      bottomNavigationBar: AnimatedBottomNavBar(
-        currentIndex: 0,
-        onTap: (index) {
-          // Handle navigation based on the index
-          switch (index) {
-            case 0: // Home
-              Navigator.pushReplacementNamed(context, '/home');
-              break;
-            case 1: // My Playlist
-              Navigator.pushReplacementNamed(context, '/playlist');
-              break;
-            case 2: // Search
-              Navigator.pushReplacementNamed(context, '/search');
-              break;
-            case 3: // Resources
-              Navigator.pushReplacementNamed(context, '/resources');
-              break;
-            case 4: // Profile
-              Navigator.pushReplacementNamed(context, '/profile');
-              break;
-          }
-        },
-      ),
+      // Bottom navigation bar removed
     );
   }
 
@@ -361,15 +424,15 @@ class _SongRequestScreenState extends State<SongRequestScreen> {
                 onTap: () => _handleUpvote(request),
                 child: Icon(
                   request.hasUpvoted ? Icons.thumb_up : Icons.thumb_up_outlined,
-                  color: request.hasUpvoted ? const Color(0xFF4CAF50) : Colors.grey, // Green when upvoted
+                  color: request.hasUpvoted ? const Color(0xFFFFC701) : Colors.grey, // Primary color when upvoted
                   size: 24, // Explicit size
                 ),
               ),
               const SizedBox(height: 2), // Add a small gap
-              const Text(
+              Text(
                 'Upvote',
                 style: TextStyle(
-                  color: Colors.grey,
+                  color: request.hasUpvoted ? const Color(0xFFFFC701) : Colors.grey, // Primary color when upvoted
                   fontSize: 10, // Smaller font size
                 ),
               ),

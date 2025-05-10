@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class ChordFormatter extends StatelessWidget {
   final String chordSheet;
@@ -8,14 +7,18 @@ class ChordFormatter extends StatelessWidget {
   final bool highlightChords;
   final int transposeValue;
   final Function(String)? onChordTap;
+  final bool useMonospaceFont;
+  final Color? chordColor; // Added parameter for chord color
 
   const ChordFormatter({
     super.key,
     required this.chordSheet,
-    this.fontSize = 16.0,
+    this.fontSize = 14.0, // Reduced default font size from 16.0 to 14.0
     this.highlightChords = true,
     this.transposeValue = 0,
     this.onChordTap,
+    this.useMonospaceFont = true, // Default to true to preserve spacing
+    this.chordColor, // If null, will use theme's primary color
   });
 
   @override
@@ -31,11 +34,11 @@ class ChordFormatter extends StatelessWidget {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: _parseChordSheet(),
+      children: _parseChordSheet(context),
     );
   }
 
-  List<Widget> _parseChordSheet() {
+  List<Widget> _parseChordSheet(BuildContext context) {
     final List<Widget> widgets = [];
     final lines = chordSheet.split('\n');
 
@@ -48,22 +51,19 @@ class ChordFormatter extends StatelessWidget {
       // Check if this is a section header in {Section} format
       if (line.trim().startsWith('{') && line.trim().endsWith('}')) {
         final sectionName = line.trim().substring(1, line.trim().length - 1);
+        debugPrint('Processing section header: {$sectionName}');
         widgets.add(
-          Container(
-            margin: const EdgeInsets.only(top: 20, bottom: 10, left: 8.0),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.black.withAlpha(60),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFFFC701).withAlpha(50), width: 1),
-            ),
+          Padding(
+            padding: const EdgeInsets.only(top: 24, bottom: 8),
             child: Text(
-              sectionName.toUpperCase(),
-              style: GoogleFonts.lexend(
-                color: const Color(0xFFFFC701),
+              '[${sectionName.toUpperCase()}]', // Added square brackets around section name
+              style: TextStyle(
+                color: Colors.grey, // Changed from yellow to grey as requested
                 fontSize: fontSize,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,
+                // Use a monospace font for consistent spacing if enabled
+                fontFamily: useMonospaceFont ? 'monospace' : null,
               ),
             ),
           ),
@@ -75,22 +75,19 @@ class ChordFormatter extends StatelessWidget {
       if (line.trim().startsWith('[') &&
           line.trim().endsWith(']') &&
           RegExp(r'^\[(verse|chorus|bridge|intro|outro|pre-chorus|interlude)\s*\d*\]$', caseSensitive: false).hasMatch(line.trim())) {
+        debugPrint('Processing legacy section header: ${line.trim()}');
         widgets.add(
-          Container(
-            margin: const EdgeInsets.only(top: 20, bottom: 10, left: 8.0),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.black.withAlpha(60),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFFFC701).withAlpha(50), width: 1),
-            ),
+          Padding(
+            padding: const EdgeInsets.only(top: 24, bottom: 8),
             child: Text(
               line.trim(),
-              style: GoogleFonts.lexend(
-                color: const Color(0xFFFFC701),
+              style: TextStyle(
+                color: Colors.grey, // Changed from yellow to grey for consistency
                 fontSize: fontSize,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,
+                // Use a monospace font for consistent spacing if enabled
+                fontFamily: useMonospaceFont ? 'monospace' : null,
               ),
             ),
           ),
@@ -102,25 +99,30 @@ class ChordFormatter extends StatelessWidget {
       if (line.contains('[') && line.contains(']')) {
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(top: 3.0, bottom: 3.0, left: 8.0),
-            child: _buildFormattedLine(line),
+            padding: const EdgeInsets.only(top: 2.0, bottom: 2.0),
+            child: _buildFormattedLine(context, line),
           ),
         );
         continue;
       }
 
       // Regular text line (no chords)
+      // Preserve all spaces exactly as they are in the original text
+      debugPrint('Processing regular text line: "${line.replaceAll('\n', '\\n')}"');
       widgets.add(
         Padding(
-          padding: const EdgeInsets.only(bottom: 8.0, top: 2.0, left: 8.0),
+          padding: const EdgeInsets.only(bottom: 6.0, top: 2.0),
           child: Text(
             line,
-            style: GoogleFonts.lexend(
+            style: TextStyle(
               color: Colors.white,
               fontSize: fontSize,
               height: 1.3,
-              letterSpacing: 0.3,
+              // Use a monospace font to ensure consistent spacing if enabled
+              fontFamily: useMonospaceFont ? 'monospace' : null,
             ),
+            // Ensure the text is rendered exactly as it is, preserving all spaces
+            textWidthBasis: TextWidthBasis.longestLine,
           ),
         ),
       );
@@ -129,24 +131,33 @@ class ChordFormatter extends StatelessWidget {
     return widgets;
   }
 
-  Widget _buildFormattedLine(String line) {
+  Widget _buildFormattedLine(BuildContext context, String line) {
     final List<InlineSpan> spans = [];
     int currentIndex = 0;
 
     // Regular expression to find chord patterns [Chord]
-    final chordPattern = RegExp(r'\[([^\]]+)\]');
+    // Using a non-greedy match to ensure we don't accidentally combine multiple chords
+    final chordPattern = RegExp(r'\[([^\]]+?)\]');
     final matches = chordPattern.allMatches(line);
+
+    debugPrint('Processing line with ${matches.length} chords: "${line.replaceAll('\n', '\\n')}"');
 
     for (final match in matches) {
       // Add text before the chord
       if (match.start > currentIndex) {
+        final textBefore = line.substring(currentIndex, match.start);
+        debugPrint('  Adding text before chord: "${textBefore.replaceAll('\n', '\\n')}"');
+
+        // Preserve all spaces exactly as they are in the original text
         spans.add(
           TextSpan(
-            text: line.substring(currentIndex, match.start),
+            text: textBefore,
             style: TextStyle(
               color: Colors.white,
               fontSize: fontSize,
               height: 1.3,
+              // Use a monospace font to ensure consistent spacing if enabled
+              fontFamily: useMonospaceFont ? 'monospace' : null,
             ),
           ),
         );
@@ -155,19 +166,22 @@ class ChordFormatter extends StatelessWidget {
       // Get the chord and transpose it if needed
       final chord = match.group(1)!;
       final transposedChord = transposeValue != 0 ? _transposeChord(chord) : chord;
+      debugPrint('  Processing chord: "$chord" -> "$transposedChord"');
 
       // Add the chord with tap recognition if onChordTap is provided and chords are visible
       if (highlightChords) {
         spans.add(
           TextSpan(
             text: transposedChord,
-            style: GoogleFonts.lexend(
-              color: const Color(0xFFFFC701),
+            style: TextStyle(
+              // Use provided chord color, or theme's primary color instead of hardcoded yellow
+              color: chordColor ?? Theme.of(context).colorScheme.primary,
               fontSize: fontSize,
               fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
               decoration: onChordTap != null ? TextDecoration.underline : null,
               decorationStyle: TextDecorationStyle.dotted,
+              // Use a monospace font to ensure consistent spacing if enabled
+              fontFamily: useMonospaceFont ? 'monospace' : null,
             ),
             recognizer: onChordTap != null ? (TapGestureRecognizer()..onTap = () {
               onChordTap!(transposedChord);
@@ -181,13 +195,18 @@ class ChordFormatter extends StatelessWidget {
 
     // Add any remaining text after the last chord
     if (currentIndex < line.length) {
+      final remainingText = line.substring(currentIndex);
+      debugPrint('  Adding remaining text: "${remainingText.replaceAll('\n', '\\n')}"');
+
       spans.add(
         TextSpan(
-          text: line.substring(currentIndex),
-          style: GoogleFonts.lexend(
+          text: remainingText,
+          style: TextStyle(
             color: Colors.white,
             fontSize: fontSize,
             height: 1.3,
+            // Use a monospace font to ensure consistent spacing if enabled
+            fontFamily: useMonospaceFont ? 'monospace' : null,
           ),
         ),
       );
@@ -197,6 +216,8 @@ class ChordFormatter extends StatelessWidget {
       text: TextSpan(children: spans),
       textAlign: TextAlign.left,
       softWrap: true,
+      // Ensure the text is rendered exactly as it is, preserving all spaces
+      textWidthBasis: TextWidthBasis.longestLine,
     );
   }
 

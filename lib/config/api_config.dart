@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' show Platform;
 
 /// Configuration for API endpoints and settings
 class ApiConfig {
@@ -7,13 +8,19 @@ class ApiConfig {
   /// For physical devices, use your computer's IP address
   static String get baseUrl {
     if (kIsWeb) {
-      return 'http://localhost:3001/api';
+      return 'http://192.168.1.2:3001/api';
     } else if (const bool.fromEnvironment('dart.vm.product')) {
       // Release mode - use production server
-      return 'https://api.yourapp.com/api';
+      return 'https://chords-api-jl8n.onrender.com/api';
     } else {
-      // Debug mode - use special IP for Android emulator
-      return 'http://10.0.2.2:3001/api';
+      // Debug mode
+      if (Platform.isAndroid) {
+        // For Android devices (both emulator and physical)
+        return 'http://192.168.1.2:3001/api';
+      } else {
+        // For iOS simulator or physical devices
+        return 'http://192.168.1.2:3001/api';
+      }
     }
   }
 

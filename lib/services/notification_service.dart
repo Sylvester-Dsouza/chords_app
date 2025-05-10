@@ -2,7 +2,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/api_service.dart';
 
 // Background message handler - must be top-level function
@@ -24,6 +26,7 @@ class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final ApiService _apiService = ApiService();
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   // Stream controller for notification clicks
   final ValueNotifier<RemoteMessage?> onNotificationClick = ValueNotifier(null);
@@ -158,6 +161,24 @@ class NotificationService {
       // Save the new token
       await prefs.setString('fcm_token', token);
 
+      // Ensure we have a valid Firebase token for authentication
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser != null) {
+        try {
+          // Get a fresh token
+          final idToken = await firebaseUser.getIdToken(true);
+          // Store it for API service to use
+          await _secureStorage.write(key: 'firebase_token', value: idToken);
+          debugPrint('Refreshed Firebase auth token before registering device token');
+        } catch (e) {
+          debugPrint('Error refreshing Firebase auth token: $e');
+          // Continue anyway, the API service will handle token issues
+        }
+      } else {
+        debugPrint('No Firebase user found when registering device token');
+        // We might not be able to register the token without authentication
+      }
+
       // Register with backend
       final response = await _apiService.post(
         '/notifications/device-token',
@@ -185,6 +206,24 @@ class NotificationService {
         return;
       }
 
+      // Ensure we have a valid Firebase token for authentication
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser != null) {
+        try {
+          // Get a fresh token
+          final idToken = await firebaseUser.getIdToken(true);
+          // Store it for API service to use
+          await _secureStorage.write(key: 'firebase_token', value: idToken);
+          debugPrint('Refreshed Firebase auth token before unregistering device token');
+        } catch (e) {
+          debugPrint('Error refreshing Firebase auth token: $e');
+          // Continue anyway, the API service will handle token issues
+        }
+      } else {
+        debugPrint('No Firebase user found when unregistering device token');
+        // We might not be able to unregister the token without authentication
+      }
+
       // Unregister with backend
       await _apiService.delete('/notifications/device-token/$token');
 
@@ -200,8 +239,33 @@ class NotificationService {
   // Get notification history
   Future<List<dynamic>> getNotificationHistory() async {
     try {
+      // Ensure we have a valid Firebase token
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser != null) {
+        try {
+          // Get a fresh token
+          final idToken = await firebaseUser.getIdToken(true);
+          // Store it for API service to use
+          await _secureStorage.write(key: 'firebase_token', value: idToken);
+          debugPrint('Refreshed Firebase token before getting notification history');
+        } catch (e) {
+          debugPrint('Error refreshing Firebase token: $e');
+          // Continue anyway, the API service will handle token issues
+        }
+      } else {
+        debugPrint('No Firebase user found when getting notification history');
+      }
+
       final response = await _apiService.get('/notifications/customer/history');
-      return response.data;
+
+      if (response.data is List) {
+        return response.data;
+      } else if (response.data is Map && response.data['data'] is List) {
+        return response.data['data'];
+      } else {
+        debugPrint('Unexpected notification history response format: ${response.data.runtimeType}');
+        return [];
+      }
     } catch (e) {
       debugPrint('Error getting notification history: $e');
       return [];
@@ -226,6 +290,20 @@ class NotificationService {
   // Mark notification as read
   Future<void> markNotificationAsRead(String notificationId) async {
     try {
+      // Ensure we have a valid Firebase token
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser != null) {
+        try {
+          // Get a fresh token
+          final idToken = await firebaseUser.getIdToken(true);
+          // Store it for API service to use
+          await _secureStorage.write(key: 'firebase_token', value: idToken);
+        } catch (e) {
+          debugPrint('Error refreshing Firebase token: $e');
+          // Continue anyway, the API service will handle token issues
+        }
+      }
+
       await _apiService.patch(
         '/notifications/customer/history/$notificationId',
         data: {
@@ -241,6 +319,20 @@ class NotificationService {
   // Mark notification as clicked
   Future<void> markNotificationAsClicked(String notificationId) async {
     try {
+      // Ensure we have a valid Firebase token
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser != null) {
+        try {
+          // Get a fresh token
+          final idToken = await firebaseUser.getIdToken(true);
+          // Store it for API service to use
+          await _secureStorage.write(key: 'firebase_token', value: idToken);
+        } catch (e) {
+          debugPrint('Error refreshing Firebase token: $e');
+          // Continue anyway, the API service will handle token issues
+        }
+      }
+
       await _apiService.patch(
         '/notifications/customer/history/$notificationId',
         data: {

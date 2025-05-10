@@ -2,23 +2,27 @@ import 'package:flutter/material.dart';
 
 class AppLogo extends StatelessWidget {
   final double size;
-  final Color color;
-  final Color iconColor;
+  final Color? color;
+  final Color? iconColor;
 
   const AppLogo({
     super.key,
     this.size = 80.0,
-    this.color = const Color(0xFFFFC701), // Yellow accent color
-    this.iconColor = const Color(0xFF121212), // Dark background
+    this.color,
+    this.iconColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Use theme colors if not provided
+    final themeColor = color ?? Theme.of(context).colorScheme.primary;
+    final themeIconColor = iconColor ?? Theme.of(context).colorScheme.onPrimary;
+
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: color,
+        color: themeColor,
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
@@ -32,7 +36,7 @@ class AppLogo extends StatelessWidget {
         child: Icon(
           Icons.music_note,
           size: size * 0.6,
-          color: iconColor,
+          color: themeIconColor,
         ),
       ),
     );

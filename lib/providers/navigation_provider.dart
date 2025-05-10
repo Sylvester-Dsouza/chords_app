@@ -23,7 +23,7 @@ class NavigationProvider extends ChangeNotifier {
         return 1;
       case '/search':
         return 2;
-      case '/tools':
+      case '/resources':
         return 3;
       case '/profile':
         return 4;
@@ -42,7 +42,7 @@ class NavigationProvider extends ChangeNotifier {
       case 2:
         return '/search';
       case 3:
-        return '/tools';
+        return '/resources';
       case 4:
         return '/profile';
       default:

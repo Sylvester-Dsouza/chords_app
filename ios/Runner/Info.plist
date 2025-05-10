@@ -65,5 +65,15 @@
 	</array>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>We need to send you notifications about new songs, updates to your requests, and other important information.</string>
+	<!-- Microphone permission for Guitar Tuner -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We need access to your microphone to detect the pitch of your guitar strings for the Guitar Tuner feature.</string>
+	<!-- URL schemes for url_launcher -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>https</string>
+		<string>http</string>
+		<string>youtube</string>
+	</array>
 </dict>
 </plist>

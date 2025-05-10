@@ -8,22 +8,50 @@ class SongService {
   final CacheService _cacheService = CacheService();
 
   // Get all songs
-  Future<List<Song>> getAllSongs() async {
+  Future<List<Song>> getAllSongs({bool forceRefresh = false}) async {
     try {
-      // First check if we have cached songs
-      final cachedSongs = await _cacheService.getCachedSongs();
-      if (cachedSongs != null) {
-        debugPrint('Using cached songs (${cachedSongs.length} songs)');
-        return cachedSongs;
+      // Check if we should force refresh or if we have valid cached songs
+      if (!forceRefresh) {
+        // Check if cache is stale (older than 5 minutes)
+        final isCacheStale = await _cacheService.isCacheStale('cache_songs', 5);
+
+        if (isCacheStale) {
+          debugPrint('Song cache is stale, forcing refresh from API');
+          forceRefresh = true;
+        } else {
+          // Try to use cached songs if not stale
+          final cachedSongs = await _cacheService.getCachedSongs();
+          if (cachedSongs != null) {
+            debugPrint('Using cached songs (${cachedSongs.length} songs)');
+            return cachedSongs;
+          }
+        }
+      } else {
+        debugPrint('Force refreshing songs from API');
       }
 
-      // If no cache, fetch from API
-      debugPrint('No cached songs found, fetching from API...');
+      // If no valid cache or force refresh, fetch from API
+      debugPrint('Fetching songs from API...');
       final response = await _apiService.get('/songs');
 
+      debugPrint('Song API response: ${response.toString()}');
+      debugPrint('Song API response data type: ${response.data.runtimeType}');
+      debugPrint('Song API response data: ${response.data}');
+
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
-        debugPrint('Received ${data.length} songs from API');
+        List<dynamic> data;
+
+        // Check if the response data is a Map with a 'data' field (common API pattern)
+        if (response.data is Map && response.data['data'] != null) {
+          data = response.data['data'] as List<dynamic>;
+          debugPrint('Received ${data.length} songs from API (nested data field)');
+        } else if (response.data is List) {
+          data = response.data as List<dynamic>;
+          debugPrint('Received ${data.length} songs from API (direct list)');
+        } else {
+          debugPrint('Unexpected response format: ${response.data.runtimeType}');
+          throw Exception('Unexpected response format: ${response.data.runtimeType}');
+        }
 
         // Check if data is empty
         if (data.isEmpty) {
@@ -89,9 +117,24 @@ class SongService {
       debugPrint('No cached songs, searching via API with query: $query');
       final response = await _apiService.get('/songs', queryParameters: {'search': query});
 
+      debugPrint('Song search API response: ${response.toString()}');
+      debugPrint('Song search API response data type: ${response.data.runtimeType}');
+      debugPrint('Song search API response data: ${response.data}');
+
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
-        debugPrint('Received ${data.length} songs from search');
+        List<dynamic> data;
+
+        // Check if the response data is a Map with a 'data' field (common API pattern)
+        if (response.data is Map && response.data['data'] != null) {
+          data = response.data['data'] as List<dynamic>;
+          debugPrint('Received ${data.length} songs from search (nested data field)');
+        } else if (response.data is List) {
+          data = response.data as List<dynamic>;
+          debugPrint('Received ${data.length} songs from search (direct list)');
+        } else {
+          debugPrint('Unexpected response format: ${response.data.runtimeType}');
+          throw Exception('Unexpected response format: ${response.data.runtimeType}');
+        }
 
         // Check if data is empty
         if (data.isEmpty) {
@@ -134,9 +177,24 @@ class SongService {
       debugPrint('Fetching songs for artist ID: $artistId');
       final response = await _apiService.get('/songs', queryParameters: {'artistId': artistId});
 
+      debugPrint('Songs by artist API response: ${response.toString()}');
+      debugPrint('Songs by artist API response data type: ${response.data.runtimeType}');
+      debugPrint('Songs by artist API response data: ${response.data}');
+
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
-        debugPrint('Received ${data.length} songs for artist');
+        List<dynamic> data;
+
+        // Check if the response data is a Map with a 'data' field (common API pattern)
+        if (response.data is Map && response.data['data'] != null) {
+          data = response.data['data'] as List<dynamic>;
+          debugPrint('Received ${data.length} songs for artist (nested data field)');
+        } else if (response.data is List) {
+          data = response.data as List<dynamic>;
+          debugPrint('Received ${data.length} songs for artist (direct list)');
+        } else {
+          debugPrint('Unexpected response format: ${response.data.runtimeType}');
+          throw Exception('Unexpected response format: ${response.data.runtimeType}');
+        }
 
         // Check if data is empty
         if (data.isEmpty) {
@@ -180,15 +238,36 @@ class SongService {
   Future<Song> getSongById(String id) async {
     try {
       debugPrint('Fetching song with ID: $id');
+
+      // Always fetch fresh data from the API for individual songs
+      // This ensures we always have the latest data when viewing song details
+      debugPrint('Always fetching fresh song data from API to ensure latest content');
       final response = await _apiService.get('/songs/$id');
 
+      debugPrint('Song by ID API response: ${response.toString()}');
+      debugPrint('Song by ID API response data type: ${response.data.runtimeType}');
+      debugPrint('Song by ID API response data: ${response.data}');
+
       if (response.statusCode == 200) {
-        final dynamic data = response.data;
-        debugPrint('Received song data: $data');
+        dynamic data;
+
+        // Check if the response data is a Map with a 'data' field (common API pattern)
+        if (response.data is Map && response.data['data'] != null) {
+          data = response.data['data'];
+          debugPrint('Received song data (nested data field)');
+        } else {
+          data = response.data;
+          debugPrint('Received song data (direct object)');
+        }
 
         try {
           final song = Song.fromJson(data);
           debugPrint('Successfully parsed song: ${song.title} by ${song.artist}');
+
+          // Update the song in the cache with the fresh data
+          // This ensures other parts of the app using cached data will have the latest version
+          _updateSongInCache(song);
+
           return song;
         } catch (parseError) {
           debugPrint('Error parsing song data: $parseError');
@@ -202,6 +281,34 @@ class SongService {
       debugPrint('Error getting song: $e');
       // Return mock data for development
       return _getMockSongById(id);
+    }
+  }
+
+  // Update a single song in the cache
+  Future<void> _updateSongInCache(Song updatedSong) async {
+    try {
+      // Get the current cached songs
+      final cachedSongs = await _cacheService.getCachedSongs();
+      if (cachedSongs == null || cachedSongs.isEmpty) {
+        debugPrint('No cached songs to update');
+        return;
+      }
+
+      // Find and update the song in the cache
+      final updatedSongs = cachedSongs.map((song) {
+        if (song.id == updatedSong.id) {
+          debugPrint('Updating song ${updatedSong.id} in cache with fresh data');
+          return updatedSong;
+        }
+        return song;
+      }).toList();
+
+      // Save the updated cache
+      await _cacheService.cacheSongs(updatedSongs);
+      debugPrint('Successfully updated song in cache');
+    } catch (e) {
+      debugPrint('Error updating song in cache: $e');
+      // Continue anyway, this is just a cache update
     }
   }
 
@@ -271,9 +378,24 @@ Jesus''',
       // First, search for the artist to get their ID
       final response = await _apiService.get('/songs', queryParameters: {'search': artistName});
 
+      debugPrint('Songs by artist name API response: ${response.toString()}');
+      debugPrint('Songs by artist name API response data type: ${response.data.runtimeType}');
+      debugPrint('Songs by artist name API response data: ${response.data}');
+
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
-        debugPrint('Received ${data.length} songs from artist name search');
+        List<dynamic> data;
+
+        // Check if the response data is a Map with a 'data' field (common API pattern)
+        if (response.data is Map && response.data['data'] != null) {
+          data = response.data['data'] as List<dynamic>;
+          debugPrint('Received ${data.length} songs from artist name search (nested data field)');
+        } else if (response.data is List) {
+          data = response.data as List<dynamic>;
+          debugPrint('Received ${data.length} songs from artist name search (direct list)');
+        } else {
+          debugPrint('Unexpected response format: ${response.data.runtimeType}');
+          throw Exception('Unexpected response format: ${response.data.runtimeType}');
+        }
 
         // Filter songs to only include those by the exact artist name
         final filteredData = data.where((song) {
@@ -321,6 +443,39 @@ Jesus''',
     } catch (e) {
       debugPrint('Error getting artist name songs: $e');
       throw Exception('Failed to load artist name songs: $e');
+    }
+  }
+
+  // Count songs by artist
+  Future<Map<String, int>> countSongsByArtist() async {
+    try {
+      debugPrint('Counting songs by artist...');
+      // Get all songs
+      final songs = await getAllSongs();
+
+      // Create a map to count songs by artist
+      final Map<String, int> artistSongCounts = {};
+
+      // Count songs for each artist
+      for (var song in songs) {
+        final artistName = song.artist.toLowerCase();
+        if (artistSongCounts.containsKey(artistName)) {
+          artistSongCounts[artistName] = artistSongCounts[artistName]! + 1;
+        } else {
+          artistSongCounts[artistName] = 1;
+        }
+      }
+
+      debugPrint('Counted songs for ${artistSongCounts.length} artists');
+      // Log a few examples
+      artistSongCounts.entries.take(5).forEach((entry) {
+        debugPrint('Artist: ${entry.key}, Song Count: ${entry.value}');
+      });
+
+      return artistSongCounts;
+    } catch (e) {
+      debugPrint('Error counting songs by artist: $e');
+      return {};
     }
   }
 }

@@ -228,17 +228,32 @@ class AuthProvider with ChangeNotifier {
   }
 
   // Logout
-  Future<void> logout() async {
+  Future<bool> logout() async {
     _loading = true;
+    _error = null;
     notifyListeners();
 
-    await _authService.logout();
+    try {
+      final result = await _authService.logout();
 
-    _status = AuthStatus.unauthenticated;
-    _user = null;
-    _loading = false;
+      _status = AuthStatus.unauthenticated;
+      _user = null;
+      _loading = false;
 
-    notifyListeners();
+      if (!result['success']) {
+        _error = result['message'];
+      }
+
+      notifyListeners();
+      return result['success'];
+    } catch (e) {
+      _status = AuthStatus.unauthenticated;
+      _user = null;
+      _loading = false;
+      _error = 'An error occurred during logout';
+      notifyListeners();
+      return false;
+    }
   }
 
   // Send password reset email

@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:io';
+import 'dart:io' show Platform;
 
 /// A secure API service with enhanced error handling, retry logic,
 /// and proper HTTPS enforcement.
@@ -16,26 +16,29 @@ class SecureApiService {
   // Base URL based on environment
   static String get baseUrl {
     if (kIsWeb) {
-      return 'https://api.christianchords.com/api';
+      return 'https://chords-api-jl8n.onrender.com/api';
     } else if (const bool.fromEnvironment('dart.vm.product')) {
       // Release mode - use production server
-      return 'https://api.christianchords.com/api';
+      return 'https://chords-api-jl8n.onrender.com/api';
     } else {
-      // Debug mode - use development server
-      // For Android emulator, use 10.0.2.2 instead of localhost
-      return Platform.isAndroid 
-          ? 'http://10.0.2.2:3001/api'  // Allow HTTP only for local development on Android emulator
-          : 'http://localhost:3001/api'; // Allow HTTP only for local development on iOS simulator
+      // Debug mode
+      if (Platform.isAndroid) {
+        // For Android devices (both emulator and physical)
+        return 'http://192.168.1.2:3001/api';
+      } else {
+        // For iOS simulator or physical devices
+        return 'http://192.168.1.2:3001/api';
+      }
     }
   }
 
   final Dio _dio = Dio();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
-  
+
   // Rate limiting
   final Map<String, DateTime> _lastRequestTimes = {};
   static const Duration _minRequestInterval = Duration(milliseconds: 300);
-  
+
   // Retry configuration
   static const int _maxRetries = 3;
   static const Duration _initialRetryDelay = Duration(milliseconds: 500);
@@ -45,7 +48,7 @@ class SecureApiService {
     _dio.options.baseUrl = baseUrl;
     _dio.options.connectTimeout = const Duration(seconds: 10);
     _dio.options.receiveTimeout = const Duration(seconds: 10);
-    
+
     // Add interceptors
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
@@ -61,20 +64,20 @@ class SecureApiService {
           }
         }
         _lastRequestTimes[requestKey] = DateTime.now();
-        
+
         // Add authorization header if token exists
         final token = await _secureStorage.read(key: 'access_token');
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
-        
+
         // Enforce HTTPS in production
         if (const bool.fromEnvironment('dart.vm.product')) {
           if (!options.path.startsWith('https://')) {
             options.path = options.path.replaceFirst('http://', 'https://');
           }
         }
-        
+
         return handler.next(options);
       },
       onResponse: (response, handler) {
@@ -93,21 +96,21 @@ class SecureApiService {
                 method: e.requestOptions.method,
                 headers: {...e.requestOptions.headers, 'Authorization': 'Bearer $token'},
               );
-              
+
               final response = await _dio.request(
                 e.requestOptions.path,
                 data: e.requestOptions.data,
                 queryParameters: e.requestOptions.queryParameters,
                 options: opts,
               );
-              
+
               return handler.resolve(response);
             }
           } catch (refreshError) {
             debugPrint('Error refreshing token: $refreshError');
           }
         }
-        
+
         return handler.next(e);
       },
     ));
@@ -120,19 +123,19 @@ class SecureApiService {
       if (refreshToken == null) {
         return false;
       }
-      
+
       // Create a new Dio instance to avoid interceptors loop
       final refreshDio = Dio();
       final response = await refreshDio.post(
         '$baseUrl/auth/refresh',
         data: {'refreshToken': refreshToken},
       );
-      
+
       if (response.statusCode == 200 && response.data['accessToken'] != null) {
         await _storeTokens(response.data);
         return true;
       }
-      
+
       return false;
     } catch (e) {
       debugPrint('Error refreshing token: $e');
@@ -150,7 +153,7 @@ class SecureApiService {
         );
         debugPrint('Stored access token');
       }
-      
+
       if (data['refreshToken'] != null) {
         await _secureStorage.write(
           key: 'refresh_token',
@@ -180,14 +183,14 @@ class SecureApiService {
           'message': 'All fields are required',
         };
       }
-      
+
       if (!termsAccepted) {
         return {
           'success': false,
           'message': 'You must accept the terms and conditions',
         };
       }
-      
+
       if (password.length < 8) {
         return {
           'success': false,
@@ -316,22 +319,22 @@ class SecureApiService {
       await _requestWithRetry(
         () => _dio.post('/auth/logout'),
       );
-      
+
       // Clear tokens
       await _secureStorage.delete(key: 'access_token');
       await _secureStorage.delete(key: 'refresh_token');
-      
+
       return {
         'success': true,
         'message': 'Logged out successfully',
       };
     } catch (e) {
       debugPrint('Logout error: $e');
-      
+
       // Still clear tokens even if API call fails
       await _secureStorage.delete(key: 'access_token');
       await _secureStorage.delete(key: 'refresh_token');
-      
+
       return {
         'success': true, // Still consider it successful since tokens are cleared
         'message': 'Logged out successfully',
@@ -345,7 +348,7 @@ class SecureApiService {
       final response = await _requestWithRetry(
         () => _dio.get(path, queryParameters: queryParameters),
       );
-      
+
       return response.data;
     } catch (e) {
       _handleError(e, path);
@@ -359,7 +362,7 @@ class SecureApiService {
       final response = await _requestWithRetry(
         () => _dio.post(path, data: data),
       );
-      
+
       return response.data;
     } catch (e) {
       _handleError(e, path);
@@ -373,7 +376,7 @@ class SecureApiService {
       final response = await _requestWithRetry(
         () => _dio.put(path, data: data),
       );
-      
+
       return response.data;
     } catch (e) {
       _handleError(e, path);
@@ -387,7 +390,7 @@ class SecureApiService {
       final response = await _requestWithRetry(
         () => _dio.patch(path, data: data),
       );
-      
+
       return response.data;
     } catch (e) {
       _handleError(e, path);
@@ -401,7 +404,7 @@ class SecureApiService {
       final response = await _requestWithRetry(
         () => _dio.delete(path),
       );
-      
+
       return response.data;
     } catch (e) {
       _handleError(e, path);
@@ -413,35 +416,35 @@ class SecureApiService {
   Future<Response> _requestWithRetry(Future<Response> Function() requestFunc) async {
     int retryCount = 0;
     Duration delay = _initialRetryDelay;
-    
+
     while (true) {
       try {
         return await requestFunc();
       } catch (e) {
         if (e is DioException) {
           // Don't retry for client errors (4xx) except for 429 (too many requests)
-          if (e.response != null && 
-              e.response!.statusCode != null && 
-              e.response!.statusCode! >= 400 && 
+          if (e.response != null &&
+              e.response!.statusCode != null &&
+              e.response!.statusCode! >= 400 &&
               e.response!.statusCode! < 500 &&
               e.response!.statusCode! != 429) {
             rethrow;
           }
-          
+
           // Don't retry if we've reached the max retries
           if (retryCount >= _maxRetries) {
             rethrow;
           }
-          
+
           // Exponential backoff
           await Future.delayed(delay);
           delay *= 2;
           retryCount++;
-          
-          debugPrint('Retrying request (${retryCount}/${_maxRetries})');
+
+          debugPrint('Retrying request ($retryCount/$_maxRetries)');
           continue;
         }
-        
+
         // For non-Dio exceptions, don't retry
         rethrow;
       }

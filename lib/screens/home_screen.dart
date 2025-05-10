@@ -1,5 +1,9 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../providers/navigation_provider.dart';
 import '../widgets/app_drawer.dart';
 import '../providers/user_provider.dart';
@@ -53,6 +57,9 @@ class _HomeScreenNewState extends State<HomeScreenNew> {
       // Sync with navigation provider
       final navigationProvider = Provider.of<NavigationProvider>(context, listen: false);
       navigationProvider.updateIndex(0); // Home screen is index 0
+
+      // Clear image cache to ensure fresh images
+      _clearImageCache();
     });
 
     // Load data
@@ -62,6 +69,19 @@ class _HomeScreenNewState extends State<HomeScreenNew> {
     _fetchTopArtists();
     _fetchNewSongs();
     _fetchUnreadNotificationCount();
+  }
+
+  // Clear the image cache to ensure fresh images
+  void _clearImageCache() {
+    try {
+      // Clear the CachedNetworkImage cache
+      DefaultCacheManager().emptyCache();
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+      debugPrint('Cleared image cache to ensure fresh images');
+    } catch (e) {
+      debugPrint('Error clearing image cache: $e');
+    }
   }
 
   // Fetch unread notification count
@@ -160,9 +180,33 @@ class _HomeScreenNewState extends State<HomeScreenNew> {
   // Fetch top artists
   Future<void> _fetchTopArtists() async {
     try {
-      // In a real implementation, you would have an API endpoint for top artists
-      // For now, we'll just get all artists and limit to 10
-      final artists = await _artistService.getAllArtists();
+      // First try to get cached artists to show something quickly
+      List<Artist> artists = [];
+
+      try {
+        // Get cached artists first for quick display
+        artists = await _artistService.getAllArtists();
+
+        if (mounted && artists.isNotEmpty) {
+          setState(() {
+            _topArtists = artists.take(10).toList();
+            // Keep loading state true as we'll refresh from API
+          });
+        }
+      } catch (cacheError) {
+        debugPrint('Error fetching cached artists: $cacheError');
+        // Continue to fetch from API
+      }
+
+      // Then force a refresh from the API to get the latest data
+      artists = await _artistService.getAllArtists(forceRefresh: true);
+
+      // Log artist data for debugging
+      debugPrint('Fetched ${artists.length} artists from API');
+      for (var artist in artists.take(10)) {
+        debugPrint('Artist after refresh: ${artist.name}, Image URL: ${artist.imageUrl}');
+      }
+
       if (mounted) {
         setState(() {
           _topArtists = artists.take(10).toList();
@@ -436,6 +480,9 @@ class _HomeScreenNewState extends State<HomeScreenNew> {
               ),
             ),
 
+            // Add extra space after the top banner
+            const SizedBox(height: 24.0),
+
             // Seasonal Collections
             _buildSectionHeader('Seasonal Collections'),
             _isLoadingSeasonalCollections
@@ -516,122 +563,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> {
                     ).toList(),
                   ),
 
-            // Bottom Banner
-            Container(
-              height: 180,
-              margin: const EdgeInsets.symmetric(vertical: 16.0),
-              child: Stack(
-                children: [
-                  // Placeholder for banner image
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Color.fromRGBO(
-                            128,
-                            0,
-                            128,
-                            0.7,
-                          ), // Purple with opacity
-                          Colors.black,
-                        ],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      ),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'DONT LOOK BACK',
-                        style: TextStyle(
-                          color: Colors.pink,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Dots indicator
-                  Positioned(
-                    bottom: 10,
-                    left: 0,
-                    right: 0,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          margin: const EdgeInsets.symmetric(horizontal: 2),
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                          ),
-                        ),
-                        Container(
-                          width: 8,
-                          height: 8,
-                          margin: const EdgeInsets.symmetric(horizontal: 2),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color.fromRGBO(
-                              255,
-                              255,
-                              255,
-                              0.5,
-                            ), // White with opacity
-                          ),
-                        ),
-                        Container(
-                          width: 8,
-                          height: 8,
-                          margin: const EdgeInsets.symmetric(horizontal: 2),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color.fromRGBO(
-                              255,
-                              255,
-                              255,
-                              0.5,
-                            ), // White with opacity
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Ad banner
-            Container(
-              height: 50,
-              color: const Color(0xFF2A4D69),
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                children: [
-                  const Text(
-                    'Nice job! You\'re displaying a 320 x 50 test ad from AdMob.',
-                    style: TextStyle(color: Colors.white, fontSize: 12),
-                  ),
-                  const Spacer(),
-                  Container(
-                    width: 30,
-                    height: 30,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.red,
-                    ),
-                    child: const Icon(
-                      Icons.close,
-                      color: Colors.white,
-                      size: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            // Bottom banner removed
 
             // Extra space at bottom to ensure all content is visible above bottom nav bar
             const SizedBox(height: 16),
@@ -642,41 +574,48 @@ class _HomeScreenNewState extends State<HomeScreenNew> {
   }
 
   Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                width: 4,
-                height: 20,
-                color: const Color(0xFFFFC701),
-                margin: const EdgeInsets.only(right: 8.0),
+              Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 20,
+                    color: Theme.of(context).colorScheme.primary,
+                    margin: const EdgeInsets.only(right: 8.0),
+                  ),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
+              GestureDetector(
+                onTap: () {
+                  // Navigate to the appropriate list screen based on the section title
+                  _navigateToSeeMore(title);
+                },
+                child: Text(
+                  'See more',
+                  style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 14),
                 ),
               ),
             ],
           ),
-          GestureDetector(
-            onTap: () {
-              // Navigate to the appropriate list screen based on the section title
-              _navigateToSeeMore(title);
-            },
-            child: const Text(
-              'See more',
-              style: TextStyle(color: Color(0xFFFFC701), fontSize: 14),
-            ),
-          ),
-        ],
-      ),
+        ),
+        // Add increased bottom padding after the section header
+        const SizedBox(height: 16.0), // Increased from 8.0 to 16.0 for more space
+      ],
     );
   }
 
@@ -687,7 +626,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> {
         maxHeight: 170, // Further increased maximum height
       ),
       height: 140, // Further increased default height
-      margin: const EdgeInsets.only(bottom: 16.0),
+      margin: const EdgeInsets.only(top: 0.0, bottom: 16.0), // Reduced top margin
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -696,55 +635,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> {
     );
   }
 
-  // Special horizontal scroll section for collections with increased height
-  Widget _buildCollectionsScrollSection(List<Widget> items) {
-    return Container(
-      constraints: const BoxConstraints(
-        minHeight: 146, // Height based on 16:9 ratio for 260px width
-        maxHeight: 180, // Maximum height for collections
-      ),
-      height: 160, // Optimal height for collections
-      margin: const EdgeInsets.only(bottom: 16.0),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        children: items,
-      ),
-    );
-  }
 
-  // Special loading indicator for collections with increased height
-  Widget _buildCollectionsLoadingIndicator() {
-    return Container(
-      constraints: const BoxConstraints(
-        minHeight: 146, // Height based on 16:9 ratio for 260px width
-        maxHeight: 180, // Maximum height for collections
-      ),
-      height: 160, // Optimal height for collections
-      child: const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
-        ),
-      ),
-    );
-  }
-
-  // Special empty state for collections with increased height
-  Widget _buildCollectionsEmptyState(String message) {
-    return Container(
-      constraints: const BoxConstraints(
-        minHeight: 146, // Height based on 16:9 ratio for 260px width
-        maxHeight: 180, // Maximum height for collections
-      ),
-      height: 160, // Optimal height for collections
-      child: Center(
-        child: Text(
-          message,
-          style: TextStyle(color: Colors.grey[400]),
-        ),
-      ),
-    );
-  }
 
   Widget _buildLoadingIndicator() {
     return Container(
@@ -753,9 +644,10 @@ class _HomeScreenNewState extends State<HomeScreenNew> {
         maxHeight: 170, // Further increased maximum height
       ),
       height: 140, // Further increased default height
-      child: const Center(
+      margin: const EdgeInsets.only(top: 0.0, bottom: 16.0), // Added margin to match horizontal scroll section
+      child: Center(
         child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
+          valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
         ),
       ),
     );
@@ -768,6 +660,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> {
         maxHeight: 170, // Further increased maximum height
       ),
       height: 140, // Further increased default height
+      margin: const EdgeInsets.only(top: 0.0, bottom: 16.0), // Added margin to match horizontal scroll section
       child: Center(
         child: Text(
           message,
@@ -820,13 +713,65 @@ class _HomeScreenNewState extends State<HomeScreenNew> {
               color: _getColorWithOpacity(color, 0.3),
               borderRadius: BorderRadius.circular(8.0),
               // No gradient overlay to keep image clear
-              image: collection?.imageUrl != null
-                ? DecorationImage(
-                    image: NetworkImage(collection!.imageUrl!),
-                    fit: BoxFit.cover, // Ensures image covers the full area
-                  )
-                : null,
             ),
+            child: collection?.imageUrl != null
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(8.0),
+                  child: CachedNetworkImage(
+                    imageUrl: collection!.imageUrl!,
+                    fit: BoxFit.cover,
+                    // Use these settings for better image loading
+                    fadeInDuration: const Duration(milliseconds: 300),
+                    // Add a cache key with timestamp to force refresh
+                    cacheKey: '${collection.imageUrl}_${DateTime.now().day}',
+                    placeholder: (context, url) => Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+                        strokeWidth: 2,
+                      ),
+                    ),
+                    errorWidget: (context, url, error) {
+                      debugPrint('Error loading collection image: ${collection.title} - $url');
+                      debugPrint('Error details: $error');
+
+                      // Try to refresh the image by adding a timestamp to the URL
+                      final timestamp = DateTime.now().millisecondsSinceEpoch;
+                      final refreshedUrl = '$url?t=$timestamp';
+
+                      // Return a new CachedNetworkImage with the refreshed URL
+                      return CachedNetworkImage(
+                        imageUrl: refreshedUrl,
+                        fit: BoxFit.cover,
+                        fadeInDuration: const Duration(milliseconds: 300),
+                        // Force network request with a unique cache key
+                        cacheKey: '${refreshedUrl}_retry_$timestamp',
+                        placeholder: (context, url) => const Center(
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
+                            strokeWidth: 2,
+                          ),
+                        ),
+                        errorWidget: (context, url, error) {
+                          // If still failing, show fallback icon
+                          return Center(
+                            child: Icon(
+                              Icons.collections_bookmark,
+                              color: Colors.white,
+                              size: 40,
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                )
+              : Center(
+                  child: Icon(
+                    Icons.collections_bookmark,
+                    color: Colors.white,
+                    size: 40,
+                  ),
+                ),
           ),
         ),
       ),
@@ -865,16 +810,6 @@ class _HomeScreenNewState extends State<HomeScreenNew> {
                     decoration: BoxDecoration(
                       color: _getColorWithOpacity(color, 0.3),
                       borderRadius: BorderRadius.circular(8.0),
-                      image: song?.imageUrl != null
-                        ? DecorationImage(
-                            image: NetworkImage(song!.imageUrl!),
-                            fit: BoxFit.cover, // Ensures image covers the full area
-                            onError: (exception, stackTrace) {
-                              debugPrint('Error loading song image: ${song.title} - ${song.imageUrl}');
-                              debugPrint('Error details: $exception');
-                            },
-                          )
-                        : null,
                       // Fallback gradient if no image is available
                       gradient: song?.imageUrl == null ? LinearGradient(
                         begin: Alignment.topCenter,
@@ -885,18 +820,74 @@ class _HomeScreenNewState extends State<HomeScreenNew> {
                         ],
                       ) : null,
                     ),
+                    child: song?.imageUrl != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8.0),
+                          child: CachedNetworkImage(
+                            imageUrl: song!.imageUrl!,
+                            fit: BoxFit.cover,
+                            // Use these settings for better image loading
+                            fadeInDuration: const Duration(milliseconds: 300),
+                            // Add a cache key with timestamp to force refresh
+                            cacheKey: '${song.imageUrl}_${DateTime.now().day}',
+                            placeholder: (context, url) => const Center(
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
+                                strokeWidth: 2,
+                              ),
+                            ),
+                            errorWidget: (context, url, error) {
+                              debugPrint('Error loading song image: ${song.title} - $url');
+                              debugPrint('Error details: $error');
+
+                              // Try to refresh the image by adding a timestamp to the URL
+                              final timestamp = DateTime.now().millisecondsSinceEpoch;
+                              final refreshedUrl = '$url?t=$timestamp';
+
+                              // Return a new CachedNetworkImage with the refreshed URL
+                              return CachedNetworkImage(
+                                imageUrl: refreshedUrl,
+                                fit: BoxFit.cover,
+                                fadeInDuration: const Duration(milliseconds: 300),
+                                // Force network request with a unique cache key
+                                cacheKey: '${refreshedUrl}_retry_$timestamp',
+                                placeholder: (context, url) => const Center(
+                                  child: CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                                errorWidget: (context, url, error) {
+                                  // If still failing, show fallback icon
+                                  return Icon(
+                                    Icons.music_note,
+                                    color: Colors.white,
+                                    size: 40,
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        )
+                      : Center(
+                          child: Icon(
+                            Icons.music_note,
+                            color: Colors.white,
+                            size: 40,
+                          ),
+                        ),
                   ),
                 ),
 
                 // Add spacing between image and text
-                const SizedBox(height: 4.0),
+                const SizedBox(height: 10.0),
 
                 // Title
                 SizedBox(
                   height: textHeight,
                   child: Text(
                     title,
-                    style: const TextStyle(color: Colors.white, fontSize: 12), // Increased font size
+                    style: const TextStyle(color: Colors.white, fontSize: 14), // Increased font size
                     maxLines: 1, // Only one line to save space
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -948,31 +939,77 @@ class _HomeScreenNewState extends State<HomeScreenNew> {
                       colors: [color, Colors.black],
                       stops: const [0.5, 1.0],
                     ),
-                    image: artist?.imageUrl != null
-                      ? DecorationImage(
-                          image: NetworkImage(artist!.imageUrl!),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
+                    // No image here, we'll use a child instead
                   ),
-                  child: artist?.imageUrl == null && color == const Color(0xFFFFC701)
-                      ? Icon(
-                          Icons.local_fire_department,
+                  child: artist?.imageUrl != null
+                      ? ClipOval(
+                          child: CachedNetworkImage(
+                            imageUrl: artist!.imageUrl!,
+                            fit: BoxFit.cover,
+                            width: imageSize,
+                            height: imageSize,
+                            // Use these settings for better image loading
+                            fadeInDuration: const Duration(milliseconds: 300),
+                            // Add a cache key with timestamp to force refresh
+                            cacheKey: '${artist.imageUrl}_${DateTime.now().day}',
+                            placeholder: (context, url) => const Center(
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
+                                strokeWidth: 2,
+                              ),
+                            ),
+                            errorWidget: (context, url, error) {
+                              debugPrint('Error loading artist image: ${artist.name} - $url');
+                              debugPrint('Error details: $error');
+
+                              // Try to refresh the image by adding a timestamp to the URL
+                              // This forces a network fetch instead of using cache
+                              final timestamp = DateTime.now().millisecondsSinceEpoch;
+                              final refreshedUrl = '$url?t=$timestamp';
+
+                              // Return a new CachedNetworkImage with the refreshed URL
+                              return CachedNetworkImage(
+                                imageUrl: refreshedUrl,
+                                fit: BoxFit.cover,
+                                width: imageSize,
+                                height: imageSize,
+                                fadeInDuration: const Duration(milliseconds: 300),
+                                // Force network request with a unique cache key
+                                cacheKey: '${refreshedUrl}_retry_$timestamp',
+                                placeholder: (context, url) => const Center(
+                                  child: CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                                errorWidget: (context, url, error) {
+                                  // If still failing, show fallback icon
+                                  return Icon(
+                                    Icons.person,
+                                    color: Colors.white,
+                                    size: imageSize * 0.5,
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        )
+                      : Icon(
+                          Icons.person,
                           color: Colors.white,
                           size: imageSize * 0.5, // Responsive icon size
-                        )
-                      : null,
+                        ),
                 ),
 
                 // Add spacing between image and text
-                const SizedBox(height: 4.0),
+                const SizedBox(height: 10.0),
 
                 // Name
                 SizedBox(
                   height: textHeight,
                   child: Text(
                     name,
-                    style: const TextStyle(color: Colors.white, fontSize: 12), // Increased font size
+                    style: const TextStyle(color: Colors.white, fontSize: 14), // Increased font size
                     textAlign: TextAlign.center,
                     maxLines: 1, // Only one line to save space
                     overflow: TextOverflow.ellipsis,

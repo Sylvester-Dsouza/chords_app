@@ -135,9 +135,9 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.38, // Compact height
+      height: MediaQuery.of(context).size.height * 0.35, // Slightly more compact
       decoration: const BoxDecoration(
-        color: Color(0xFF1E1E1E),
+        color: Color(0xFF1A1A1A),
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(16),
           topRight: Radius.circular(16),
@@ -158,12 +158,12 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
 
           // Chord name
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12.0),
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
               widget.chordName,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 28,
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -174,19 +174,49 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
             child: _buildChordDiagram(),
           ),
 
-          // Position indicator
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
-            child: _chordVariations.length > 1
-                ? Text(
+          // Position indicator and navigation row
+          if (_chordVariations.length > 1)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 18),
+                    onPressed: _currentVariationIndex > 0
+                        ? () {
+                            _pageController.previousPage(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          }
+                        : null,
+                    color: _currentVariationIndex > 0 ? Colors.white : Colors.grey[700],
+                  ),
+                  Text(
                     '${_currentVariationIndex + 1} of ${_chordVariations.length}',
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 14,
                     ),
-                  )
-                : const SizedBox.shrink(),
-          ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 18),
+                    onPressed: _currentVariationIndex < _chordVariations.length - 1
+                        ? () {
+                            _pageController.nextPage(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          }
+                        : null,
+                    color: _currentVariationIndex < _chordVariations.length - 1
+                        ? Colors.white
+                        : Colors.grey[700],
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -194,9 +224,9 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
 
   Widget _buildChordDiagram() {
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
+          valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
         ),
       );
     }
@@ -204,7 +234,7 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
     if (_errorMessage.isNotEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(40.0),
+          padding: const EdgeInsets.all(20.0),
           child: Text(
             _errorMessage,
             style: const TextStyle(color: Colors.white70),
@@ -223,85 +253,37 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
       );
     }
 
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // PageView for swiping between variations
-        PageView.builder(
-          controller: _pageController,
-          itemCount: _chordVariations.length,
-          onPageChanged: (index) {
-            setState(() {
-              _currentVariationIndex = index;
-            });
-          },
-          itemBuilder: (context, index) {
-            final variation = _chordVariations[index];
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 80.0),
-                child: SizedBox(
-                  height: 160,
-                  child: FlutterGuitarChord(
-                  chordName: widget.chordName,
-                  baseFret: variation['baseFret'],
-                  frets: variation['frets'],
-                  fingers: variation['fingers'],
-                  totalString: 6,
-                  labelColor: Colors.white, // White label
-                  tabForegroundColor: Colors.black, // Black text for finger numbers
-                  tabBackgroundColor: const Color(0xFFFFC701), // Yellow background for finger dots
-                  barColor: Colors.white, // White bar
-                  stringColor: Colors.white, // White strings
-                  firstFrameColor: Colors.white, // White first frame
-                  mutedColor: Colors.white, // White X and O symbols
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-
-        // Left arrow - only show if there are multiple variations and not on first
-        if (_chordVariations.length > 1)
-          Positioned(
-            left: 5,
-            child: _currentVariationIndex > 0
-                ? IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_ios,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      _pageController.previousPage(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                      );
-                    },
-                  )
-                : const SizedBox(width: 48), // Placeholder to maintain layout
+    // PageView for swiping between variations
+    return PageView.builder(
+      controller: _pageController,
+      itemCount: _chordVariations.length,
+      onPageChanged: (index) {
+        setState(() {
+          _currentVariationIndex = index;
+        });
+      },
+      itemBuilder: (context, index) {
+        final variation = _chordVariations[index];
+        return Center(
+          child: SizedBox(
+            height: 160,
+            child: FlutterGuitarChord(
+              chordName: widget.chordName,
+              baseFret: variation['baseFret'],
+              frets: variation['frets'],
+              fingers: variation['fingers'],
+              totalString: 6,
+              labelColor: Colors.white, // White label
+              tabForegroundColor: Colors.black, // Black text for finger numbers
+              tabBackgroundColor: Theme.of(context).colorScheme.primary, // Theme primary color for finger dots
+              barColor: Colors.white, // White bar
+              stringColor: Colors.white, // White strings
+              firstFrameColor: Colors.white, // White first frame
+              mutedColor: Colors.white, // White X and O symbols
+            ),
           ),
-
-        // Right arrow - only show if there are multiple variations and not on last
-        if (_chordVariations.length > 1)
-          Positioned(
-            right: 5,
-            child: _currentVariationIndex < _chordVariations.length - 1
-                ? IconButton(
-                    icon: const Icon(
-                      Icons.arrow_forward_ios,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      _pageController.nextPage(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                      );
-                    },
-                  )
-                : const SizedBox(width: 48), // Placeholder to maintain layout
-          ),
-      ],
+        );
+      },
     );
   }
 }

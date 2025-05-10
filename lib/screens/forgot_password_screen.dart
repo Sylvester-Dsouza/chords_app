@@ -43,7 +43,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             _emailSent = true;
           });
           ToastUtil.showSuccess(
-            context, 
+            context,
             'Password reset email sent. Please check your inbox.',
           );
         } else {
@@ -54,7 +54,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         }
       } catch (e) {
         if (!mounted) return;
-        
+
         setState(() {
           _errorMessage = 'An error occurred. Please try again.';
         });
@@ -118,7 +118,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
           ),
           const SizedBox(height: 30),
-          
+
           // Email field
           Container(
             decoration: BoxDecoration(
@@ -153,13 +153,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Send button
           ElevatedButton(
             onPressed: _isLoading ? null : _sendPasswordResetEmail,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFFC701),
-              foregroundColor: Colors.black,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -182,7 +182,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ),
                   ),
           ),
-          
+
           if (_errorMessage != null) ...[
             const SizedBox(height: 16),
             Text(
@@ -194,9 +194,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               textAlign: TextAlign.center,
             ),
           ],
-          
+
           const SizedBox(height: 24),
-          
+
           // Back to login
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -209,10 +209,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 onPressed: () {
                   Navigator.pop(context);
                 },
-                child: const Text(
+                child: Text(
                   'Login',
                   style: TextStyle(
-                    color: Color(0xFFFFC701),
+                    color: Theme.of(context).colorScheme.primary,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
@@ -230,9 +230,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         const SizedBox(height: 40),
-        const Icon(
+        Icon(
           Icons.check_circle_outline,
-          color: Color(0xFFFFC701),
+          color: Theme.of(context).colorScheme.primary,
           size: 80,
         ),
         const SizedBox(height: 24),
@@ -269,8 +269,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             Navigator.pop(context);
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFFC701),
-            foregroundColor: Colors.black,
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),

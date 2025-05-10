@@ -29,10 +29,13 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
   bool _isGoogleLoginLoading = false;
 
   // Safe navigation method that doesn't use context across async gaps
+  // and prevents navigation back after login
   void _safeNavigate(String route) {
     if (mounted) {
       debugPrint('LoginScreen: Navigating to $route');
       // Use a direct navigation approach to avoid issues
+      // pushAndRemoveUntil removes all previous routes from the stack
+      // preventing the user from going back to the login screen with the back button
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const MainNavigation()),
         (route) => false, // Remove all previous routes
@@ -282,41 +285,28 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    // Use PopScope to handle back button presses
+    // This prevents users from navigating back after logout
     return PopScope(
-      canPop: false,
+      canPop: false, // Disable default back button behavior
       onPopInvokedWithResult: (didPop, result) async {
         if (!didPop) {
+          // Show exit confirmation dialog
           await _onWillPop();
         }
       },
       child: Scaffold(
         backgroundColor: const Color(0xFF121212),
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ),
         body: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            padding: const EdgeInsets.fromLTRB(24.0, 60.0, 24.0, 24.0),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Logo
-                  Center(
-                    child: Image.asset(
-                      'assets/images/splash.png',
-                      width: 150,
-                      height: 80,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  const SizedBox(height: 30),
+                  // Add some top padding instead of logo
+                  const SizedBox(height: 50),
 
                   // Login text
                   const Center(
@@ -427,7 +417,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                                   _rememberMe = value ?? false;
                                 });
                               },
-                              activeColor: const Color(0xFFFFC701),
+                              activeColor: Theme.of(context).colorScheme.primary,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(4),
                               ),
@@ -444,10 +434,10 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                       // Forgot password
                       TextButton(
                         onPressed: _forgotPassword,
-                        child: const Text(
+                        child: Text(
                           'Forgot password ?',
                           style: TextStyle(
-                            color: Color(0xFFFFC701),
+                            color: Colors.grey[400],
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),
@@ -461,8 +451,8 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                   ElevatedButton(
                     onPressed: _isEmailLoginLoading ? null : _login,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFC701),
-                      foregroundColor: Colors.black,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -597,10 +587,10 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                         onPressed: () {
                           Navigator.pushNamed(context, '/register');
                         },
-                        child: const Text(
+                        child: Text(
                           'Register',
                           style: TextStyle(
-                            color: Color(0xFFFFC701),
+                            color: Theme.of(context).colorScheme.primary,
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/playlist.dart';
 import 'api_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -11,15 +12,33 @@ class PlaylistService {
   // Check if user is authenticated
   Future<bool> isAuthenticated() async {
     try {
+      // First check for access token
       final token = await _secureStorage.read(key: 'access_token');
-      if (token == null) {
-        debugPrint('No access token found');
-        return false;
+      if (token != null) {
+        debugPrint('Access token found, user is authenticated');
+        return true;
       }
 
-      // Just check if token exists for now
-      // In a real app, you would verify the token with a lightweight endpoint
-      return true;
+      // If no access token, check Firebase auth
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser != null) {
+        try {
+          // Get a fresh token
+          final idToken = await firebaseUser.getIdToken(true);
+          debugPrint('Firebase user is authenticated, got fresh token');
+
+          // Store the token for future use
+          await _secureStorage.write(key: 'firebase_token', value: idToken);
+
+          return true;
+        } catch (e) {
+          debugPrint('Error getting Firebase token: $e');
+          return false;
+        }
+      }
+
+      debugPrint('No authentication found (no token, no Firebase user)');
+      return false;
     } catch (e) {
       debugPrint('Error checking authentication: $e');
       return false;
@@ -35,16 +54,11 @@ class PlaylistService {
         throw Exception('Authentication required. Please log in.');
       }
 
-      // Get the customer ID from the token
-      final token = await _secureStorage.read(key: 'access_token');
-      if (token == null) {
-        debugPrint('No access token found when fetching playlists');
-        throw Exception('Authentication required. Please log in.');
-      }
+      // The API service will automatically use the token from secure storage
+      // or get a fresh Firebase token if needed
+      debugPrint('Fetching playlists from API');
 
-      debugPrint('Fetching playlists from API with token: ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
-
-      // Make the API request with the token
+      // Make the API request
       final response = await _apiService.get('/playlists');
 
       if (response.statusCode == 200) {
@@ -102,16 +116,11 @@ class PlaylistService {
         throw Exception('Authentication required. Please log in.');
       }
 
-      // Get the customer ID from the token
-      final token = await _secureStorage.read(key: 'access_token');
-      if (token == null) {
-        debugPrint('No access token found when creating playlist');
-        throw Exception('Authentication required. Please log in.');
-      }
+      // The API service will automatically use the token from secure storage
+      // or get a fresh Firebase token if needed
+      debugPrint('Creating playlist: $name');
 
-      debugPrint('Creating playlist: $name with token: ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
-
-      // Make the API request with the token
+      // Make the API request
       final response = await _apiService.post('/playlists', data: {
         'name': name,
         'description': description,

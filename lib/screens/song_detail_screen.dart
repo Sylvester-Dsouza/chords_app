@@ -6,9 +6,11 @@ import '../widgets/chord_formatter.dart';
 import '../services/song_service.dart';
 import '../services/liked_songs_service.dart';
 import '../services/comment_service.dart';
+import '../services/rating_service.dart';
 import '../widgets/chord_diagram_bottom_sheet.dart';
+import '../widgets/youtube_video_bottom_sheet.dart';
+import '../widgets/star_rating.dart';
 import './comments_screen.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 
 class SongDetailScreen extends StatefulWidget {
@@ -25,17 +27,19 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
   // UI state
   bool _isLiked = false;
   bool _showChords = true;
-  double _fontSize = 16.0;
+  double _fontSize = 14.0; // Reduced default font size from 16.0 to 14.0
   int _transposeValue = 0;
   bool _isAutoScrollEnabled = false;
   double _autoScrollSpeed = 1.0;
   bool _isLoading = true;
+  bool _isRatingLoading = false;
   String? _errorMessage;
 
   // Services
   final SongService _songService = SongService();
   final LikedSongsService _likedSongsService = LikedSongsService();
   final CommentService _commentService = CommentService();
+  final RatingService _ratingService = RatingService();
 
   // Scroll controller for auto-scroll
   final ScrollController _scrollController = ScrollController();
@@ -64,12 +68,14 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
   // Check if the song is liked from the API
   Future<void> _checkIfSongIsLiked() async {
     try {
+      // Use the updated LikedSongsService which checks both local storage and server
       final isLiked = await _likedSongsService.isSongLiked(_song.id);
       if (mounted) {
         setState(() {
           _isLiked = isLiked;
           _song.isLiked = isLiked;
         });
+        debugPrint('Song ${_song.title} is liked: $isLiked');
       }
     } catch (e) {
       debugPrint('Error checking if song is liked: $e');
@@ -78,6 +84,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
         setState(() {
           _isLiked = _song.isLiked;
         });
+        debugPrint('Using fallback liked status for ${_song.title}: ${_song.isLiked}');
       }
     }
   }
@@ -95,6 +102,34 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
       debugPrint('Error fetching comment count: $e');
       // If there's an error, we'll keep the existing count
       // No need to set a default value since it's already initialized to 0 in the constructor
+    }
+  }
+
+  // Fetch rating information for the song
+  Future<void> _fetchRatingInfo() async {
+    try {
+      setState(() {
+        _isRatingLoading = true;
+      });
+
+      // Get song rating stats and user's rating
+      final updatedSong = await _ratingService.updateSongWithRatingInfo(_song);
+
+      if (mounted) {
+        setState(() {
+          _song = updatedSong;
+          _isRatingLoading = false;
+        });
+      }
+
+      debugPrint('Song rating info: Average: ${_song.averageRating}, Count: ${_song.ratingCount}, User Rating: ${_song.userRating}');
+    } catch (e) {
+      debugPrint('Error fetching rating info: $e');
+      if (mounted) {
+        setState(() {
+          _isRatingLoading = false;
+        });
+      }
     }
   }
 
@@ -118,9 +153,10 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
         });
       }
 
-      // Check if the song is liked from the API and fetch comment count
+      // Check if the song is liked from the API, fetch comment count, and rating info
       await _checkIfSongIsLiked();
       await _fetchCommentCount();
+      await _fetchRatingInfo();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -180,6 +216,21 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
             const SnackBar(content: Text('Failed to update like status')),
           );
         }
+      } else {
+        // Show feedback with correct message based on the new state
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                _isLiked
+                  ? 'Added "${_song.title}" to liked songs'
+                  : 'Removed "${_song.title}" from liked songs'
+              ),
+              backgroundColor: _isLiked ? Colors.green : Colors.grey,
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        }
       }
     } catch (e) {
       // If there was an error, revert to previous state
@@ -223,13 +274,16 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
 
   // Toggle auto-scroll
   void _toggleAutoScroll() {
+    // Update the state
     setState(() {
       _isAutoScrollEnabled = !_isAutoScrollEnabled;
     });
 
     if (_isAutoScrollEnabled) {
+      // Start the auto-scroll
       _startAutoScroll();
     } else {
+      // Stop the auto-scroll
       _stopAutoScroll();
     }
   }
@@ -271,6 +325,58 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
       ),
       builder: (context) => PlaylistBottomSheet(song: _song),
     );
+  }
+
+  // Rate a song
+  Future<void> _rateSong(int rating) async {
+    try {
+      setState(() {
+        _isRatingLoading = true;
+      });
+
+      // Call the API to rate the song
+      final success = await _ratingService.rateSong(_song.id, rating);
+
+      if (success) {
+        // Update the song's rating info
+        await _fetchRatingInfo();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('You rated "${_song.title}" $rating stars'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to rate song. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error rating song: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRatingLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -320,7 +426,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFC701),
+                            color: Theme.of(context).colorScheme.primary,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           constraints: const BoxConstraints(
@@ -360,9 +466,9 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
+          valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
         ),
       );
     }
@@ -398,8 +504,8 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
               ElevatedButton(
                 onPressed: _fetchSongData,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFC701),
-                  foregroundColor: Colors.black,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 ),
                 child: const Text('Try Again'),
               ),
@@ -427,44 +533,192 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
   Widget _buildLyricsContent() {
     return SingleChildScrollView(
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Song title and artist
-          Container(
-            margin: const EdgeInsets.only(top: 10, bottom: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  _song.title,
-                  style: GoogleFonts.lexend(
-                    color: const Color(0xFFFFC701),
-                    fontSize: 25,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  _song.artist,
-                  style: GoogleFonts.lexend(
-                    color: Colors.white70,
-                    fontSize: 18,
-                  ),
-                ),
-              ],
+          // Song details section (Ultimate Guitar style)
+          _buildSongDetailsSection(),
+
+          // Divider between details and content
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16.0),
+            child: Divider(
+              color: Color(0xFF333333),
+              thickness: 1,
             ),
           ),
 
+          // Section title for chord sheet
+          const Padding(
+            padding: EdgeInsets.only(bottom: 12.0),
+            child: Text(
+              'Chord Sheet',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
 
           // Lyrics and chords
           ..._parseLyricsAndChords(),
+
+          // Divider before rating section
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16.0),
+            child: Divider(
+              color: Color(0xFF333333),
+              thickness: 1,
+            ),
+          ),
+
+          // Rating section
+          _buildRatingSection(),
 
           // Add some padding at the bottom for better scrolling
           const SizedBox(height: 60),
         ],
       ),
+    );
+  }
+
+  Widget _buildSongDetailsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Song title
+        Text(
+          _song.title,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.primary,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 4),
+
+        // Artist name
+        Text(
+          _song.artist,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 16,
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        // Rating information
+        if (_song.ratingCount > 0) ...[
+          Row(
+            children: [
+              StarRating(
+                rating: _song.averageRating,
+                size: 16,
+                color: Theme.of(context).colorScheme.primary,
+                showRating: true,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '(${_song.ratingCount} ${_song.ratingCount == 1 ? 'rating' : 'ratings'})',
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+        ],
+
+        // Key and Capo in a row
+        Row(
+          children: [
+            // Key pill
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF333333),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.music_note,
+                    color: Colors.white70,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Key: ${_song.key}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Capo pill (if available)
+            if (_song.capo != null && _song.capo! > 0) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF333333),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.tune,
+                      color: Colors.white70,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Capo: ${_song.capo}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+
+        // Tags (if available)
+        if (_song.tags != null && _song.tags!.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _song.tags!.map((tag) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFF444444)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  tag,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ],
     );
   }
 
@@ -492,144 +746,529 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
         highlightChords: _showChords,
         transposeValue: _transposeValue,
         onChordTap: _showChordDiagram,
+        // Use the primary color from the theme for chords
+        chordColor: Theme.of(context).colorScheme.primary,
       ),
     ];
   }
 
   Widget _buildBottomNavigation() {
     return Container(
-      height: 70,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+      height: 64,
+      decoration: const BoxDecoration(
+        color: Color(0xFF121212),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(100),
+            color: Color(0x33000000), // Black with 20% opacity
             blurRadius: 8,
-            offset: const Offset(0, -2),
+            offset: Offset(0, -1),
           ),
         ],
-        border: const Border(
-          top: BorderSide(
-            color: Color(0xFF333333),
-            width: 1,
-          ),
-        ),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          // Toggle chords button
-          _buildBottomNavButton(
-            icon: Icons.music_note,
-            label: 'Chords',
-            isActive: _showChords,
-            onPressed: _toggleChordsVisibility,
-          ),
-
-          // Font size button
-          _buildBottomNavButton(
-            icon: Icons.text_fields,
-            label: 'Font',
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  backgroundColor: const Color(0xFF1E1E1E),
-                  title: const Text('Font Size', style: TextStyle(color: Colors.white)),
-                  content: Slider(
-                    value: _fontSize,
-                    min: 12,
-                    max: 24,
-                    divisions: 6,
-                    label: _fontSize.round().toString(),
-                    onChanged: (value) {
-                      setState(() {
-                        _fontSize = value;
-                      });
-                    },
-                  ),
-                  actions: [
-                    TextButton(
-                      child: const Text('Close'),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
+      child: _isAutoScrollEnabled
+          // When auto-scroll is enabled, show minimal controls
+          ? Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Exit auto-scroll mode button
+                _buildBottomNavButton(
+                  icon: Icons.close,
+                  label: 'Exit',
+                  onPressed: () {
+                    _toggleAutoScroll(); // This will stop auto-scroll
+                  },
                 ),
-              );
-            },
-          ),
 
-          // Auto-scroll button
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: _isAutoScrollEnabled ? Colors.red : const Color(0xFFFFC701),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: (_isAutoScrollEnabled ? Colors.red : const Color(0xFFFFC701)).withAlpha(50),
-                  blurRadius: 8,
-                  spreadRadius: 1,
+                // Auto-scroll button (center, prominent)
+                _buildScrollButton(),
+
+                // Speed button
+                _buildBottomNavButton(
+                  icon: Icons.speed_outlined,
+                  label: 'Speed',
+                  onPressed: _showSpeedBottomSheet,
+                ),
+              ],
+            )
+          // When auto-scroll is disabled, show all controls
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                // Toggle chords button
+                _buildBottomNavButton(
+                  icon: _showChords ? Icons.music_note : Icons.music_note_outlined,
+                  label: 'Chords',
+                  isActive: _showChords,
+                  onPressed: _toggleChordsVisibility,
+                ),
+
+                // Font size button
+                _buildBottomNavButton(
+                  icon: Icons.format_size,
+                  label: 'Font',
+                  onPressed: _showFontSizeBottomSheet,
+                ),
+
+                // Auto-scroll button (center, prominent)
+                _buildScrollButton(),
+
+                // Video button
+                _buildBottomNavButton(
+                  icon: Icons.video_library_outlined,
+                  label: 'Video',
+                  onPressed: _showVideoOptions,
+                ),
+
+                // Print button
+                _buildBottomNavButton(
+                  icon: Icons.print_outlined,
+                  label: 'Print',
+                  onPressed: _printChordSheet,
                 ),
               ],
             ),
-            child: IconButton(
-              icon: Icon(
-                _isAutoScrollEnabled ? Icons.pause : Icons.play_arrow,
-                color: Colors.black,
-                size: 28,
-              ),
-              onPressed: _toggleAutoScroll,
-              padding: EdgeInsets.zero,
+    );
+  }
+
+  Widget _buildRatingSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section title
+        const Padding(
+          padding: EdgeInsets.only(bottom: 12.0),
+          child: Text(
+            'Rate This Song',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
             ),
           ),
+        ),
 
-          // Speed button
-          _buildBottomNavButton(
-            icon: Icons.speed,
-            label: 'Speed',
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  backgroundColor: const Color(0xFF1E1E1E),
-                  title: const Text('Scroll Speed', style: TextStyle(color: Colors.white)),
-                  content: Slider(
-                    value: _autoScrollSpeed,
-                    min: 0.5,
-                    max: 2.0,
-                    divisions: 6,
-                    label: '${_autoScrollSpeed.toStringAsFixed(1)}x',
-                    onChanged: (value) {
-                      setState(() {
-                        _autoScrollSpeed = value;
-                      });
-                    },
-                  ),
-                  actions: [
-                    TextButton(
-                      child: const Text('Close'),
-                      onPressed: () => Navigator.pop(context),
+        // Rating UI
+        Center(
+          child: Column(
+            children: [
+              // Current average rating display
+              if (_song.ratingCount > 0) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    StarRating(
+                      rating: _song.averageRating,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.primary,
+                      showRating: true,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '(${_song.ratingCount} ${_song.ratingCount == 1 ? 'rating' : 'ratings'})',
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 14,
+                      ),
                     ),
                   ],
                 ),
-              );
-            },
-          ),
+                const SizedBox(height: 16),
+              ],
 
-          // Share button
-          _buildBottomNavButton(
-            icon: Icons.share,
-            label: 'Share',
-            onPressed: () {
-              // TODO: Implement share functionality
-            },
+              // User's rating
+              const Text(
+                'Your Rating:',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 8),
+              InteractiveStarRating(
+                initialRating: _song.userRating ?? 0,
+                onRatingChanged: _rateSong,
+                size: 36,
+                color: Theme.of(context).colorScheme.primary,
+                showLabel: true,
+              ),
+
+              // Thank you message if user has rated
+              if (_song.userRating != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'Thanks for rating!',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ],
           ),
-        ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScrollButton() {
+    // Light purple color
+    const Color lightPurple = Color(0xFFB388FF);
+
+    return InkWell(
+      onTap: _toggleAutoScroll,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              _isAutoScrollEnabled ? Icons.pause_rounded : Icons.play_arrow_rounded,
+              color: _isAutoScrollEnabled ? Colors.redAccent : lightPurple,
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            SizedBox(
+              height: 14,
+              child: Text(
+                _isAutoScrollEnabled ? 'Pause' : 'Play',
+                style: TextStyle(
+                  color: _isAutoScrollEnabled ? Colors.redAccent : lightPurple,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+
+  void _showFontSizeBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Font Size',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.text_fields, color: Colors.white, size: 16),
+                  Expanded(
+                    child: Slider(
+                      value: _fontSize,
+                      min: 10, // Reduced minimum font size for more flexibility
+                      max: 28, // Increased maximum font size for better readability
+                      divisions: 9, // More divisions for finer control
+                      label: _fontSize.round().toString(),
+                      onChanged: (value) {
+                        setState(() {
+                          this.setState(() {
+                            _fontSize = value;
+                          });
+                        });
+                      },
+                    ),
+                  ),
+                  const Icon(Icons.text_fields, color: Colors.white, size: 24),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      this.setState(() {
+                        _fontSize = 14.0; // Reset to new default
+                      });
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Reset'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                    child: const Text('Apply'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showSpeedBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Scroll Speed',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.speed, color: Colors.white, size: 16),
+                  Expanded(
+                    child: Slider(
+                      value: _autoScrollSpeed,
+                      min: 0.5,
+                      max: 2.0,
+                      divisions: 6,
+                      label: '${_autoScrollSpeed.toStringAsFixed(1)}x',
+                      onChanged: (value) {
+                        setState(() {
+                          this.setState(() {
+                            _autoScrollSpeed = value;
+                          });
+                        });
+                      },
+                    ),
+                  ),
+                  const Icon(Icons.speed, color: Colors.white, size: 24),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      this.setState(() {
+                        _autoScrollSpeed = 1.0; // Reset to default
+                      });
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Reset'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                    child: const Text('Apply'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _printChordSheet() {
+    // Show a bottom sheet with print options
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Print Options',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf, color: Colors.white),
+              title: const Text('Save as PDF', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                _saveToPdf();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.print, color: Colors.white),
+              title: const Text('Print', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                _sendToPrinter();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.share, color: Colors.white),
+              title: const Text('Share', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                _shareChordSheet();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _saveToPdf() {
+    // Show a success message for now
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Chord sheet saved as PDF'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  void _sendToPrinter() {
+    // Show a success message for now
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Sent to printer'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  void _shareChordSheet() {
+    // Show a success message for now
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Chord sheet shared'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+
+
+  void _showVideoOptions() {
+    // Check if any video URLs are available
+    final bool hasTutorialVideo = _song.tutorialVideoUrl != null && _song.tutorialVideoUrl!.isNotEmpty;
+    final bool hasOfficialVideo = _song.officialVideoUrl != null && _song.officialVideoUrl!.isNotEmpty;
+
+    // Show a bottom sheet with video options
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Video Options',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Tutorial video option (only show if available)
+            if (hasTutorialVideo)
+              ListTile(
+                leading: const Icon(Icons.video_library, color: Colors.white),
+                title: const Text('Watch Tutorial', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showYouTubeVideo(_song.tutorialVideoUrl!, 'Tutorial: ${_song.title}');
+                },
+              ),
+
+            // Official music video option (only show if available)
+            if (hasOfficialVideo)
+              ListTile(
+                leading: const Icon(Icons.music_video, color: Colors.white),
+                title: const Text('Watch Music Video', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showYouTubeVideo(_song.officialVideoUrl!, 'Music Video: ${_song.title}');
+                },
+              ),
+
+            // No videos available message
+            if (!hasTutorialVideo && !hasOfficialVideo)
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'No videos are currently available for this song.',
+                  style: TextStyle(color: Colors.white70),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showYouTubeVideo(String videoUrl, String title) {
+    // Show the YouTube video in a bottom sheet that takes up half the screen
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      isDismissible: true,
+      enableDrag: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.5, // Make it larger
+        decoration: const BoxDecoration(
+          color: Color(0xFF121212),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: YouTubeVideoBottomSheet(
+          videoUrl: videoUrl,
+          title: title,
+        ),
+      ),
+    );
+  }
+
+
 
   Widget _buildBottomNavButton({
     required IconData icon,
@@ -637,35 +1276,35 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
     required VoidCallback onPressed,
     bool isActive = false,
   }) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: isActive ? const Color(0xFFFFC701).withAlpha(40) : Colors.black.withAlpha(40),
-            shape: BoxShape.circle,
-            border: isActive ? Border.all(color: const Color(0xFFFFC701), width: 1) : null,
-          ),
-          child: IconButton(
-            icon: Icon(
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
               icon,
-              color: isActive ? const Color(0xFFFFC701) : Colors.white,
-              size: 22
+              color: isActive ? const Color(0xFFFFC701) : Colors.white70,
+              size: 24,
             ),
-            onPressed: onPressed,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
+            const SizedBox(height: 4),
+            SizedBox(
+              height: 14,
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: isActive ? const Color(0xFFFFC701) : Colors.white70,
+                  fontSize: 11,
+                  fontWeight: isActive ? FontWeight.w500 : FontWeight.normal,
+                ),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: isActive ? const Color(0xFFFFC701) : Colors.white,
-            fontSize: 12
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

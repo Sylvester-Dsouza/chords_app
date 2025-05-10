@@ -1,8 +1,11 @@
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'api_service.dart';
-import 'firebase_service.dart';
+import '../firebase_options.dart';
 
 enum AuthProvider {
   email,
@@ -13,6 +16,74 @@ enum AuthProvider {
 
 class AuthService {
   final ApiService _apiService = ApiService();
+  late FirebaseAuth _auth;
+  late GoogleSignIn _googleSignIn;
+  bool _isInitialized = false;
+
+  // Constructor doesn't initialize Firebase-dependent fields
+  AuthService() {
+    // These will be initialized after Firebase.initializeApp() is called
+  }
+
+  // Initialize Firebase (called from main.dart and splash_screen.dart)
+  Future<void> initializeFirebase() async {
+    // If already initialized, don't do it again
+    if (_isInitialized) {
+      debugPrint('Firebase already initialized by this service instance');
+      return;
+    }
+
+    try {
+      // Check if Firebase is already initialized at the app level
+      if (Firebase.apps.isNotEmpty) {
+        debugPrint('Firebase already initialized at app level');
+      } else {
+        // Initialize Firebase with the default options
+        debugPrint('Initializing Firebase with default options');
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+
+        // Verify the project ID
+        final FirebaseApp app = Firebase.app();
+        final String projectId = app.options.projectId;
+
+        if (projectId != 'chords-app-ecd47') {
+          debugPrint('WARNING: Firebase initialized with incorrect project ID: $projectId');
+          debugPrint('Expected project ID: chords-app-ecd47');
+
+          // Force re-initialization with the correct project
+          await Firebase.app().delete();
+          await Firebase.initializeApp(
+            options: DefaultFirebaseOptions.currentPlatform,
+          );
+          debugPrint('Firebase re-initialized with project: ${Firebase.app().options.projectId}');
+        } else {
+          debugPrint('Firebase initialized successfully with project: $projectId');
+        }
+      }
+
+      // Initialize Firebase-dependent fields after Firebase is initialized
+      debugPrint('Initializing Firebase Auth and GoogleSignIn');
+      _auth = FirebaseAuth.instance;
+
+      // Initialize GoogleSignIn with the correct client ID
+      _googleSignIn = GoogleSignIn(
+        scopes: ['email', 'profile'],
+        clientId: '481447097360-13s3qaeafrg1htmndilphq984komvbti.apps.googleusercontent.com',
+      );
+
+      debugPrint('GoogleSignIn initialized with client ID');
+
+      // Mark as initialized
+      _isInitialized = true;
+
+      debugPrint('Firebase Auth and GoogleSignIn initialized successfully');
+    } catch (e) {
+      debugPrint('Failed to initialize Firebase: $e');
+      // Don't rethrow to prevent app from crashing if Firebase isn't set up
+    }
+  }
 
   // Register with email and password
   Future<Map<String, dynamic>> registerWithEmail({
@@ -24,10 +95,16 @@ class AuthService {
     try {
       debugPrint('Starting registration process for $email');
 
+      // Ensure Firebase is initialized
+      if (!_isInitialized) {
+        debugPrint('Firebase not initialized for registration, initializing now...');
+        await initializeFirebase();
+      }
+
       // Create user in Firebase Authentication
       try {
         debugPrint('Attempting to create user in Firebase');
-        final UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        final UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
           email: email,
           password: password,
         );
@@ -39,7 +116,7 @@ class AuthService {
         debugPrint('Display name updated: $name');
 
         // Get Firebase ID token
-        final String? idToken = await userCredential.user?.getIdToken();
+        final String? idToken = await userCredential.user?.getIdToken(true);
         debugPrint('Got Firebase ID token: ${idToken != null}');
 
         // Log the token length for debugging
@@ -71,24 +148,14 @@ class AuthService {
         if (idToken != null) {
           debugPrint('Registering with backend using Firebase token');
           // Register with backend using Firebase token
-          final result = await _apiService.loginWithFirebase(
-            firebaseToken: idToken,
-            authProvider: 'EMAIL',
+          final result = await _apiService.register(
             name: name,
-            rememberMe: false,
+            email: email,
+            password: password,
+            termsAccepted: termsAccepted,
           );
 
           debugPrint('Backend registration result: ${result['success']}');
-
-          // If we got a response with user data but success is false, consider it a success
-          if (result['success'] == false && result['data'] != null) {
-            debugPrint('Registration appears successful despite success=false');
-            return {
-              ...result,
-              'success': true,
-            };
-          }
-
           return result;
         } else {
           debugPrint('Firebase ID token is null');
@@ -101,53 +168,34 @@ class AuthService {
         if (firebaseError is FirebaseAuthException) {
           if (firebaseError.code == 'email-already-in-use') {
             debugPrint('Email already in use in Firebase');
-
-            // Try to sign in with this email instead
-            try {
-              // Attempt to sign in with Firebase using the provided credentials
-              final UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-                email: email,
-                password: password,
-              );
-
-              // If sign-in is successful, get the Firebase ID token
-              final String? idToken = await userCredential.user?.getIdToken();
-
-              if (idToken != null) {
-                // Register with backend using Firebase token
-                final result = await _apiService.loginWithFirebase(
-                  firebaseToken: idToken,
-                  authProvider: 'EMAIL',
-                  name: name,
-                  rememberMe: false,
-                );
-
-                return result;
-              }
-            } catch (signInError) {
-              debugPrint('Error signing in with existing email: $signInError');
-              return {
-                'success': false,
-                'message': 'This email is already registered. Please use the login screen with the correct password.',
-              };
-            }
+            return {
+              'success': false,
+              'message': 'This email is already registered. Please use the login screen with the correct password.',
+            };
+          } else if (firebaseError.code == 'weak-password') {
+            return {
+              'success': false,
+              'message': 'The password is too weak. Please use a stronger password.',
+            };
+          } else if (firebaseError.code == 'invalid-email') {
+            return {
+              'success': false,
+              'message': 'The email address is invalid.',
+            };
           }
 
           // Handle other Firebase errors
           return {
             'success': false,
-            'message': 'Firebase error: ${firebaseError.message}',
+            'message': firebaseError.message ?? 'Firebase error occurred during registration.',
           };
         }
 
-        // Fallback to direct registration with backend
-        debugPrint('Falling back to direct backend registration');
-        return await _apiService.register(
-          name: name,
-          email: email,
-          password: password,
-          termsAccepted: termsAccepted,
-        );
+        // Generic error
+        return {
+          'success': false,
+          'message': 'An error occurred during registration. Please try again.',
+        };
       }
     } catch (e) {
       debugPrint('Registration error: $e');
@@ -167,12 +215,29 @@ class AuthService {
     try {
       debugPrint('Attempting to login with Firebase first');
 
+      // Validate input
+      if (email.isEmpty || password.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Email and password are required',
+        };
+      }
+
       try {
         // Try to sign in with Firebase first
         final UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: email,
           password: password,
         );
+
+        // Check if user is null (rare but possible)
+        if (userCredential.user == null) {
+          debugPrint('Firebase login succeeded but user is null');
+          return {
+            'success': false,
+            'message': 'Authentication error: User is null after successful login',
+          };
+        }
 
         // Get a fresh Firebase ID token with forceRefresh=true
         final String? idToken = await userCredential.user?.getIdToken(true);
@@ -203,26 +268,88 @@ class AuthService {
             }
           }
 
+          // Store Firebase user info for session management
+          await _storeFirebaseUserInfo(userCredential.user!);
+
           // Login with backend using Firebase token
-          return await _apiService.loginWithFirebase(
+          final result = await _apiService.loginWithFirebase(
             firebaseToken: idToken,
             authProvider: 'EMAIL',
             name: userCredential.user?.displayName,
             rememberMe: rememberMe,
           );
+
+          // If backend login fails, sign out from Firebase to maintain consistent state
+          if (result['success'] != true) {
+            debugPrint('Backend login failed, signing out from Firebase for consistency');
+            await FirebaseAuth.instance.signOut();
+          }
+
+          return result;
         } else {
-          throw Exception('Failed to get Firebase ID token');
+          debugPrint('Failed to get Firebase ID token after successful login');
+          // Sign out from Firebase to maintain consistent state
+          await FirebaseAuth.instance.signOut();
+
+          return {
+            'success': false,
+            'message': 'Failed to get authentication token. Please try again.',
+          };
         }
       } catch (firebaseError) {
         debugPrint('Firebase login error: $firebaseError');
 
-        // If Firebase login fails, try direct backend login
-        debugPrint('Falling back to direct backend login');
-        return await _apiService.loginWithEmail(
-          email: email,
-          password: password,
-          rememberMe: rememberMe,
-        );
+        // Handle specific Firebase errors
+        if (firebaseError is FirebaseAuthException) {
+          switch (firebaseError.code) {
+            case 'user-not-found':
+              return {
+                'success': false,
+                'message': 'No account found with this email. Please check your email or register.',
+                'errorCode': 'user-not-found',
+              };
+            case 'wrong-password':
+              return {
+                'success': false,
+                'message': 'Incorrect password. Please try again.',
+                'errorCode': 'wrong-password',
+              };
+            case 'user-disabled':
+              return {
+                'success': false,
+                'message': 'This account has been disabled. Please contact support.',
+                'errorCode': 'user-disabled',
+              };
+            case 'too-many-requests':
+              return {
+                'success': false,
+                'message': 'Too many failed login attempts. Please try again later or reset your password.',
+                'errorCode': 'too-many-requests',
+              };
+            case 'network-request-failed':
+              return {
+                'success': false,
+                'message': 'Network error. Please check your internet connection and try again.',
+                'errorCode': 'network-error',
+              };
+            default:
+              // For other Firebase errors, try direct backend login as fallback
+              debugPrint('Falling back to direct backend login');
+              return await _apiService.loginWithEmail(
+                email: email,
+                password: password,
+                rememberMe: rememberMe,
+              );
+          }
+        } else {
+          // For non-Firebase errors, try direct backend login as fallback
+          debugPrint('Falling back to direct backend login');
+          return await _apiService.loginWithEmail(
+            email: email,
+            password: password,
+            rememberMe: rememberMe,
+          );
+        }
       }
     } catch (e) {
       debugPrint('Login error: $e');
@@ -233,23 +360,95 @@ class AuthService {
     }
   }
 
+  // Sign in with Google
+  Future<UserCredential> signInWithGoogle() async {
+    try {
+      // Ensure Firebase is initialized before using Firebase services
+      if (!_isInitialized) {
+        debugPrint('Firebase not initialized, initializing now...');
+        await initializeFirebase();
+
+        if (!_isInitialized) {
+          throw Exception('Failed to initialize Firebase before Google sign-in');
+        }
+      }
+
+      debugPrint('Starting Google sign-in process');
+
+      // Force sign out first to ensure we get the account picker dialog
+      try {
+        await _googleSignIn.signOut();
+        debugPrint('Signed out of previous Google session');
+      } catch (e) {
+        debugPrint('No previous Google session to sign out from: $e');
+      }
+
+      // Begin interactive sign-in process with explicit options
+      debugPrint('Showing Google sign-in popup');
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      debugPrint('Google sign-in result: ${googleUser != null ? 'Success' : 'Cancelled/Failed'}');
+
+      if (googleUser == null) {
+        debugPrint('Google sign-in was cancelled by user or failed');
+        throw FirebaseAuthException(
+          code: 'ERROR_ABORTED_BY_USER',
+          message: 'Sign in aborted by user',
+        );
+      }
+
+      debugPrint('Google sign-in successful for: ${googleUser.email}, getting authentication details');
+
+      // Obtain auth details from request
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      debugPrint('Got Google authentication tokens');
+
+      // Create new credential for Firebase
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      debugPrint('Created Firebase credential, signing in with credential');
+
+      // Sign in with credential
+      return await _auth.signInWithCredential(credential);
+    } catch (e) {
+      debugPrint('Google sign in error: $e');
+      rethrow;
+    }
+  }
+
   // Login with Google
   Future<Map<String, dynamic>> loginWithGoogle({
     required bool rememberMe,
   }) async {
     try {
+      debugPrint('Starting Google login process');
+
+      // Ensure Firebase is initialized
+      if (!_isInitialized) {
+        debugPrint('Firebase not initialized for Google login, initializing now...');
+        await initializeFirebase();
+      }
+
       // Sign in with Google using Firebase
-      final UserCredential userCredential = await FirebaseService.signInWithGoogle();
+      debugPrint('Calling signInWithGoogle method');
+      final UserCredential userCredential = await signInWithGoogle();
       final User? user = userCredential.user;
 
       if (user == null) {
+        debugPrint('User is null after Google sign-in');
         return {
           'success': false,
           'message': 'Failed to sign in with Google',
         };
       }
 
+      debugPrint('Google sign-in successful, user: ${user.displayName}');
+
       // Get a fresh Firebase ID token with forceRefresh=true
+      debugPrint('Getting Firebase ID token');
       final String? idToken = await user.getIdToken(true);
       debugPrint('Got Firebase ID token from Google login: ${idToken != null}');
 
@@ -280,6 +479,7 @@ class AuthService {
       }
 
       if (idToken == null) {
+        debugPrint('Failed to get ID token from Firebase');
         return {
           'success': false,
           'message': 'Failed to get authentication token',
@@ -287,6 +487,7 @@ class AuthService {
       }
 
       // Send token to backend
+      debugPrint('Sending token to backend API');
       final result = await _apiService.loginWithFirebase(
         firebaseToken: idToken,
         authProvider: 'GOOGLE',
@@ -294,21 +495,27 @@ class AuthService {
         rememberMe: rememberMe,
       );
 
-      // If we got a response with user data but success is false, consider it a success
-      if (result['success'] == false && result['data'] != null) {
-        debugPrint('Google login appears successful despite success=false');
-        return {
-          ...result,
-          'success': true,
-        };
-      }
-
+      debugPrint('Google login API result: $result');
       return result;
     } catch (e) {
-      debugPrint('Google sign-in error: $e');
+      debugPrint('Google login error: $e');
+
+      String errorMessage = 'An error occurred during Google sign in.';
+
+      if (e is FirebaseAuthException) {
+        if (e.code == 'ERROR_ABORTED_BY_USER') {
+          errorMessage = 'Sign in was cancelled by the user.';
+        } else {
+          errorMessage = e.message ?? 'Authentication failed. Please try again.';
+        }
+      } else if (e is Exception) {
+        // More specific error handling for other types of exceptions
+        errorMessage = 'Error: ${e.toString()}';
+      }
+
       return {
         'success': false,
-        'message': 'An error occurred during Google sign in: ${e.toString()}',
+        'message': errorMessage,
       };
     }
   }
@@ -355,17 +562,86 @@ class AuthService {
     }
   }
 
-  // Logout
-  Future<bool> logout() async {
+  // Sign out
+  Future<void> signOut() async {
     try {
+      // Ensure Firebase is initialized
+      if (!_isInitialized) {
+        debugPrint('Firebase not initialized for sign out, initializing now...');
+        await initializeFirebase();
+      }
+
+      debugPrint('Signing out from Google');
+      await _googleSignIn.signOut();
+
+      debugPrint('Signing out from Firebase');
+      await _auth.signOut();
+
+      debugPrint('Sign out completed successfully');
+    } catch (e) {
+      debugPrint('Sign out error: $e');
+      rethrow;
+    }
+  }
+
+  // Logout
+  Future<Map<String, dynamic>> logout() async {
+    try {
+      debugPrint('Starting logout process');
+
+      // Clear all stored Firebase user info
+      try {
+        final secureStorage = const FlutterSecureStorage();
+        await secureStorage.delete(key: 'firebase_uid');
+        await secureStorage.delete(key: 'firebase_email');
+        await secureStorage.delete(key: 'firebase_display_name');
+        await secureStorage.delete(key: 'last_login_time');
+        debugPrint('Cleared stored Firebase user info');
+      } catch (e) {
+        debugPrint('Error clearing stored Firebase user info: $e');
+      }
+
       // Sign out from Firebase
-      await FirebaseService.signOut();
+      await signOut();
 
       // Logout from backend
-      return await _apiService.logout();
+      final result = await _apiService.logout();
+
+      // Clear any cached data
+      try {
+        // Clear any cached user data
+        await _apiService.clearCache();
+        debugPrint('Cleared API cache during logout');
+      } catch (e) {
+        debugPrint('Error clearing API cache: $e');
+      }
+
+      return {
+        'success': true, // Always return success to ensure user is logged out locally
+        'message': result ? 'Logged out successfully' : 'Failed to log out from the server, but logged out from the device',
+      };
     } catch (e) {
       debugPrint('Logout error: $e');
-      return false;
+
+      // Even if there's an error, we should still consider the user logged out locally
+      return {
+        'success': true,
+        'message': 'Logged out from the device, but there was an error communicating with the server',
+      };
+    }
+  }
+
+  // Store Firebase user info for session management
+  Future<void> _storeFirebaseUserInfo(User user) async {
+    try {
+      final secureStorage = const FlutterSecureStorage();
+      await secureStorage.write(key: 'firebase_uid', value: user.uid);
+      await secureStorage.write(key: 'firebase_email', value: user.email);
+      await secureStorage.write(key: 'firebase_display_name', value: user.displayName);
+      await secureStorage.write(key: 'last_login_time', value: DateTime.now().toIso8601String());
+      debugPrint('Stored Firebase user info for session management');
+    } catch (e) {
+      debugPrint('Error storing Firebase user info: $e');
     }
   }
 

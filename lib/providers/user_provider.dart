@@ -1,12 +1,21 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 import '../services/api_service.dart';
+import '../services/liked_songs_service.dart';
+import '../services/optimized_cache_service.dart';
+import '../services/song_request_service.dart';
 
 class UserProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  final LikedSongsService _likedSongsService = LikedSongsService();
+  final OptimizedCacheService _cacheService = OptimizedCacheService();
+  final DefaultCacheManager _imageCacheManager = DefaultCacheManager();
+  final SongRequestService _songRequestService = SongRequestService();
 
   bool _isLoggedIn = false;
   Map<String, dynamic>? _userData;
@@ -50,8 +59,35 @@ class UserProvider extends ChangeNotifier {
           // If we have a token but no user data, try to fetch it
           await fetchUserProfile();
         }
+
+        // We have a token, so we're good to go
+        return;
+      }
+
+      // No access token, check Firebase authentication
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser != null) {
+        debugPrint('No access token but Firebase user is authenticated: ${firebaseUser.email}');
+
+        try {
+          // Get Firebase token
+          final idToken = await firebaseUser.getIdToken(true);
+
+          // Store it for API service to use
+          await _secureStorage.write(key: 'firebase_token', value: idToken);
+
+          // Set logged in state
+          _isLoggedIn = true;
+
+          // Try to fetch user profile
+          await fetchUserProfile();
+        } catch (e) {
+          debugPrint('Error getting Firebase token during initialization: $e');
+          _isLoggedIn = false;
+          _userData = null;
+        }
       } else {
-        debugPrint('No access token found during initialization');
+        debugPrint('No access token and no Firebase user found during initialization');
         _isLoggedIn = false;
         _userData = null;
       }
@@ -86,6 +122,14 @@ class UserProvider extends ChangeNotifier {
       } else {
         debugPrint('Warning: User data was not saved correctly');
       }
+
+      // Sync liked songs with the server after login
+      try {
+        await _likedSongsService.syncAfterLogin();
+      } catch (syncError) {
+        debugPrint('Error syncing liked songs after login: $syncError');
+        // Continue even if sync fails
+      }
     } catch (e) {
       debugPrint('Error saving user data: $e');
     }
@@ -99,10 +143,24 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Check if we have a Firebase user
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser != null) {
+        // We have a Firebase user, make sure we have a fresh token
+        try {
+          final idToken = await firebaseUser.getIdToken(true);
+          await _secureStorage.write(key: 'firebase_token', value: idToken);
+          debugPrint('Refreshed Firebase token before fetching profile');
+        } catch (e) {
+          debugPrint('Error refreshing Firebase token: $e');
+          // Continue anyway, the API service will handle token issues
+        }
+      }
+
       // Add a timeout to prevent getting stuck
       final response = await Future.any([
         _apiService.getUserProfile(),
-        Future.delayed(const Duration(seconds: 3), () {
+        Future.delayed(const Duration(seconds: 5), () {
           throw Exception('Profile fetch timeout');
         }),
       ]);
@@ -112,21 +170,36 @@ class UserProvider extends ChangeNotifier {
         debugPrint('Successfully fetched and set user profile');
       } else {
         debugPrint('Failed to get user profile: ${response['message']}');
-        // If we can't get the profile, consider the user logged out
-        await logout(silent: true);
+
+        // Check if we have a Firebase user before logging out
+        if (firebaseUser != null) {
+          // We have a Firebase user but couldn't get profile
+          // This might be a temporary issue, so keep the user logged in
+          debugPrint('Firebase user exists, keeping user logged in despite profile fetch failure');
+          _isLoggedIn = true;
+        } else {
+          // No Firebase user and profile fetch failed, log out
+          await logout(silent: true);
+        }
       }
     } catch (e) {
       debugPrint('Error fetching user profile: $e');
-      // Don't logout on timeout, just proceed with what we have
-      if (e.toString().contains('timeout')) {
+
+      // Check if we have a Firebase user
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+
+      // Don't logout on timeout if we have a Firebase user
+      if (e.toString().contains('timeout') && firebaseUser != null) {
+        debugPrint('Profile fetch timed out, but Firebase user exists. Keeping user logged in.');
+        _isLoggedIn = true;
+      }
+      // Don't logout on timeout if we have existing user data
+      else if (e.toString().contains('timeout') && _userData != null) {
         debugPrint('Profile fetch timed out, proceeding with existing data');
-        // If we have some user data from login, keep it
-        if (_userData != null) {
-          _isLoggedIn = true;
-        } else {
-          await logout(silent: true);
-        }
-      } else {
+        _isLoggedIn = true;
+      }
+      // Only logout if we have no Firebase user and no existing data
+      else if (firebaseUser == null && _userData == null) {
         await logout(silent: true);
       }
     } finally {
@@ -144,35 +217,53 @@ class UserProvider extends ChangeNotifier {
 
     // Check if we have a token
     final token = await _secureStorage.read(key: 'access_token');
-    if (token == null) {
-      // No token, definitely not authenticated
-      _isLoggedIn = false;
+    if (token != null) {
+      debugPrint('Found access token, user is authenticated');
+      _isLoggedIn = true;
       notifyListeners();
-      return false;
+
+      // Try to fetch user profile in the background
+      fetchUserProfile().catchError((e) {
+        debugPrint('Background profile fetch error: $e');
+      });
+
+      return true;
     }
 
-    // We have a token but no user data or not marked as logged in
-    // Try to fetch the user profile to validate the token
-    try {
-      // Add a timeout to prevent getting stuck
-      await Future.any([
-        fetchUserProfile(),
-        Future.delayed(const Duration(seconds: 3), () {
-          // If we have a token, assume we're authenticated even if profile fetch times out
-          _isLoggedIn = true;
-          notifyListeners();
-          throw Exception('Authentication check timeout');
-        }),
-      ]);
-      return _isLoggedIn;
-    } catch (e) {
-      debugPrint('Error checking authentication: $e');
-      // If it's a timeout, we'll assume the user is authenticated since we have a token
-      if (e.toString().contains('timeout')) {
+    // Check Firebase authentication
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser != null) {
+      debugPrint('Firebase user is authenticated: ${firebaseUser.email}');
+
+      // We have a Firebase user but no access token
+      // This means we need to get a token from the API
+      try {
+        // Get Firebase token
+        final idToken = await firebaseUser.getIdToken(true);
+
+        // Store it for API service to use
+        await _secureStorage.write(key: 'firebase_token', value: idToken);
+
+        // Set logged in state
+        _isLoggedIn = true;
+        notifyListeners();
+
+        // Try to fetch user profile in the background
+        fetchUserProfile().catchError((e) {
+          debugPrint('Background profile fetch error: $e');
+        });
+
         return true;
+      } catch (e) {
+        debugPrint('Error getting Firebase token: $e');
       }
-      return false;
     }
+
+    // No token and no Firebase user
+    _isLoggedIn = false;
+    _userData = null;
+    notifyListeners();
+    return false;
   }
 
   // Update user data
@@ -205,37 +296,143 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
-  // Logout
+  // Logout with enhanced error handling and session management
   Future<void> logout({bool silent = false}) async {
     if (!silent) {
       _isLoading = true;
       notifyListeners();
     }
 
+    // First, mark the user as logged out immediately to prevent any new API calls
+    _isLoggedIn = false;
+    _userData = null;
+
+    // Notify listeners early to update UI and prevent user interactions during logout
+    notifyListeners();
+
+    // Create a list of all cleanup tasks to ensure we attempt all of them
+    List<Future<void>> cleanupTasks = [];
+
+    // 1. Call logout API
+    cleanupTasks.add(
+      Future(() async {
+        try {
+          await _apiService.logout();
+          debugPrint('API logout successful');
+        } catch (e) {
+          debugPrint('Error during logout API call: $e');
+          // Continue with local logout even if API call fails
+        }
+      })
+    );
+
+    // 2. Sign out from Firebase
+    cleanupTasks.add(
+      Future(() async {
+        try {
+          await FirebaseAuth.instance.signOut();
+          debugPrint('Firebase sign out successful');
+        } catch (e) {
+          debugPrint('Error signing out from Firebase: $e');
+          // Continue with local logout even if Firebase sign out fails
+        }
+      })
+    );
+
+    // 3. Clear all authentication tokens
+    cleanupTasks.add(
+      Future(() async {
+        try {
+          debugPrint('Clearing all authentication tokens...');
+          await _secureStorage.delete(key: 'access_token');
+          await _secureStorage.delete(key: 'refresh_token');
+          await _secureStorage.delete(key: 'firebase_token');
+          await _secureStorage.delete(key: 'user_data');
+
+          // Clear all Firebase-related data
+          await _secureStorage.delete(key: 'firebase_uid');
+          await _secureStorage.delete(key: 'firebase_email');
+          await _secureStorage.delete(key: 'firebase_display_name');
+
+          // Clear all timestamps and cache markers
+          await _secureStorage.delete(key: 'last_login_time');
+          await _secureStorage.delete(key: 'last_token_refresh');
+          await _secureStorage.delete(key: 'last_profile_fetch');
+
+          debugPrint('Successfully cleared all authentication tokens');
+        } catch (e) {
+          debugPrint('Error clearing authentication tokens: $e');
+        }
+      })
+    );
+
+    // 4. Clear liked songs data
+    cleanupTasks.add(
+      Future(() async {
+        try {
+          await _likedSongsService.clearLocalDataOnLogout(forceFullClear: true);
+          debugPrint('Successfully cleared liked songs data');
+        } catch (e) {
+          debugPrint('Error clearing liked songs data: $e');
+        }
+      })
+    );
+
+    // 5. Clear upvoted song requests data
+    cleanupTasks.add(
+      Future(() async {
+        try {
+          await _songRequestService.clearUpvotedSongRequests();
+          debugPrint('Successfully cleared upvoted song requests data');
+        } catch (e) {
+          debugPrint('Error clearing upvoted song requests data: $e');
+        }
+      })
+    );
+
+    // 6. Clear all data caches
+    cleanupTasks.add(
+      Future(() async {
+        try {
+          await _cacheService.clearAllCaches();
+          debugPrint('Successfully cleared all data caches');
+        } catch (e) {
+          debugPrint('Error clearing data caches: $e');
+        }
+      })
+    );
+
+    // 7. Clear all image caches
+    cleanupTasks.add(
+      Future(() async {
+        try {
+          await _imageCacheManager.emptyCache();
+          debugPrint('Successfully cleared all image caches');
+        } catch (e) {
+          debugPrint('Error clearing image caches: $e');
+        }
+      })
+    );
+
+    // Execute all cleanup tasks in parallel for faster logout
     try {
-      // Call logout API
-      await _apiService.logout();
-      debugPrint('API logout successful');
+      await Future.wait(cleanupTasks);
+      debugPrint('Successfully completed all logout cleanup tasks');
     } catch (e) {
-      debugPrint('Error during logout API call: $e');
-      // Continue with local logout even if API call fails
+      debugPrint('Error during logout cleanup: $e');
     }
 
-    // Clear local data
-    await _secureStorage.delete(key: 'access_token');
-    await _secureStorage.delete(key: 'refresh_token');
-    await _secureStorage.delete(key: 'user_data');
-    debugPrint('Cleared all auth tokens and user data');
-
+    // Double-check that user state is reset
     _isLoggedIn = false;
     _userData = null;
 
     if (!silent) {
       _isLoading = false;
-      notifyListeners();
-    } else {
-      // Still notify listeners to update UI
-      notifyListeners();
     }
+
+    // Final notification to update UI
+    notifyListeners();
+
+    debugPrint('Logout process completed successfully');
   }
 }

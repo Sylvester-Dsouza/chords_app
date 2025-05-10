@@ -10,17 +10,19 @@ class SongPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: const Color(0xFFFFC701).withAlpha(50),
+        color: primaryColor.withAlpha(50),
         borderRadius: BorderRadius.circular(4.0),
       ),
-      child: const Center(
+      child: Center(
         child: Icon(
           Icons.music_note,
-          color: Color(0xFFFFC701),
+          color: primaryColor,
         ),
       ),
     );

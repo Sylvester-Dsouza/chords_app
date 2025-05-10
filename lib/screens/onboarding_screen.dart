@@ -94,14 +94,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     title: 'Find Christian Songs',
                     description: 'Discover thousands of worship songs with chords and lyrics for your church service.',
                     icon: Icons.music_note,
-                    color: const Color(0xFFFFC701),
+                    color: Theme.of(context).colorScheme.primary,
                     imagePath: 'assets/images/onboarding1.png',
                   ),
                   _buildPage(
                     title: 'Create Playlists',
                     description: 'Organize your favorite songs into playlists for easy access during worship.',
                     icon: Icons.playlist_add,
-                    color: const Color(0xFFFF8C00),
+                    color: Theme.of(context).colorScheme.secondary,
                     imagePath: 'assets/images/onboarding2.png',
                   ),
                   _buildPage(

@@ -5,7 +5,7 @@ import '../widgets/animated_bottom_nav_bar.dart';
 import 'home_screen.dart';
 import 'playlist_screen.dart';
 import 'search_screen.dart';
-import 'tools_screen.dart';
+import 'resources_screen.dart';
 import 'profile_screen.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -21,7 +21,7 @@ class _MainNavigationState extends State<MainNavigation> {
     const HomeScreenNew(),
     const PlaylistScreen(),
     const SearchScreen(),
-    const ToolsScreen(),
+    const ResourcesScreen(),
     const ProfileScreen(),
   ];
 

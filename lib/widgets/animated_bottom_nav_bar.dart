@@ -73,7 +73,7 @@ class _AnimatedBottomNavBarState extends State<AnimatedBottomNavBar> with Single
       ),
       child: BottomNavigationBar(
         backgroundColor: Colors.transparent,
-        selectedItemColor: const Color(0xFFFFC701), // Yellow accent color
+        selectedItemColor: Theme.of(context).colorScheme.primary, // Use theme primary color
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
         elevation: 0, // Remove shadow
@@ -85,7 +85,7 @@ class _AnimatedBottomNavBarState extends State<AnimatedBottomNavBar> with Single
           _buildNavItem(Icons.home_filled, 'Home', 0),
           _buildNavItem(Icons.queue_music, 'My Playlist', 1),
           _buildNavItem(Icons.search, 'Search', 2),
-          _buildNavItem(Icons.music_note, 'Tools', 3),
+          _buildNavItem(Icons.article_outlined, 'Resources', 3),
           _buildNavItem(Icons.person, 'Profile', 4),
         ],
         currentIndex: widget.currentIndex,
@@ -112,8 +112,8 @@ class _AnimatedBottomNavBarState extends State<AnimatedBottomNavBar> with Single
 
       // Animate the icon color
       final Animation<Color?> colorAnimation = ColorTween(
-        begin: isSelected ? Colors.grey : const Color(0xFFFFC701),
-        end: isSelected ? const Color(0xFFFFC701) : Colors.grey,
+        begin: isSelected ? Colors.grey : Theme.of(context).colorScheme.primary,
+        end: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey,
       ).animate(_animation);
 
       iconWidget = AnimatedBuilder(

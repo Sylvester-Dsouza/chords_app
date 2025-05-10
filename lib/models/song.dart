@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class Song {
   final String id;
   final String title;
@@ -6,11 +8,16 @@ class Song {
   final String? lyrics;
   final String? chords;
   final String? imageUrl; // Cover image URL from Supabase Storage
+  final String? officialVideoUrl; // URL to the official music video
+  final String? tutorialVideoUrl; // URL to a tutorial video showing how to play the song
   final List<String>? tags;
   final String? artistId;
   final int? capo; // Capo position
   bool isLiked; // Changed from isFavorite to isLiked and made non-final
   int commentCount; // Number of comments on the song
+  double averageRating; // Average rating (1-5 stars)
+  int ratingCount; // Number of ratings
+  int? userRating; // Current user's rating (1-5 stars), null if not rated
 
   Song({
     required this.id,
@@ -20,11 +27,16 @@ class Song {
     this.lyrics,
     this.chords,
     this.imageUrl,
+    this.officialVideoUrl,
+    this.tutorialVideoUrl,
     this.tags,
     this.artistId,
     this.capo,
     this.isLiked = false,
     this.commentCount = 0,
+    this.averageRating = 0.0,
+    this.ratingCount = 0,
+    this.userRating,
   });
 
   factory Song.fromJson(Map<String, dynamic> json) {
@@ -49,6 +61,14 @@ class Song {
       chordSheet = json['lyrics'];
     }
 
+    // Ensure spaces are preserved in chord sheets
+    // This is critical for proper chord positioning
+    if (chordSheet != null) {
+      // Preserve the original spacing exactly as it was entered in the admin panel
+      // No trimming or space normalization should be done here
+      debugPrint('Preserving original chord sheet spacing');
+    }
+
     return Song(
       id: json['id'] ?? '',
       title: json['title'] ?? '',
@@ -57,6 +77,8 @@ class Song {
       lyrics: json['lyrics'],
       chords: chordSheet, // Use the processed chord sheet
       imageUrl: json['imageUrl'],
+      officialVideoUrl: json['officialVideoUrl'],
+      tutorialVideoUrl: json['tutorialVideoUrl'],
       tags: json['tags'] != null
           ? List<String>.from(json['tags'])
           : null,
@@ -64,6 +86,9 @@ class Song {
       capo: json['capo'] != null ? int.tryParse(json['capo'].toString()) : null,
       isLiked: json['isLiked'] ?? json['isFavorite'] ?? false,
       commentCount: json['commentCount'] ?? 0,
+      averageRating: json['averageRating'] != null ? double.tryParse(json['averageRating'].toString()) ?? 0.0 : 0.0,
+      ratingCount: json['ratingCount'] != null ? int.tryParse(json['ratingCount'].toString()) ?? 0 : 0,
+      userRating: json['userRating'] != null ? int.tryParse(json['userRating'].toString()) : null,
     );
   }
 
@@ -76,11 +101,16 @@ class Song {
       'lyrics': lyrics,
       'chords': chords,
       'imageUrl': imageUrl,
+      'officialVideoUrl': officialVideoUrl,
+      'tutorialVideoUrl': tutorialVideoUrl,
       'tags': tags,
       'artistId': artistId,
       'capo': capo,
       'isLiked': isLiked,
       'commentCount': commentCount,
+      'averageRating': averageRating,
+      'ratingCount': ratingCount,
+      'userRating': userRating,
     };
   }
 }

@@ -7,6 +7,7 @@ import '../services/liked_songs_notifier.dart';
 
 import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../providers/user_provider.dart';
 import '../providers/navigation_provider.dart';
 
@@ -14,7 +15,6 @@ import '../providers/navigation_provider.dart';
 import '../widgets/playlist_card.dart';
 import '../widgets/empty_playlist_state.dart';
 import '../widgets/create_playlist_dialog.dart';
-import '../widgets/song_placeholder.dart';
 
 class PlaylistScreen extends StatefulWidget {
   const PlaylistScreen({super.key});
@@ -64,9 +64,44 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
     }
 
     try {
+      // Double-check authentication status with UserProvider
+      if (!mounted) return;
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final isAuthenticated = userProvider.isLoggedIn;
+
+      // Update local login state if needed
+      if (_isLoggedIn != isAuthenticated) {
+        setState(() {
+          _isLoggedIn = isAuthenticated;
+        });
+      }
+
       // Only fetch playlists if user is logged in
       if (_isLoggedIn) {
         debugPrint('User is logged in, fetching playlists from service');
+
+        // Get Firebase token to ensure we have a valid token
+        try {
+          final firebaseUser = FirebaseAuth.instance.currentUser;
+          if (firebaseUser != null) {
+            // Force refresh the token to ensure it's valid
+            await firebaseUser.getIdToken(true);
+            debugPrint('Firebase token refreshed before fetching playlists');
+          } else {
+            debugPrint('No Firebase user found, but isLoggedIn is true');
+            // This is a mismatch - update login state
+            if (mounted) {
+              setState(() {
+                _isLoggedIn = false;
+              });
+            }
+            return;
+          }
+        } catch (e) {
+          debugPrint('Error refreshing Firebase token: $e');
+          // Continue anyway - the API service will handle token issues
+        }
+
         final playlists = await _playlistService.getPlaylists();
         debugPrint('Received ${playlists.length} playlists from service');
 
@@ -97,12 +132,31 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
       if (mounted) {
         setState(() {
           _isLoading = false;
-          // If authentication error, clear playlists
-          if (e.toString().contains('Authentication required')) {
-            _playlists = [];
-            _isLoggedIn = false;
-          }
         });
+
+        // If authentication error, check Firebase auth status
+        if (e.toString().contains('Authentication required') ||
+            (e is DioException && e.response?.statusCode == 401)) {
+
+          // Check Firebase auth status
+          final firebaseUser = FirebaseAuth.instance.currentUser;
+          if (firebaseUser != null) {
+            // We have a Firebase user but got auth error - token might be invalid
+            // Don't change _isLoggedIn yet, let the user try again
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Authentication issue. Please try again.'),
+                duration: Duration(seconds: 3),
+              ),
+            );
+          } else {
+            // No Firebase user, definitely not logged in
+            setState(() {
+              _isLoggedIn = false;
+              _playlists = [];
+            });
+          }
+        }
       }
     }
   }
@@ -111,6 +165,10 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+
+    // Initialize the last tab index to the current tab
+    _lastTabIndex = _tabController.index;
+
     // Only call _checkLoginStatus() which will call _fetchPlaylists() if authenticated
     _checkLoginStatus();
 
@@ -133,21 +191,122 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
     });
   }
 
-  // Handle liked songs changes
+  // Track the last time we received a liked songs change notification
+  DateTime? _lastLikedSongsChangeTime;
+
+  // Counter to track notification cycles and prevent loops
+  int _notificationCounter = 0;
+
+  // Handle liked songs changes with aggressive debouncing and loop prevention
   void _handleLikedSongsChanged() {
-    debugPrint('Liked songs changed, updating liked songs tab');
-    if (_tabController.index == 1) {
-      // Only refresh if we're on the liked songs tab, and force refresh
-      _fetchLikedSongs(forceRefresh: true);
+    // Increment counter to track potential loops
+    _notificationCounter++;
+
+    // If we've received too many notifications in a short time, it's likely a loop
+    if (_notificationCounter > 3) {
+      debugPrint('⚠️ Potential notification loop detected! Resetting state...');
+      _notificationCounter = 0;
+      _isLoadingLikedSongs = false;
+      _isFetchingLikedSongs = false;
+      return;
+    }
+
+    debugPrint('Liked songs changed notification received (count: $_notificationCounter)');
+
+    // Implement aggressive debouncing - don't process notifications less than 2 seconds apart
+    final now = DateTime.now();
+    if (_lastLikedSongsChangeTime != null) {
+      final timeSinceLastChange = now.difference(_lastLikedSongsChangeTime!).inMilliseconds;
+      if (timeSinceLastChange < 2000) {
+        debugPrint('Debouncing liked songs change - too soon since last change ($timeSinceLastChange ms)');
+        return;
+      }
+    }
+    _lastLikedSongsChangeTime = now;
+
+    // Reset counter after successful debounce
+    _notificationCounter = 0;
+
+    // Only refresh if we're on the liked songs tab and not already loading
+    if (_tabController.index == 1 && !_isFetchingLikedSongs && !_isLoadingLikedSongs) {
+      debugPrint('On liked songs tab, updating with latest data');
+
+      // Use a longer delay to ensure any pending operations complete
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          // Reset loading state first to ensure clean start
+          setState(() {
+            _isLoadingLikedSongs = false;
+            _isFetchingLikedSongs = false;
+          });
+
+          // Then fetch with a slight additional delay
+          Future.delayed(const Duration(milliseconds: 100), () {
+            if (mounted && !_isLoadingLikedSongs && !_isFetchingLikedSongs) {
+              _fetchLikedSongs(forceRefresh: true);
+            }
+          });
+        }
+      });
+    } else {
+      debugPrint('Not on liked songs tab or already loading, skipping immediate refresh');
     }
   }
 
+  // Track the last tab index to prevent unnecessary refreshes
+  int _lastTabIndex = 0;
+
+  // Track the last time we switched tabs to prevent rapid tab changes from causing issues
+  DateTime? _lastTabChangeTime;
+
   void _handleTabSelection() {
+    // Only process if the tab is actually changing
     if (_tabController.indexIsChanging) {
-      // If switching to liked songs tab
-      if (_tabController.index == 1) {
-        // Don't force refresh when just switching tabs
-        _fetchLikedSongs(forceRefresh: false);
+      final currentIndex = _tabController.index;
+
+      // Implement debouncing for tab changes
+      final now = DateTime.now();
+      if (_lastTabChangeTime != null) {
+        final timeSinceLastTabChange = now.difference(_lastTabChangeTime!).inMilliseconds;
+        if (timeSinceLastTabChange < 500) {
+          debugPrint('Debouncing tab change - too soon since last change ($timeSinceLastTabChange ms)');
+          return;
+        }
+      }
+      _lastTabChangeTime = now;
+
+      // Only fetch data if we're switching TO a tab, not FROM it
+      // This prevents continuous refreshing when already on a tab
+      if (currentIndex != _lastTabIndex) {
+        debugPrint('Tab changed from $_lastTabIndex to $currentIndex');
+
+        // Reset loading states when switching tabs to prevent stale states
+        setState(() {
+          _isLoadingLikedSongs = false;
+          _isFetchingLikedSongs = false;
+        });
+
+        // If switching to liked songs tab and we don't have data yet or it's stale
+        if (currentIndex == 1) {
+          bool needsRefresh = _likedSongs.isEmpty ||
+                             _lastLikedSongsFetchTime == null ||
+                             DateTime.now().difference(_lastLikedSongsFetchTime!).inMinutes > 5;
+
+          if (needsRefresh) {
+            debugPrint('Switching to liked songs tab, data needs refresh');
+            // Add a slight delay to ensure UI has updated before starting fetch
+            Future.delayed(const Duration(milliseconds: 300), () {
+              if (mounted && _tabController.index == 1) {
+                _fetchLikedSongs(forceRefresh: false);
+              }
+            });
+          } else {
+            debugPrint('Switching to liked songs tab, using cached data');
+          }
+        }
+
+        // Update the last tab index
+        _lastTabIndex = currentIndex;
       }
 
       // Update UI for tab selection
@@ -158,8 +317,55 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
   // Last time liked songs were fetched
   DateTime? _lastLikedSongsFetchTime;
 
-  // Fetch liked songs with caching
+  // Track if we're currently fetching liked songs to prevent multiple simultaneous fetches
+  bool _isFetchingLikedSongs = false;
+
+  // Track the last time we started fetching liked songs to implement debouncing
+  DateTime? _lastFetchLikedSongsStartTime;
+
+  // Maximum number of consecutive fetch attempts to prevent infinite loops
+  int _fetchLikedSongsAttempts = 0;
+  static const int _maxFetchAttempts = 3;
+
+  // Fetch liked songs with enhanced caching, aggressive debouncing, and robust error handling
   Future<void> _fetchLikedSongs({bool forceRefresh = false}) async {
+    // Safety check: if we've tried too many times in succession, abort to prevent loops
+    if (_fetchLikedSongsAttempts >= _maxFetchAttempts) {
+      debugPrint('⚠️ Too many consecutive fetch attempts ($_fetchLikedSongsAttempts). Aborting to prevent infinite loop.');
+      // Reset all loading states
+      if (mounted) {
+        setState(() {
+          _isLoadingLikedSongs = false;
+          _isFetchingLikedSongs = false;
+        });
+      }
+      // Reset the counter after a delay
+      Future.delayed(const Duration(seconds: 5), () {
+        _fetchLikedSongsAttempts = 0;
+      });
+      return;
+    }
+
+    // Increment attempt counter
+    _fetchLikedSongsAttempts++;
+
+    // Implement aggressive debouncing - don't allow fetches less than 1 second apart
+    final now = DateTime.now();
+    if (_lastFetchLikedSongsStartTime != null) {
+      final timeSinceLastFetch = now.difference(_lastFetchLikedSongsStartTime!).inMilliseconds;
+      if (timeSinceLastFetch < 1000) {
+        debugPrint('Debouncing liked songs fetch - too soon since last fetch ($timeSinceLastFetch ms)');
+        return;
+      }
+    }
+    _lastFetchLikedSongsStartTime = now;
+
+    // If we're already fetching, don't start another fetch
+    if (_isFetchingLikedSongs) {
+      debugPrint('Already fetching liked songs, skipping duplicate fetch');
+      return;
+    }
+
     // If we already have liked songs and it's not a forced refresh, don't show loading
     bool shouldShowLoading = _likedSongs.isEmpty || forceRefresh;
 
@@ -171,10 +377,15 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
     // If we don't need to fetch and have data, return immediately
     if (!shouldFetch && _likedSongs.isNotEmpty) {
       debugPrint('Using cached liked songs, skipping fetch');
+      // Reset attempt counter on successful cache use
+      _fetchLikedSongsAttempts = 0;
       return;
     }
 
-    debugPrint('Fetching liked songs... (force: $forceRefresh)');
+    // Set the flag to indicate we're fetching
+    _isFetchingLikedSongs = true;
+
+    debugPrint('Fetching liked songs... (force: $forceRefresh, attempt: $_fetchLikedSongsAttempts/$_maxFetchAttempts)');
     if (mounted && shouldShowLoading) {
       setState(() {
         _isLoadingLikedSongs = true;
@@ -185,9 +396,36 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
       // Only fetch liked songs if user is logged in
       if (_isLoggedIn) {
         debugPrint('User is logged in, fetching liked songs from service');
-        final likedSongs = await _likedSongsService.getLikedSongs();
+
+        // Get Firebase token to ensure we have a valid token
+        try {
+          final firebaseUser = FirebaseAuth.instance.currentUser;
+          if (firebaseUser != null) {
+            // Force refresh the token to ensure it's valid
+            await firebaseUser.getIdToken(true);
+            debugPrint('Firebase token refreshed before fetching liked songs');
+          } else {
+            debugPrint('No Firebase user found, but isLoggedIn is true');
+            // This is a mismatch - update login state
+            if (mounted) {
+              setState(() {
+                _isLoggedIn = false;
+                _isLoadingLikedSongs = false;
+              });
+            }
+            _isFetchingLikedSongs = false;
+            return;
+          }
+        } catch (e) {
+          debugPrint('Error refreshing Firebase token: $e');
+          // Continue anyway - the API service will handle token issues
+        }
+
+        // Use the updated LikedSongsService which syncs with the server
+        final likedSongs = await _likedSongsService.getLikedSongs(forceSync: forceRefresh);
         debugPrint('Received ${likedSongs.length} liked songs from service');
 
+        // Check if we're still mounted before updating state
         if (mounted) {
           setState(() {
             _likedSongs = likedSongs;
@@ -195,6 +433,9 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
             _lastLikedSongsFetchTime = DateTime.now(); // Update last fetch time
           });
           debugPrint('Updated state with ${_likedSongs.length} liked songs');
+
+          // Reset attempt counter on successful fetch
+          _fetchLikedSongsAttempts = 0;
         }
       } else {
         debugPrint('User is not logged in, clearing liked songs');
@@ -207,11 +448,16 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
       }
     } catch (e) {
       debugPrint('Error fetching liked songs: $e');
+      // Make sure we update the loading state even on error
       if (mounted) {
         setState(() {
           _isLoadingLikedSongs = false;
         });
       }
+    } finally {
+      // Always reset the fetching flag when done, whether successful or not
+      _isFetchingLikedSongs = false;
+      debugPrint('Finished fetching liked songs (attempt: $_fetchLikedSongsAttempts/$_maxFetchAttempts)');
     }
   }
 
@@ -219,7 +465,24 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
     try {
       // Use the UserProvider to check authentication status
       final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+      // First check if the provider already knows the user is logged in
+      if (userProvider.isLoggedIn) {
+        debugPrint('User is already logged in according to UserProvider');
+        if (!_isLoggedIn) {
+          setState(() {
+            _isLoggedIn = true;
+          });
+          // Fetch data since login status changed
+          await _fetchPlaylists(forceRefresh: true);
+          await _fetchLikedSongs(forceRefresh: true);
+        }
+        return;
+      }
+
+      // If not, check authentication with the server
       final isAuthenticated = await userProvider.isAuthenticated();
+      debugPrint('Authentication check result: $isAuthenticated');
 
       // Only update state if login status changed
       bool loginStatusChanged = _isLoggedIn != isAuthenticated;
@@ -241,19 +504,40 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
         // If authenticated, fetch playlists and liked songs
         // Only force refresh if login status changed
         await _fetchPlaylists(forceRefresh: loginStatusChanged);
-        await _fetchLikedSongs();
+        await _fetchLikedSongs(forceRefresh: loginStatusChanged);
       }
 
       debugPrint('Login status checked: $_isLoggedIn');
     } catch (e) {
       debugPrint('Error checking login status: $e');
-      setState(() {
-        _isLoggedIn = false;
-        _playlists = [];
-        _lastFetchTime = null; // Reset cache timestamp
-      });
+
+      // Check if widget is still mounted before accessing context
+      if (!mounted) {
+        debugPrint('Widget no longer mounted, skipping error handling');
+        return;
+      }
+
+      // Don't automatically set to false on error, check token first
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      if (userProvider.isLoggedIn) {
+        // If provider says we're logged in, trust it
+        setState(() {
+          _isLoggedIn = true;
+        });
+        await _fetchPlaylists(forceRefresh: false);
+        await _fetchLikedSongs(forceRefresh: false);
+      } else {
+        // Only set to false if provider also says we're not logged in
+        setState(() {
+          _isLoggedIn = false;
+          _playlists = [];
+          _lastFetchTime = null; // Reset cache timestamp
+        });
+      }
     }
   }
+
+
 
   @override
   void dispose() {
@@ -266,28 +550,42 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // When app resumes, refresh liked songs if on that tab
+    // When app resumes, refresh data only if it's been a while since the last fetch
     if (state == AppLifecycleState.resumed) {
+      debugPrint('App resumed, checking if data refresh is needed');
+
       // Check which tab is active
-      if (_tabController.index == 0) {
-        // Playlist tab - don't force refresh
-        _fetchPlaylists(forceRefresh: false);
-      } else if (_tabController.index == 1) {
-        // Liked songs tab - don't force refresh
-        _fetchLikedSongs(forceRefresh: false);
+      final currentTab = _tabController.index;
+
+      // Only refresh if it's been more than 5 minutes since the last fetch
+      if (currentTab == 0) {
+        // Playlist tab
+        final shouldRefresh = _lastFetchTime == null ||
+                             DateTime.now().difference(_lastFetchTime!).inMinutes > 5;
+
+        if (shouldRefresh) {
+          debugPrint('Refreshing playlists after app resume');
+          _fetchPlaylists(forceRefresh: false);
+        } else {
+          debugPrint('Skipping playlist refresh, data is recent');
+        }
+      } else if (currentTab == 1) {
+        // Liked songs tab
+        final shouldRefresh = _lastLikedSongsFetchTime == null ||
+                             DateTime.now().difference(_lastLikedSongsFetchTime!).inMinutes > 5;
+
+        if (shouldRefresh) {
+          debugPrint('Refreshing liked songs after app resume');
+          _fetchLikedSongs(forceRefresh: false);
+        } else {
+          debugPrint('Skipping liked songs refresh, data is recent');
+        }
       }
     }
   }
 
   Widget _buildLikedSongsTab() {
-    if (_isLoadingLikedSongs) {
-      return const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
-        ),
-      );
-    }
-
+    // If not logged in, show login prompt
     if (!_isLoggedIn) {
       return Center(
         child: Column(
@@ -300,8 +598,8 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
             const SizedBox(height: 16),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFC701),
-                foregroundColor: Colors.black,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
               ),
               onPressed: () {
                 Navigator.pushReplacementNamed(context, '/login');
@@ -313,50 +611,97 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
       );
     }
 
-    if (_likedSongs.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'No liked songs yet',
-              style: TextStyle(color: Colors.white, fontSize: 18),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Like songs to add them to this list',
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFC701),
-                foregroundColor: Colors.black,
+    // Create a stack with the content and loading indicator
+    return Stack(
+      children: [
+        // Content (always visible, even when loading)
+        _likedSongs.isEmpty && !_isLoadingLikedSongs
+            ? _buildEmptyLikedSongsView()
+            : RefreshIndicator(
+                onRefresh: () => _fetchLikedSongs(forceRefresh: true),
+                color: Theme.of(context).colorScheme.primary,
+                child: ListView.builder(
+                  // Key helps Flutter identify this list when it needs to be rebuilt
+                  key: const PageStorageKey('liked_songs_list'),
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: _likedSongs.length + 1, // +1 for the extra space at the bottom
+                  itemBuilder: (context, index) {
+                    if (index == _likedSongs.length) {
+                      // Add extra space at the bottom for better UX
+                      return const SizedBox(height: 80);
+                    }
+
+                    final song = _likedSongs[index];
+                    return _buildLikedSongItem(song);
+                  },
+                ),
               ),
-              onPressed: () {
-                Navigator.pushReplacementNamed(context, '/search');
-              },
-              child: const Text('Find Songs'),
+
+        // Loading indicator (only visible when loading)
+        if (_isLoadingLikedSongs)
+          Container(
+            color: Colors.black.withAlpha(76), // 0.3 * 255 = 76.5
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Loading liked songs...',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-      );
-    }
+          ),
+      ],
+    );
+  }
 
-    return RefreshIndicator(
-      onRefresh: () => _fetchLikedSongs(forceRefresh: true),
-      color: const Color(0xFFFFC701),
-      child: ListView.builder(
-        itemCount: _likedSongs.length + 1, // +1 for the extra space at the bottom
-        itemBuilder: (context, index) {
-          if (index == _likedSongs.length) {
-            // Add extra space at the bottom for better UX
-            return const SizedBox(height: 80);
-          }
-
-          final song = _likedSongs[index];
-          return _buildLikedSongItem(song);
-        },
+  // Widget for empty liked songs state
+  Widget _buildEmptyLikedSongsView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.favorite_border,
+            size: 64,
+            color: Colors.grey,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'No liked songs yet',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Like songs to add them to this list',
+            style: TextStyle(
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.search),
+            label: const Text('Browse Songs'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            ),
+            onPressed: () {
+              // Navigate to search screen
+              Navigator.pushNamed(context, '/search');
+            },
+          ),
+        ],
       ),
     );
   }
@@ -369,7 +714,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
         borderRadius: BorderRadius.circular(8.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withAlpha(51), // 0.2 * 255 = 51
             blurRadius: 4.0,
             offset: const Offset(0, 2),
           ),
@@ -394,7 +739,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFC701).withOpacity(0.1),
+                  color: const Color(0xFFFFC701).withAlpha(26), // 0.1 * 255 = 25.5 ≈ 26
                   borderRadius: BorderRadius.circular(8.0),
                   image: song.imageUrl != null
                     ? DecorationImage(
@@ -522,7 +867,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
         backgroundColor: const Color(0xFF121212),
         elevation: 0,
         title: const Text(
-          'My Music',
+          'My Playlist',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -530,18 +875,6 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
           ),
         ),
         centerTitle: false,
-        actions: [
-          // Search button
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.white),
-            onPressed: () {
-              // TODO: Implement search functionality
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Search coming soon')),
-              );
-            },
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -586,11 +919,11 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFFFFC701),
-        icon: const Icon(Icons.add, color: Colors.black),
-        label: const Text(
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        icon: Icon(Icons.add, color: Theme.of(context).colorScheme.onPrimary),
+        label: Text(
           'New Playlist',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontWeight: FontWeight.bold),
         ),
         onPressed: () {
           // Show dialog to create a new playlist
@@ -627,8 +960,8 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
             const SizedBox(height: 24),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFC701),
-                foregroundColor: Colors.black,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
               ),
@@ -644,9 +977,9 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
 
     // If loading, show loading indicator
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
+          valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
         ),
       );
     }
@@ -660,7 +993,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
 
     return RefreshIndicator(
       onRefresh: () => _fetchPlaylists(forceRefresh: true),
-      color: const Color(0xFFFFC701),
+      color: Theme.of(context).colorScheme.primary,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: ListView.builder(
@@ -717,7 +1050,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.symmetric(vertical: 12.0),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFFC701) : Colors.transparent,
+          color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(30),
         ),
         child: Text(

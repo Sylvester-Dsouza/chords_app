@@ -299,16 +299,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               );
 
               if (confirm == true) {
-                // Perform logout
-                await userProvider.logout();
-
-                if (!mounted) return;
-
-                // Show success message
-                ToastUtil.showSuccess(context, 'Logged out successfully');
-
-                // Navigate to login screen
-                Navigator.pushReplacementNamed(context, '/login');
+                // Use a separate method to handle logout to avoid BuildContext issues
+                _handleLogout(userProvider);
               }
             },
           ),
@@ -331,6 +323,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
+  }
+
+  // Handle logout with proper context management
+  Future<void> _handleLogout(UserProvider userProvider) async {
+    if (!mounted) return;
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return const AlertDialog(
+          backgroundColor: Color(0xFF1E1E1E),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Logging out...', style: TextStyle(color: Colors.white)),
+            ],
+          ),
+        );
+      },
+    );
+
+    try {
+      // Perform logout
+      await userProvider.logout();
+
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      // Show success message
+      ToastUtil.showSuccess(context, 'Logged out successfully');
+
+      // Clear navigation history and go to login screen
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/login',
+        (Route<dynamic> route) => false, // Remove all previous routes
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.of(context).pop();
+
+      // Show error message
+      ToastUtil.showError(context, 'Error logging out: $e');
+    }
   }
 
   Widget _buildSettingsItem(

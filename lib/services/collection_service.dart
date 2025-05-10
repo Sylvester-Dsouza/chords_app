@@ -19,9 +19,24 @@ class CollectionService {
 
       final response = await _apiService.get('/collections', queryParameters: queryParams);
 
+      debugPrint('Collection API response: ${response.toString()}');
+      debugPrint('Collection API response data type: ${response.data.runtimeType}');
+      debugPrint('Collection API response data: ${response.data}');
+
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
-        debugPrint('Received ${data.length} collections from API');
+        List<dynamic> data;
+
+        // Check if the response data is a Map with a 'data' field (common API pattern)
+        if (response.data is Map && response.data['data'] != null) {
+          data = response.data['data'] as List<dynamic>;
+          debugPrint('Received ${data.length} collections from API (nested data field)');
+        } else if (response.data is List) {
+          data = response.data as List<dynamic>;
+          debugPrint('Received ${data.length} collections from API (direct list)');
+        } else {
+          debugPrint('Unexpected response format: ${response.data.runtimeType}');
+          throw Exception('Unexpected response format: ${response.data.runtimeType}');
+        }
         debugPrint('Raw collection data: $data');
 
         // Check if data is empty
@@ -100,9 +115,21 @@ class CollectionService {
       debugPrint('Fetching collection with ID: $id');
       final response = await _apiService.get('/collections/$id');
 
+      debugPrint('Collection by ID API response: ${response.toString()}');
+      debugPrint('Collection by ID API response data type: ${response.data.runtimeType}');
+      debugPrint('Collection by ID API response data: ${response.data}');
+
       if (response.statusCode == 200) {
-        final dynamic data = response.data;
-        debugPrint('Received collection data: $data');
+        dynamic data;
+
+        // Check if the response data is a Map with a 'data' field (common API pattern)
+        if (response.data is Map && response.data['data'] != null) {
+          data = response.data['data'];
+          debugPrint('Received collection data (nested data field)');
+        } else {
+          data = response.data;
+          debugPrint('Received collection data (direct object)');
+        }
 
         try {
           final collection = Collection.fromJson(data);
@@ -131,9 +158,24 @@ class CollectionService {
         'featured': 'true'
       });
 
+      debugPrint('Featured collections API response: ${response.toString()}');
+      debugPrint('Featured collections API response data type: ${response.data.runtimeType}');
+      debugPrint('Featured collections API response data: ${response.data}');
+
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
-        debugPrint('Received ${data.length} featured collections from API');
+        List<dynamic> data;
+
+        // Check if the response data is a Map with a 'data' field (common API pattern)
+        if (response.data is Map && response.data['data'] != null) {
+          data = response.data['data'] as List<dynamic>;
+          debugPrint('Received ${data.length} featured collections from API (nested data field)');
+        } else if (response.data is List) {
+          data = response.data as List<dynamic>;
+          debugPrint('Received ${data.length} featured collections from API (direct list)');
+        } else {
+          debugPrint('Unexpected response format: ${response.data.runtimeType}');
+          throw Exception('Unexpected response format: ${response.data.runtimeType}');
+        }
 
         // Check if data is empty
         if (data.isEmpty) {
@@ -161,14 +203,16 @@ class CollectionService {
   }
 
   // Get seasonal collections (limit to specified number)
-  Future<List<Collection>> getSeasonalCollections({int limit = 10}) async {
+  Future<List<Collection>> getSeasonalCollections({int limit = 10, bool forceRefresh = false}) async {
     try {
-      // First check if we have cached seasonal collections
-      final cachedCollections = await _cacheService.getCachedSeasonalCollections();
-      if (cachedCollections != null) {
-        debugPrint('Using cached seasonal collections (${cachedCollections.length} collections)');
-        // Apply limit if needed
-        return cachedCollections.length > limit ? cachedCollections.sublist(0, limit) : cachedCollections;
+      // First check if we have cached seasonal collections and not forcing refresh
+      if (!forceRefresh) {
+        final cachedCollections = await _cacheService.getCachedSeasonalCollections();
+        if (cachedCollections != null) {
+          debugPrint('Using cached seasonal collections (${cachedCollections.length} collections)');
+          // Apply limit if needed
+          return cachedCollections.length > limit ? cachedCollections.sublist(0, limit) : cachedCollections;
+        }
       }
 
       // If no cache, fetch from API
@@ -178,9 +222,24 @@ class CollectionService {
         'seasonal': 'true'
       });
 
+      debugPrint('Seasonal collections API response: ${response.toString()}');
+      debugPrint('Seasonal collections API response data type: ${response.data.runtimeType}');
+      debugPrint('Seasonal collections API response data: ${response.data}');
+
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
-        debugPrint('Received ${data.length} seasonal collections from API');
+        List<dynamic> data;
+
+        // Check if the response data is a Map with a 'data' field (common API pattern)
+        if (response.data is Map && response.data['data'] != null) {
+          data = response.data['data'] as List<dynamic>;
+          debugPrint('Received ${data.length} seasonal collections from API (nested data field)');
+        } else if (response.data is List) {
+          data = response.data as List<dynamic>;
+          debugPrint('Received ${data.length} seasonal collections from API (direct list)');
+        } else {
+          debugPrint('Unexpected response format: ${response.data.runtimeType}');
+          throw Exception('Unexpected response format: ${response.data.runtimeType}');
+        }
 
         // Check if data is empty
         if (data.isEmpty) {
@@ -212,14 +271,16 @@ class CollectionService {
   }
 
   // Get beginner friendly collections (limit to specified number)
-  Future<List<Collection>> getBeginnerFriendlyCollections({int limit = 10}) async {
+  Future<List<Collection>> getBeginnerFriendlyCollections({int limit = 10, bool forceRefresh = false}) async {
     try {
-      // First check if we have cached beginner collections
-      final cachedCollections = await _cacheService.getCachedBeginnerCollections();
-      if (cachedCollections != null) {
-        debugPrint('Using cached beginner collections (${cachedCollections.length} collections)');
-        // Apply limit if needed
-        return cachedCollections.length > limit ? cachedCollections.sublist(0, limit) : cachedCollections;
+      // First check if we have cached beginner collections and not forcing refresh
+      if (!forceRefresh) {
+        final cachedCollections = await _cacheService.getCachedBeginnerCollections();
+        if (cachedCollections != null) {
+          debugPrint('Using cached beginner collections (${cachedCollections.length} collections)');
+          // Apply limit if needed
+          return cachedCollections.length > limit ? cachedCollections.sublist(0, limit) : cachedCollections;
+        }
       }
 
       // If no cache, fetch from API
@@ -229,9 +290,24 @@ class CollectionService {
         'beginner': 'true'
       });
 
+      debugPrint('Beginner collections API response: ${response.toString()}');
+      debugPrint('Beginner collections API response data type: ${response.data.runtimeType}');
+      debugPrint('Beginner collections API response data: ${response.data}');
+
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
-        debugPrint('Received ${data.length} beginner friendly collections from API');
+        List<dynamic> data;
+
+        // Check if the response data is a Map with a 'data' field (common API pattern)
+        if (response.data is Map && response.data['data'] != null) {
+          data = response.data['data'] as List<dynamic>;
+          debugPrint('Received ${data.length} beginner friendly collections from API (nested data field)');
+        } else if (response.data is List) {
+          data = response.data as List<dynamic>;
+          debugPrint('Received ${data.length} beginner friendly collections from API (direct list)');
+        } else {
+          debugPrint('Unexpected response format: ${response.data.runtimeType}');
+          throw Exception('Unexpected response format: ${response.data.runtimeType}');
+        }
 
         // Check if data is empty
         if (data.isEmpty) {
@@ -268,9 +344,24 @@ class CollectionService {
       debugPrint('Searching for collection with name: $name');
       final response = await _apiService.get('/collections', queryParameters: {'search': name});
 
+      debugPrint('Collection by name API response: ${response.toString()}');
+      debugPrint('Collection by name API response data type: ${response.data.runtimeType}');
+      debugPrint('Collection by name API response data: ${response.data}');
+
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
-        debugPrint('Received ${data.length} collections from name search');
+        List<dynamic> data;
+
+        // Check if the response data is a Map with a 'data' field (common API pattern)
+        if (response.data is Map && response.data['data'] != null) {
+          data = response.data['data'] as List<dynamic>;
+          debugPrint('Received ${data.length} collections from name search (nested data field)');
+        } else if (response.data is List) {
+          data = response.data as List<dynamic>;
+          debugPrint('Received ${data.length} collections from name search (direct list)');
+        } else {
+          debugPrint('Unexpected response format: ${response.data.runtimeType}');
+          throw Exception('Unexpected response format: ${response.data.runtimeType}');
+        }
 
         // Find the exact match by name
         final exactMatch = data.firstWhere(
@@ -307,8 +398,22 @@ class CollectionService {
       debugPrint('Fetching songs in collection with ID: $collectionId');
       final response = await _apiService.get('/collections/$collectionId');
 
+      debugPrint('Songs in collection API response: ${response.toString()}');
+      debugPrint('Songs in collection API response data type: ${response.data.runtimeType}');
+      debugPrint('Songs in collection API response data: ${response.data}');
+
       if (response.statusCode == 200) {
-        final dynamic data = response.data;
+        dynamic data;
+
+        // Check if the response data is a Map with a 'data' field (common API pattern)
+        if (response.data is Map && response.data['data'] != null) {
+          data = response.data['data'];
+          debugPrint('Received collection data (nested data field)');
+        } else {
+          data = response.data;
+          debugPrint('Received collection data (direct object)');
+        }
+
         final List<dynamic> songs = data['songs'] ?? [];
         debugPrint('Received ${songs.length} songs in collection');
         return songs;

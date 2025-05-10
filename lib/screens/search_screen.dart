@@ -407,93 +407,101 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
       ),
       body: Column(
         children: [
-          // Search Bar and Filter
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-            child: Row(
-              children: [
-                // Search Bar
-                Expanded(
-                  child: Container(
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E1E),
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        hintText: _searchHint,
-                        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-                        prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 20),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 10.0),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value;
-                        });
-                        _handleSearch(value);
-                      },
-                    ),
-                  ),
-                ),
-
-                // Filter Button
-                Container(
-                  margin: const EdgeInsets.only(left: 8.0),
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E1E),
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.filter_list, color: Colors.white),
-                    onPressed: () {
-                      // Show filter options
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Tabs
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 0.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Expanded(
-                  child: Center(
-                    child: _buildTabItem('Songs', 0),
-                  ),
-                ),
-                Expanded(
-                  child: Center(
-                    child: _buildTabItem('Artists', 1),
-                  ),
-                ),
-                Expanded(
-                  child: Center(
-                    child: _buildTabItem('Collections', 2),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Divider
+          // Fixed header with search bar and tabs
           Container(
-            margin: const EdgeInsets.only(top: 1.0),
-            height: 1,
-            color: const Color(0xFF333333),
-          ),
+            color: const Color(0xFF121212), // Solid background color
+            child: Column(
+              children: [
+                // Search Bar and Filter
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                  child: Row(
+                    children: [
+                      // Search Bar
+                      Expanded(
+                        child: Container(
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E1E1E),
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                          child: TextField(
+                            controller: _searchController,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: _searchHint,
+                              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+                              prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 20),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 10.0),
+                            ),
+                            onChanged: (value) {
+                              setState(() {
+                                _searchQuery = value;
+                              });
+                              _handleSearch(value);
+                            },
+                          ),
+                        ),
+                      ),
 
-          // Add some spacing
-          const SizedBox(height: 8),
+                      // Filter Button
+                      Container(
+                        margin: const EdgeInsets.only(left: 8.0),
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E1E1E),
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.filter_list, color: Colors.white),
+                          onPressed: () {
+                            // Show filter options
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Tabs
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 0.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Expanded(
+                        child: Center(
+                          child: _buildTabItem('Songs', 0),
+                        ),
+                      ),
+                      Expanded(
+                        child: Center(
+                          child: _buildTabItem('Artists', 1),
+                        ),
+                      ),
+                      Expanded(
+                        child: Center(
+                          child: _buildTabItem('Collections', 2),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Divider
+                Container(
+                  margin: const EdgeInsets.only(top: 1.0),
+                  height: 1,
+                  color: const Color(0xFF333333),
+                ),
+
+                // Add some spacing
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
 
           // Tab Content
           Expanded(
@@ -542,7 +550,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
             height: 3,
             width: title.length * 6.0, // Slightly narrower for better appearance
             decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFFFFC701) : Colors.transparent,
+              color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
               borderRadius: BorderRadius.circular(1.5),
             ),
           ),
@@ -567,7 +575,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         // Songs list
         Expanded(
           child: _isLoadingSongs
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFC701)))
+            ? Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary))
             : _songs.isEmpty
               ? Center(child: Text('No songs found', style: TextStyle(color: Colors.grey[400])))
               : ListView.builder(
@@ -598,14 +606,22 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         // Artists list
         Expanded(
           child: _isLoadingArtists
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFC701)))
+            ? Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary))
             : _artists.isEmpty
               ? Center(child: Text('No artists found', style: TextStyle(color: Colors.grey[400])))
               : ListView.builder(
                   itemCount: _artists.length,
                   itemBuilder: (context, index) {
                     final artist = _artists[index];
-                    return _buildArtistItem(artist.name, '${artist.songCount} Songs');
+                    // Debug the song count
+                    debugPrint('Artist: ${artist.name}, Song Count: ${artist.songCount}');
+
+                    // Format the song count text appropriately
+                    String songCountText = artist.songCount == 1
+                        ? '1 Song'
+                        : '${artist.songCount} Songs';
+
+                    return _buildArtistItem(artist.name, songCountText);
                   },
                 ),
         ),
@@ -633,12 +649,22 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
             fontWeight: FontWeight.bold,
           ),
         ),
-        subtitle: Text(
-          songCount,
-          style: const TextStyle(
-            color: Colors.grey,
-            fontSize: 12,
-          ),
+        subtitle: Row(
+          children: [
+            Icon(
+              Icons.music_note,
+              color: Colors.grey,
+              size: 14,
+            ),
+            SizedBox(width: 4),
+            Text(
+              songCount,
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 12,
+              ),
+            ),
+          ],
         ),
         trailing: const Icon(
           Icons.chevron_right,
@@ -673,24 +699,22 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         // Collections grid
         Expanded(
           child: _isLoadingCollections
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFFFFC701)))
+            ? Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary))
             : _collections.isEmpty
               ? Center(child: Text('No collections found', style: TextStyle(color: Colors.grey[400])))
               : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                   itemCount: _collections.length,
                   itemBuilder: (context, index) {
                     final collection = _collections[index];
-                    return Column(
-                      children: [
-                        _buildCollectionCard(
-                          collection.title,
-                          '${collection.songCount} Songs',
-                          collection.color,
-                          collection.likes
-                        ),
-                        const SizedBox(height: 16),
-                      ],
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: _buildCollectionCard(
+                        collection.title,
+                        '${collection.songCount} Songs',
+                        collection.color,
+                        collection.likes
+                      ),
                     );
                   },
                 ),
@@ -718,66 +742,95 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         );
       },
       borderRadius: BorderRadius.circular(8.0),
-      child: Ink(
-        height: 140,
+      child: Container(
         decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
           borderRadius: BorderRadius.circular(8.0),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              bgColor,
-              bgColor.withAlpha(150),
-            ],
-          ),
         ),
-        child: Stack(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title
-            Positioned(
-              left: 16,
-              top: 16,
-              child: Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+            // Image Container
+            Container(
+              height: 140,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(8.0),
+                  topRight: Radius.circular(8.0),
                 ),
+                // Use image if available, otherwise use gradient
+                image: collection.imageUrl != null && collection.imageUrl!.isNotEmpty
+                    ? DecorationImage(
+                        image: NetworkImage(collection.imageUrl!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+                gradient: collection.imageUrl == null || collection.imageUrl!.isEmpty
+                    ? LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          bgColor,
+                          bgColor.withAlpha(150),
+                        ],
+                      )
+                    : null,
               ),
             ),
 
-            // Song count
-            Positioned(
-              left: 16,
-              bottom: 16,
-              child: Text(
-                songCount,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-
-            // Likes count
-            Positioned(
-              right: 16,
-              bottom: 16,
-              child: Row(
+            // Info Container
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Title
                   Text(
-                    likes.toString(),
+                    title,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 14,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(width: 4),
-                  const Icon(
-                    Icons.thumb_up,
-                    color: Colors.white,
-                    size: 16,
+
+                  const SizedBox(height: 4),
+
+                  // Song count and likes in a row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Song count
+                      Text(
+                        songCount,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                        ),
+                      ),
+
+                      // Likes count
+                      Row(
+                        children: [
+                          Text(
+                            likes.toString(),
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.thumb_up,
+                            color: Colors.grey,
+                            size: 14,
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -789,30 +842,37 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   }
 
   Widget _buildSongItem(Song song) {
+    // Get the song placeholder size
+    const double placeholderSize = 48.0;
+
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: Color(0xFF333333),
+            color: const Color(0xFF333333),
             width: 1.0,
           ),
         ),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        leading: const SongPlaceholder(),
+        // Reduce vertical padding to decrease space between items
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+        leading: const SongPlaceholder(size: placeholderSize),
         title: Text(
           song.title,
-          style: const TextStyle(
-            color: Color(0xFFFFC701),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.primary,
             fontWeight: FontWeight.bold,
           ),
+          // Ensure text doesn't wrap unnecessarily
+          overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(
           song.artist,
           style: const TextStyle(
             color: Colors.grey,
           ),
+          overflow: TextOverflow.ellipsis,
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,

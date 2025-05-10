@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/navigation_provider.dart';
 import '../widgets/inner_screen_app_bar.dart';
 
 class ResourcesScreen extends StatefulWidget {
@@ -11,23 +9,11 @@ class ResourcesScreen extends StatefulWidget {
 }
 
 class _ResourcesScreenState extends State<ResourcesScreen> {
-  int _currentIndex = 3; // Set to 3 for Resources tab
-
   @override
   void initState() {
     super.initState();
-
-    // Sync with navigation provider
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final navigationProvider = Provider.of<NavigationProvider>(context, listen: false);
-      navigationProvider.updateIndex(3); // Resources screen is index 3
-      setState(() {
-        _currentIndex = 3;
-      });
-    });
+    // No need to sync with navigation provider as this is handled by MainNavigation
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +32,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
           return _buildBlogCard();
         }),
       ),
+      // Removed bottom navigation bar since it's already provided by MainNavigation
     );
   }
 

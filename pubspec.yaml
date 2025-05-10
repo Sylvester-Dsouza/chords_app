@@ -37,9 +37,9 @@ dependencies:
   shared_preferences: ^2.2.2
 
   # Firebase packages
-  firebase_core: ^2.25.0
-  firebase_auth: ^4.16.0
-  firebase_messaging: ^14.7.10
+  firebase_core: ^3.13.0
+  firebase_auth: ^5.5.3
+  firebase_messaging: ^15.2.5
   google_sign_in: ^6.3.0
   sign_in_with_apple: ^7.0.1
   # Removed flutter_facebook_auth due to compatibility issues
@@ -68,9 +68,15 @@ dependencies:
   flutter_guitar_chord: ^0.0.3
   guitar_chord_library: ^0.0.2
   google_fonts: ^6.1.0
-  url_launcher: ^6.2.5
+  url_launcher: ^6.3.1
+  flutter_cache_manager: ^3.4.1
   # Removed flutter_local_notifications due to compatibility issues
   # Using custom SnackBar implementation instead of fluttertoast
+
+  # Audio processing for guitar tuner
+  permission_handler: ^11.3.0
+  syncfusion_flutter_gauges: ^24.2.6
+  youtube_player_flutter: ^9.1.1
 
 dev_dependencies:
   flutter_test:

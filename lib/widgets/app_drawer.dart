@@ -19,105 +19,111 @@ class AppDrawer extends StatelessWidget {
     return Drawer(
       backgroundColor: const Color(0xFF121212),
       child: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-            // Logo and close button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Logo
-                  Row(
-                    children: [
-                      // Flame icon
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(0xFFFFC701),
-                        ),
-                        child: const Icon(
-                          Icons.local_fire_department,
-                          color: Colors.black,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // App name
-                      RichText(
-                        text: const TextSpan(
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+        child: Column(
+          children: [
+            // Main scrollable content
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    // Logo and close button
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Logo
+                          Row(
+                            children: [
+                              // Flame icon
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                child: Icon(
+                                  Icons.local_fire_department,
+                                  color: Theme.of(context).colorScheme.onPrimary,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              // App name
+                              RichText(
+                                text: const TextSpan(
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  children: [
+                                    TextSpan(
+                                      text: 'Worship',
+                                      style: TextStyle(color: Color(0xFFFFC701)),
+                                    ),
+                                    TextSpan(
+                                      text: '\nParadise',
+                                      style: TextStyle(color: Color(0xFFFFC701)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                          children: [
-                            TextSpan(
-                              text: 'Worship',
-                              style: TextStyle(color: Color(0xFFFFC701)),
-                            ),
-                            TextSpan(
-                              text: '\nParadise',
-                              style: TextStyle(color: Color(0xFFFFC701)),
-                            ),
-                          ],
-                        ),
+                          // Close button
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  // Close button
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
+                    ),
+
+                    const Divider(color: Color(0xFF333333)),
+
+                    // Main menu items
+                    _buildMenuItem(context, Icons.music_note, 'Request a Song'),
+                    _buildMenuItem(context, Icons.school, 'Resources'),
+
+                    const Divider(color: Color(0xFF333333)),
+
+                    // Support menu items
+                    _buildMenuItem(context, Icons.help, 'Help & Support'),
+                    _buildMenuItem(context, Icons.info, 'About us'),
+                    _buildMenuItem(context, Icons.mail, 'Contact us'),
+
+                    const Divider(color: Color(0xFF333333)),
+
+                    // Additional options
+                    _buildMenuItem(context, Icons.handshake, 'Contribute'),
+
+                    // Add some bottom padding to ensure there's enough space
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             ),
 
-            const Divider(color: Color(0xFF333333)),
-
-            // Main menu items
-            _buildMenuItem(context, Icons.home, 'Home'),
-            _buildMenuItem(context, Icons.queue_music, 'My Playlist'),
-            _buildMenuItem(context, Icons.people, 'Artists'),
-            _buildMenuItem(context, Icons.collections_bookmark, 'Collections'),
-            _buildMenuItem(context, Icons.search, 'Search Chords'),
-            _buildMenuItem(context, Icons.music_note, 'Request a Song'),
-            _buildMenuItem(context, Icons.school, 'Resources'),
-            _buildMenuItem(context, Icons.person, 'Profile'),
-
-            const Divider(color: Color(0xFF333333)),
-
-            // Support menu items
-            _buildMenuItem(context, Icons.help, 'Help & Support'),
-            _buildMenuItem(context, Icons.info, 'About us'),
-            _buildMenuItem(context, Icons.mail, 'Contact us'),
-
-            const Divider(color: Color(0xFF333333)),
-
-            // Additional options
-            _buildMenuItem(context, Icons.handshake, 'Contribute'),
-            _buildMenuItem(context, Icons.block, 'Remove Ads'),
-
-            const Divider(color: Color(0xFF333333)),
-
-            // Logout (only shown when logged in)
-            Consumer<UserProvider>(
-              builder: (context, userProvider, _) {
-                if (userProvider.isLoggedIn) {
-                  return _buildMenuItem(context, Icons.logout, 'Logout');
-                } else {
-                  return const SizedBox.shrink(); // Hide when not logged in
-                }
-              },
+            // Fixed logout button at the bottom
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Divider(color: Color(0xFF333333)),
+                // Logout (only shown when logged in)
+                Consumer<UserProvider>(
+                  builder: (context, userProvider, _) {
+                    if (userProvider.isLoggedIn) {
+                      return _buildMenuItem(context, Icons.logout, 'Logout');
+                    } else {
+                      return const SizedBox.shrink(); // Hide when not logged in
+                    }
+                  },
+                ),
+                const SizedBox(height: 8), // Small padding at the bottom
+              ],
             ),
-
-            // Add some bottom padding to ensure there's enough space
-            const SizedBox(height: 20),
           ],
-          ),
         ),
       ),
     );

@@ -2,19 +2,59 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:io' show Platform;
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ApiService {
   // For Android emulator, use 10.0.2.2 instead of localhost
   // For physical devices, use your computer's IP address
+  // Fixed IP address for development
+  static const String _devIpAddress = '192.168.1.2';
+
   static String get baseUrl {
     if (kIsWeb) {
-      return 'http://localhost:3001/api';
+      return 'http://$_devIpAddress:3001';
     } else if (const bool.fromEnvironment('dart.vm.product')) {
       // Release mode - use production server
-      return 'https://api.yourapp.com/api';
+      return 'https://chords-api-jl8n.onrender.com';
+    } else if (Platform.isAndroid && !kIsWeb) {
+      // For Android emulator, use 10.0.2.2 which maps to host's localhost
+      if (const bool.fromEnvironment('dart.vm.android-emulator')) {
+        return 'http://10.0.2.2:3001';
+      } else {
+        // For physical Android devices, use the actual IP address
+        return 'http://$_devIpAddress:3001';
+      }
     } else {
-      // Debug mode - use special IP for Android emulator
-      return 'http://10.0.2.2:3001/api';
+      // For all other platforms (iOS, desktop)
+      return 'http://$_devIpAddress:3001';
+    }
+  }
+
+  // Test API connection
+  static Future<bool> testApiConnection() async {
+    try {
+      debugPrint('Testing API connection to $baseUrl...');
+      final dio = Dio();
+      dio.options.connectTimeout = const Duration(seconds: 2);
+      dio.options.sendTimeout = const Duration(seconds: 2);
+      dio.options.receiveTimeout = const Duration(seconds: 2);
+
+      final response = await dio.get('$baseUrl/api/health',
+          options: Options(
+            validateStatus: (_) => true,
+          ));
+
+      if (response.statusCode != null && response.statusCode! < 500) {
+        debugPrint('Successfully connected to $baseUrl');
+        return true;
+      } else {
+        debugPrint('Failed to connect to $baseUrl: Status code ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Failed to connect to $baseUrl: $e');
+      return false;
     }
   }
   final Dio _dio = Dio();
@@ -22,8 +62,11 @@ class ApiService {
 
   ApiService() {
     _dio.options.baseUrl = baseUrl;
-    _dio.options.connectTimeout = const Duration(seconds: 5); // Reduced timeout
-    _dio.options.receiveTimeout = const Duration(seconds: 5); // Reduced timeout
+    _dio.options.connectTimeout = const Duration(seconds: 15); // Increased timeout
+    _dio.options.receiveTimeout = const Duration(seconds: 15); // Increased timeout
+
+    // Check if we need to use the /api prefix for all endpoints
+    _checkApiPrefix();
 
     // Add logging interceptor for debugging
     _dio.interceptors.add(LogInterceptor(
@@ -36,20 +79,50 @@ class ApiService {
       onRequest: (options, handler) async {
         // Add auth token to requests if available
         final token = await _secureStorage.read(key: 'access_token');
-        if (token != null) {
+
+        // First check for a stored Firebase token (most reliable)
+        String? firebaseToken = await _secureStorage.read(key: 'firebase_token');
+
+        // If no stored Firebase token, try to get a fresh one
+        if (firebaseToken == null) {
+          try {
+            final firebaseUser = FirebaseAuth.instance.currentUser;
+            if (firebaseUser != null) {
+              firebaseToken = await firebaseUser.getIdToken(true);
+              // Store the fresh token for future use
+              await _secureStorage.write(key: 'firebase_token', value: firebaseToken);
+              debugPrint('Got fresh Firebase token and stored it');
+            }
+          } catch (e) {
+            debugPrint('Error getting fresh Firebase token: $e');
+          }
+        } else {
+          debugPrint('Using stored Firebase token');
+        }
+
+        // Use Firebase token if available (preferred for Google login)
+        if (firebaseToken != null) {
+          options.headers['Authorization'] = 'Bearer $firebaseToken';
+          options.headers['X-Auth-Type'] = 'firebase'; // Add header to indicate token type
+
+          // Log token for debugging (only first few characters)
+          final previewLength = firebaseToken.length > 10 ? 10 : firebaseToken.length;
+          debugPrint('Added Firebase token to request: ${options.path} (${firebaseToken.substring(0, previewLength)}...)');
+        }
+        // Fall back to access token if no Firebase token
+        else if (token != null) {
           // Ensure the token is properly formatted
           final cleanToken = token.trim();
           options.headers['Authorization'] = 'Bearer $cleanToken';
-          debugPrint('Added token to request: ${options.path}');
+          options.headers['X-Auth-Type'] = 'jwt'; // Add header to indicate token type
 
-          // For debugging
-          if (options.path.contains('playlists')) {
-            final previewLength = cleanToken.length > 20 ? 20 : cleanToken.length;
-            debugPrint('Token used for playlist request: ${cleanToken.substring(0, previewLength)}...');
-          }
+          // Log token for debugging (only first few characters)
+          final previewLength = cleanToken.length > 10 ? 10 : cleanToken.length;
+          debugPrint('Added JWT token to request: ${options.path} (${cleanToken.substring(0, previewLength)}...)');
         } else {
           debugPrint('No token available for request: ${options.path}');
         }
+
         return handler.next(options);
       },
       onError: (DioException error, handler) async {
@@ -63,12 +136,54 @@ class ApiService {
           debugPrint('401 error: $errorMessage');
           debugPrint('Request path: ${error.requestOptions.path}');
 
-          // Clear tokens for any authentication error
+          // Check if the error is related to Firebase token
+          final isFirebaseTokenError = errorMessage != null &&
+                                      (errorMessage.toString().contains('Firebase') ||
+                                       errorMessage.toString().contains('firebase'));
+
+          debugPrint('401 error details: $errorMessage, isFirebaseTokenError: $isFirebaseTokenError');
+
+          // Try to get a fresh Firebase token and retry the request
+          try {
+            final firebaseUser = FirebaseAuth.instance.currentUser;
+            if (firebaseUser != null) {
+              // Force refresh the token
+              final freshToken = await firebaseUser.getIdToken(true);
+              debugPrint('Got fresh Firebase token, retrying request');
+
+              // Store the fresh token
+              await _secureStorage.write(key: 'firebase_token', value: freshToken);
+
+              // Create a new request with the fresh token
+              final opts = Options(
+                method: error.requestOptions.method,
+                headers: {
+                  ...error.requestOptions.headers,
+                  'Authorization': 'Bearer $freshToken',
+                  'X-Auth-Type': 'firebase', // Add header to indicate token type
+                },
+              );
+
+              // Retry the request with the fresh token
+              final response = await _dio.request(
+                error.requestOptions.path,
+                data: error.requestOptions.data,
+                queryParameters: error.requestOptions.queryParameters,
+                options: opts,
+              );
+
+              // Return the response if successful
+              return handler.resolve(response);
+            }
+          } catch (e) {
+            debugPrint('Error refreshing Firebase token: $e');
+          }
+
+          // If we couldn't refresh the token, clear tokens
           await _secureStorage.delete(key: 'access_token');
           await _secureStorage.delete(key: 'refresh_token');
-          debugPrint('Authentication error - cleared tokens');
-
-          // We're not refreshing tokens for now, just clearing them
+          await _secureStorage.delete(key: 'firebase_token');
+          debugPrint('Authentication error - cleared all tokens');
         }
         return handler.next(error);
       },
@@ -76,6 +191,137 @@ class ApiService {
   }
 
   // We've removed the token refresh and retry methods as they're not being used
+
+  // Check if we need to use the /api prefix for all endpoints
+  Future<void> _checkApiPrefix() async {
+    try {
+      debugPrint('Checking if API requires /api prefix');
+
+      // Try a simple health check endpoint without the /api prefix
+      _dio.options.validateStatus = (status) => true; // Accept any status code for the test
+      final response = await _dio.get('/health');
+
+      if (response.statusCode == 404) {
+        // If 404, try with /api prefix
+        final apiResponse = await _dio.get('/api/health');
+
+        if (apiResponse.statusCode == 200 || apiResponse.statusCode == 204) {
+          debugPrint('API requires /api prefix for all endpoints');
+          // We could modify the baseUrl here, but we'll handle it per-request instead
+        }
+      } else {
+        debugPrint('API does not require /api prefix');
+      }
+    } catch (e) {
+      debugPrint('Error checking API prefix: $e');
+    } finally {
+      // Reset validateStatus to default
+      _dio.options.validateStatus = (status) => status != null && status >= 200 && status < 300;
+    }
+  }
+
+  // Helper method to ensure endpoint has /api prefix
+  String _ensureApiPrefix(String endpoint) {
+    if (endpoint.startsWith('/api/')) {
+      return endpoint; // Already has /api prefix
+    } else if (endpoint.startsWith('/')) {
+      return '/api$endpoint'; // Add /api prefix
+    } else {
+      return '/api/$endpoint'; // Add /api/ prefix
+    }
+  }
+
+  // Override the get method to automatically add /api prefix
+  Future<Response> get(String path, {Map<String, dynamic>? queryParameters, Options? options}) async {
+    final apiPath = _ensureApiPrefix(path);
+    debugPrint('GET request to $apiPath');
+    try {
+      final response = await _dio.get(apiPath, queryParameters: queryParameters, options: options);
+      debugPrint('GET response status: ${response.statusCode}');
+      debugPrint('GET response data type: ${response.data.runtimeType}');
+      return response;
+    } catch (e) {
+      debugPrint('Error in GET request to $path: $e');
+      rethrow;
+    }
+  }
+
+  // Override the post method to automatically add /api prefix
+  Future<Response> post(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) async {
+    final apiPath = _ensureApiPrefix(path);
+    debugPrint('POST request to $apiPath');
+    try {
+      final response = await _dio.post(apiPath, data: data, queryParameters: queryParameters, options: options);
+      debugPrint('POST response status: ${response.statusCode}');
+      return response;
+    } catch (e) {
+      debugPrint('Error in POST request to $path: $e');
+      rethrow;
+    }
+  }
+
+  // Override the put method to automatically add /api prefix
+  Future<Response> put(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) async {
+    final apiPath = _ensureApiPrefix(path);
+    debugPrint('PUT request to $apiPath');
+    try {
+      final response = await _dio.put(apiPath, data: data, queryParameters: queryParameters, options: options);
+      debugPrint('PUT response status: ${response.statusCode}');
+      return response;
+    } catch (e) {
+      debugPrint('Error in PUT request to $path: $e');
+      rethrow;
+    }
+  }
+
+  // Override the delete method to automatically add /api prefix
+  Future<Response> delete(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) async {
+    final apiPath = _ensureApiPrefix(path);
+    debugPrint('DELETE request to $apiPath');
+    try {
+      final response = await _dio.delete(apiPath, data: data, queryParameters: queryParameters, options: options);
+      debugPrint('DELETE response status: ${response.statusCode}');
+      return response;
+    } catch (e) {
+      debugPrint('Error in DELETE request to $path: $e');
+      rethrow;
+    }
+  }
+
+  // Override the patch method to automatically add /api prefix
+  Future<Response> patch(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) async {
+    final apiPath = _ensureApiPrefix(path);
+    debugPrint('PATCH request to $apiPath');
+    try {
+      final response = await _dio.patch(apiPath, data: data, queryParameters: queryParameters, options: options);
+      debugPrint('PATCH response status: ${response.statusCode}');
+      return response;
+    } catch (e) {
+      debugPrint('Error in PATCH request to $path: $e');
+      rethrow;
+    }
+  }
+
+  // Clear all cached data
+  Future<void> clearCache() async {
+    try {
+      debugPrint('Clearing all cached data');
+
+      // Clear all tokens
+      await _secureStorage.delete(key: 'access_token');
+      await _secureStorage.delete(key: 'refresh_token');
+      await _secureStorage.delete(key: 'firebase_token');
+
+      // Clear any other cached data
+      // This would be a good place to clear any cached API responses
+      // or other app data that should be refreshed on logout
+
+      debugPrint('All cached data cleared successfully');
+    } catch (e) {
+      debugPrint('Error clearing cache: $e');
+      rethrow;
+    }
+  }
 
   // Store tokens from login/register response
   Future<void> _storeTokens(Map<String, dynamic> data) async {
@@ -134,52 +380,94 @@ class ApiService {
     try {
       debugPrint('Registering user with email: $email');
 
-      // Use the correct endpoint
-      final response = await _dio.post('/auth/register', data: {
+      // Get Firebase token for registration
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser == null) {
+        return {
+          'success': false,
+          'message': 'Firebase user not found. Please try again.',
+        };
+      }
+
+      final idToken = await firebaseUser.getIdToken(true);
+
+      // Determine which endpoint to use
+      String endpoint;
+      // Try with and without the /api prefix
+      try {
+        // First try without /api prefix
+        endpoint = '/customers/register';
+        // Make a test request to check if the endpoint exists
+        _dio.options.validateStatus = (status) => true; // Accept any status code for the test
+        final testResponse = await _dio.head(endpoint);
+        debugPrint('Test request to $endpoint returned status: ${testResponse.statusCode}');
+
+        if (testResponse.statusCode == 404) {
+          // If 404, try with /api prefix
+          endpoint = '/api/customers/register';
+          debugPrint('Endpoint not found, trying with /api prefix: $endpoint');
+        }
+      } catch (e) {
+        // If error, default to /api prefix
+        endpoint = '/api/customers/register';
+        debugPrint('Error testing endpoint, using /api prefix: $endpoint');
+      } finally {
+        // Reset validateStatus to default
+        _dio.options.validateStatus = (status) => status != null && status >= 200 && status < 300;
+      }
+
+      debugPrint('Sending request to endpoint: $endpoint');
+      final response = await _dio.post(endpoint, data: {
+        'firebaseToken': idToken,
+        'idToken': idToken, // Send both field names for compatibility
         'name': name,
         'email': email,
-        'password': password,
+        'authProvider': 'EMAIL',
         'termsAccepted': termsAccepted,
+        'rememberMe': false,
       });
 
       debugPrint('Registration response: ${response.statusCode} - ${response.data}');
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
         await _storeTokens(response.data);
         return {
           'success': true,
-          'data': response.data['user'] ?? response.data['customer'],
+          'data': response.data['customer'],
+          'message': response.data['message'] ?? 'Registration successful',
         };
       }
 
       return {
         'success': false,
-        'message': 'Registration failed',
+        'message': response.data['message'] ?? 'Registration failed',
       };
     } catch (e) {
       debugPrint('Registration error: $e');
+
+      String errorMessage = 'Registration failed. Please try again.';
+
       if (e is DioException) {
         debugPrint('DioException status code: ${e.response?.statusCode}');
         debugPrint('DioException response data: ${e.response?.data}');
 
         if (e.type == DioExceptionType.connectionTimeout) {
-          return {
-            'success': false,
-            'message': 'Connection timeout. Please check your internet connection.',
-          };
+          errorMessage = 'Connection timeout. Please check your internet connection.';
         } else if (e.type == DioExceptionType.connectionError) {
-          return {
-            'success': false,
-            'message': 'Connection error. Please check if the server is running.',
-          };
+          errorMessage = 'Connection error. Please check if the server is running.';
+        } else if (e.response?.data is Map && e.response?.data['message'] != null) {
+          errorMessage = e.response?.data['message'];
+
+          // Make error messages more user-friendly
+          if (errorMessage.contains('already exists')) {
+            errorMessage = 'An account with this email already exists. Please try logging in instead.';
+          }
         }
       }
 
       return {
         'success': false,
-        'message': e is DioException && e.response?.data['message'] != null
-            ? e.response?.data['message']
-            : 'Registration failed. Please try again.',
+        'message': errorMessage,
       };
     }
   }
@@ -191,8 +479,60 @@ class ApiService {
     required bool rememberMe,
   }) async {
     try {
-      // Use the correct endpoint
-      final response = await _dio.post('/auth/login', data: {
+      // For email/password login, we should use Firebase Authentication first
+      // and then use the Firebase token to authenticate with our backend
+      try {
+        // Sign in with Firebase
+        final UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+
+        // Get the Firebase ID token
+        final String? idToken = await userCredential.user?.getIdToken(true);
+
+        if (idToken != null) {
+          // Use the Firebase token to authenticate with our backend
+          return await loginWithFirebase(
+            firebaseToken: idToken,
+            authProvider: 'EMAIL',
+            name: userCredential.user?.displayName,
+            rememberMe: rememberMe,
+          );
+        }
+      } catch (firebaseError) {
+        debugPrint('Firebase login error: $firebaseError');
+        // Continue with direct backend login as fallback
+      }
+
+      // Fallback to direct backend login (though this path should rarely be used)
+      // Determine which endpoint to use
+      String endpoint;
+      // Try with and without the /api prefix
+      try {
+        // First try without /api prefix
+        endpoint = '/customers/login';
+        // Make a test request to check if the endpoint exists
+        _dio.options.validateStatus = (status) => true; // Accept any status code for the test
+        final testResponse = await _dio.head(endpoint);
+        debugPrint('Test request to $endpoint returned status: ${testResponse.statusCode}');
+
+        if (testResponse.statusCode == 404) {
+          // If 404, try with /api prefix
+          endpoint = '/api/customers/login';
+          debugPrint('Endpoint not found, trying with /api prefix: $endpoint');
+        }
+      } catch (e) {
+        // If error, default to /api prefix
+        endpoint = '/api/customers/login';
+        debugPrint('Error testing endpoint, using /api prefix: $endpoint');
+      } finally {
+        // Reset validateStatus to default
+        _dio.options.validateStatus = (status) => status != null && status >= 200 && status < 300;
+      }
+
+      debugPrint('Sending request to endpoint: $endpoint');
+      final response = await _dio.post(endpoint, data: {
         'email': email,
         'password': password,
         'rememberMe': rememberMe,
@@ -204,21 +544,50 @@ class ApiService {
         await _storeTokens(response.data);
         return {
           'success': true,
-          'data': response.data['user'] ?? response.data['customer'],
+          'data': response.data['customer'],
+          'message': response.data['message'] ?? 'Login successful',
         };
       }
 
       return {
         'success': false,
-        'message': 'Login failed',
+        'message': response.data['message'] ?? 'Login failed',
       };
     } catch (e) {
       debugPrint('Login error: $e');
+
+      String errorMessage = 'Login failed. Please check your credentials and try again.';
+
+      if (e is FirebaseAuthException) {
+        switch (e.code) {
+          case 'user-not-found':
+            errorMessage = 'No user found with this email address.';
+            break;
+          case 'wrong-password':
+            errorMessage = 'Incorrect password. Please try again.';
+            break;
+          case 'invalid-email':
+            errorMessage = 'The email address is invalid.';
+            break;
+          case 'user-disabled':
+            errorMessage = 'This account has been disabled.';
+            break;
+          default:
+            errorMessage = e.message ?? 'Authentication failed. Please try again.';
+        }
+      } else if (e is DioException) {
+        if (e.type == DioExceptionType.connectionTimeout) {
+          errorMessage = 'Connection timeout. Please check your internet connection.';
+        } else if (e.type == DioExceptionType.connectionError) {
+          errorMessage = 'Connection error. Please check if the server is running.';
+        } else if (e.response?.data is Map && e.response?.data['message'] != null) {
+          errorMessage = e.response?.data['message'];
+        }
+      }
+
       return {
         'success': false,
-        'message': e is DioException && e.response?.data['message'] != null
-            ? e.response?.data['message']
-            : 'Login failed. Please check your credentials and try again.',
+        'message': errorMessage,
       };
     }
   }
@@ -231,7 +600,6 @@ class ApiService {
     required bool rememberMe,
   }) async {
     try {
-      // Use the correct endpoint
       // Ensure the token is properly formatted
       final cleanToken = firebaseToken.trim();
 
@@ -240,7 +608,18 @@ class ApiService {
       debugPrint('Sending Firebase token: ${cleanToken.substring(0, previewLength)}...');
       debugPrint('Token length: ${cleanToken.length}');
 
-      final response = await _dio.post('/auth/firebase', data: {
+      // Use our post method which automatically adds the /api prefix
+      String endpoint;
+      if (authProvider == 'GOOGLE' || authProvider == 'FACEBOOK' || authProvider == 'APPLE') {
+        debugPrint('Using social-login endpoint for $authProvider login');
+        endpoint = '/customers/social-login';
+      } else {
+        debugPrint('Using regular login endpoint for $authProvider login');
+        endpoint = '/customers/login';
+      }
+
+      debugPrint('Sending request to endpoint: $endpoint');
+      final response = await post(endpoint, data: {
         'firebaseToken': cleanToken,
         'idToken': cleanToken, // Send both field names for compatibility
         'authProvider': authProvider,
@@ -248,23 +627,23 @@ class ApiService {
         'rememberMe': rememberMe,
       });
 
-      debugPrint('Firebase login response: ${response.statusCode} - ${response.data}');
+      debugPrint('Firebase auth response: ${response.statusCode} - ${response.data}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         await _storeTokens(response.data);
         return {
           'success': true,
-          'data': response.data['user'] ?? response.data['customer'],
-          'message': response.data['message'] ?? 'Firebase login successful',
+          'data': response.data['customer'],
+          'message': response.data['message'] ?? 'Authentication successful',
         };
       }
 
       return {
         'success': false,
-        'message': response.data['message'] ?? 'Firebase login failed',
+        'message': response.data['message'] ?? 'Authentication failed',
       };
     } catch (e) {
-      debugPrint('Firebase login error: $e');
+      debugPrint('Firebase authentication error: $e');
 
       // Check if the error response contains user data
       if (e is DioException && e.response != null) {
@@ -272,21 +651,31 @@ class ApiService {
         debugPrint('Error response data: ${response.data}');
 
         // If the response contains user data, consider it a partial success
-        if (response.data is Map && response.data['user'] != null) {
+        if (response.data is Map && (response.data['user'] != null || response.data['customer'] != null)) {
           debugPrint('Found user data in error response, treating as partial success');
           return {
             'success': true,
-            'data': response.data['user'],
-            'message': 'Login successful with warnings',
+            'data': response.data['user'] ?? response.data['customer'],
+            'message': 'Authentication successful with warnings',
           };
+        }
+      }
+
+      String errorMessage = 'Authentication failed. Please try again.';
+
+      if (e is DioException) {
+        if (e.type == DioExceptionType.connectionTimeout) {
+          errorMessage = 'Connection timeout. Please check your internet connection.';
+        } else if (e.type == DioExceptionType.connectionError) {
+          errorMessage = 'Connection error. Please check if the server is running.';
+        } else if (e.response?.data is Map && e.response?.data['message'] != null) {
+          errorMessage = e.response?.data['message'];
         }
       }
 
       return {
         'success': false,
-        'message': e is DioException && e.response?.data['message'] != null
-            ? e.response?.data['message']
-            : 'Firebase login failed. Please try again.',
+        'message': errorMessage,
       };
     }
   }
@@ -298,8 +687,9 @@ class ApiService {
       final refreshToken = await _secureStorage.read(key: 'refresh_token');
       if (refreshToken != null) {
         try {
-          // Use the correct endpoint
-          await _dio.post('/auth/logout', data: {
+          // Use our post method which automatically adds the /api prefix
+          debugPrint('Logging out user with refresh token');
+          await post('/customers/logout', data: {
             'refreshToken': refreshToken,
           });
         } catch (e) {
@@ -325,7 +715,9 @@ class ApiService {
   // Get current user profile
   Future<Map<String, dynamic>> getCurrentUser() async {
     try {
-      final response = await _dio.get('/customers/me');
+      // Use our get method which automatically adds the /api prefix
+      debugPrint('Getting current user profile');
+      final response = await get('/customers/me');
 
       if (response.statusCode == 200) {
         return {
@@ -365,7 +757,9 @@ class ApiService {
       if (phoneNumber != null) data['phoneNumber'] = phoneNumber;
       if (profilePicture != null) data['profilePicture'] = profilePicture;
 
-      final response = await _dio.patch('/customers/me', data: data);
+      // Use our patch method which automatically adds the /api prefix
+      debugPrint('Updating user profile');
+      final response = await patch('/customers/me', data: data);
 
       if (response.statusCode == 200) {
         return {
@@ -394,7 +788,9 @@ class ApiService {
     required String email,
   }) async {
     try {
-      final response = await _dio.post('/auth/forgot-password', data: {
+      // Use our post method which automatically adds the /api prefix
+      debugPrint('Sending password reset email');
+      final response = await post('/customers/forgot-password', data: {
         'email': email,
       });
 
@@ -423,7 +819,9 @@ class ApiService {
   // Get user profile
   Future<Map<String, dynamic>> getUserProfile() async {
     try {
-      final response = await _dio.get('/customers/me');
+      // Use our get method which automatically adds the /api prefix
+      debugPrint('Getting user profile');
+      final response = await get('/customers/me');
 
       debugPrint('User profile response: ${response.statusCode} - ${response.data}');
 
@@ -449,62 +847,5 @@ class ApiService {
     }
   }
 
-  // Generic HTTP methods
-  Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) async {
-    try {
-      debugPrint('Making GET request to: $path');
-
-      // Log the headers for debugging
-      final token = await _secureStorage.read(key: 'access_token');
-      if (token != null) {
-        final previewLength = token.length > 20 ? 20 : token.length;
-        debugPrint('Using token: ${token.substring(0, previewLength)}...');
-      } else {
-        debugPrint('No token available for GET request');
-      }
-
-      final response = await _dio.get(path, queryParameters: queryParameters);
-      debugPrint('GET response status: ${response.statusCode}');
-      debugPrint('GET response data type: ${response.data.runtimeType}');
-      if (response.data is List) {
-        debugPrint('GET response data length: ${(response.data as List).length}');
-      }
-      return response;
-    } catch (e) {
-      debugPrint('Error in GET request to $path: $e');
-      if (e is DioException) {
-        debugPrint('DioException status code: ${e.response?.statusCode}');
-        debugPrint('DioException response data: ${e.response?.data}');
-      }
-      rethrow;
-    }
-  }
-
-  Future<Response> post(String path, {dynamic data}) async {
-    return await _dio.post(path, data: data);
-  }
-
-  Future<Response> put(String path, {dynamic data}) async {
-    return await _dio.put(path, data: data);
-  }
-
-  Future<Response> delete(String path) async {
-    return await _dio.delete(path);
-  }
-
-  Future<Response> patch(String path, {dynamic data}) async {
-    try {
-      debugPrint('Making PATCH request to: $path');
-      final response = await _dio.patch(path, data: data);
-      debugPrint('PATCH response status: ${response.statusCode}');
-      return response;
-    } catch (e) {
-      debugPrint('Error in PATCH request to $path: $e');
-      if (e is DioException) {
-        debugPrint('DioException status code: ${e.response?.statusCode}');
-        debugPrint('DioException response data: ${e.response?.data}');
-      }
-      rethrow;
-    }
-  }
+  // No duplicate methods here
 }

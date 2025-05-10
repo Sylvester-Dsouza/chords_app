@@ -2,21 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'utils/page_transitions.dart';
 import 'services/cache_service.dart';
+import 'services/auth_service.dart';
+import 'services/api_service.dart';
 import 'providers/navigation_provider.dart';
-import 'screens/home_screen.dart';
 import 'screens/auth_test_screen.dart';
-import 'screens/playlist_screen.dart';
 import 'screens/playlist_detail_screen.dart';
-import 'screens/search_screen.dart';
-import 'screens/resources_screen.dart';
-import 'screens/profile_screen.dart';
-import 'screens/tools_screen.dart';
-import 'screens/tools/tuner_screen.dart';
-import 'screens/tools/metronome_screen.dart';
-import 'screens/tools/chord_library_screen.dart';
-import 'screens/tools/scale_explorer_screen.dart';
-import 'screens/tools/capo_calculator_screen.dart';
-import 'screens/tools/circle_of_fifths_screen.dart';
 import 'screens/main_navigation.dart';
 import 'screens/artist_detail_screen.dart';
 import 'screens/collection_detail_screen.dart';
@@ -35,7 +25,6 @@ import 'screens/privacy_policy_screen.dart';
 import 'screens/contribute_screen.dart';
 import 'screens/personal_details_screen.dart';
 import 'screens/rate_app_screen.dart';
-import 'services/firebase_service.dart';
 import 'services/notification_service.dart';
 import 'config/firebase_config.dart';
 import 'providers/user_provider.dart';
@@ -51,11 +40,27 @@ void main() async {
 
   // We'll create the notification channel in the NotificationService
 
-  // Initialize Firebase with the correct project
-  await FirebaseService.initializeFirebase();
+  // Test API connection
+  try {
+    debugPrint('Testing API connection...');
+    final isConnected = await ApiService.testApiConnection();
+    debugPrint('API connection test result: ${isConnected ? 'Connected' : 'Failed to connect'}');
+  } catch (e) {
+    debugPrint('Error testing API connection: $e');
+    // Continue anyway
+  }
 
-  // Log Firebase initialization status
-  debugPrint('Firebase initialized with project: ${FirebaseConfig.projectId}');
+  // Initialize Firebase with the correct project
+  try {
+    final authService = AuthService();
+    await authService.initializeFirebase();
+
+    // Log Firebase initialization status
+    debugPrint('Firebase initialized with project: ${FirebaseConfig.projectId}');
+  } catch (e) {
+    debugPrint('Error initializing Firebase: $e');
+    // Continue anyway to allow the app to start
+  }
 
   // Initialize notification service
   final notificationService = NotificationService();
@@ -93,7 +98,7 @@ class MyApp extends StatelessWidget {
       case '/home':
       case '/playlist':
       case '/search':
-      case '/tools':
+      case '/resources':
       case '/profile':
         // For main navigation tabs, use the MainNavigation widget
         final navigationProvider = Provider.of<NavigationProvider>(navigatorKey.currentContext!, listen: false);
@@ -143,8 +148,7 @@ class MyApp extends StatelessWidget {
           '/forgot-password': (context) => const ForgotPasswordScreen(),
           '/playlist': (context) => const MainNavigation(),
           '/search': (context) => const MainNavigation(),
-          '/tools': (context) => const MainNavigation(),
-          '/resources': (context) => const ResourcesScreen(),
+          '/resources': (context) => const MainNavigation(),
           '/profile': (context) => const MainNavigation(),
           '/auth_test': (context) => const AuthTestScreen(),
           '/song_request': (context) => const SongRequestScreen(),
@@ -177,30 +181,7 @@ class MyApp extends StatelessWidget {
                 collectionId: args['collectionId'],
               ),
             );
-          } else if (settings.name == '/tools/tuner') {
-            return FadeSlidePageRoute(
-              page: const TunerScreen(),
-            );
-          } else if (settings.name == '/tools/metronome') {
-            return FadeSlidePageRoute(
-              page: const MetronomeScreen(),
-            );
-          } else if (settings.name == '/tools/chords') {
-            return FadeSlidePageRoute(
-              page: const ChordLibraryScreen(),
-            );
-          } else if (settings.name == '/tools/scales') {
-            return FadeSlidePageRoute(
-              page: const ScaleExplorerScreen(),
-            );
-          } else if (settings.name == '/tools/capo') {
-            return FadeSlidePageRoute(
-              page: const CapoCalculatorScreen(),
-            );
-          } else if (settings.name == '/tools/circle-of-fifths') {
-            return FadeSlidePageRoute(
-              page: const CircleOfFifthsScreen(),
-            );
+          // Tools routes removed
           } else if (settings.name == '/help-support') {
             return FadeSlidePageRoute(
               page: const HelpSupportScreen(),
@@ -259,12 +240,12 @@ class MyApp extends StatelessWidget {
           ),
           // Dark background color
           scaffoldBackgroundColor: const Color(0xFF121212),
-          primaryColor: const Color(0xFFFFC701), // Main accent - Yellow
+          primaryColor: const Color(0xFFB388FF), // Main accent - Light Lavender
           colorScheme: ColorScheme.dark(
             // Using surface instead of deprecated background
             surface: const Color(0xFF121212),      // Dark background color
-            primary: const Color(0xFFFFC701),      // Main accent - Yellow
-            secondary: const Color(0xFFFF8C00),    // Secondary accent - Orange
+            primary: const Color(0xFFB388FF),      // Main accent - Light Lavender
+            secondary: const Color(0xFF9575CD),    // Secondary accent - Deeper Lavender
             surfaceContainer: const Color(0xFF1E1E1E), // Slightly lighter than background for cards
             // Using onSurface instead of deprecated onBackground
             onSurface: Colors.white,              // Text color on surface/background
@@ -290,7 +271,7 @@ class MyApp extends StatelessWidget {
           // Button theme
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFFC701),
+              backgroundColor: const Color(0xFFB388FF), // Light Lavender
               foregroundColor: Colors.black,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
