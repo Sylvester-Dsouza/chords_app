@@ -108,13 +108,15 @@ class _SlidingBannerState extends State<SlidingBanner> {
 
 class BannerItem extends StatelessWidget {
   final String? imagePath;
+  final String? imageUrl;
   final VoidCallback? onTap;
 
   const BannerItem({
     super.key,
-    required this.imagePath,
+    this.imagePath,
+    this.imageUrl,
     this.onTap,
-  });
+  }) : assert(imagePath != null || imageUrl != null, 'Either imagePath or imageUrl must be provided');
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +132,12 @@ class BannerItem extends StatelessWidget {
                   image: AssetImage(imagePath!),
                   fit: BoxFit.cover, // Ensures image covers the full area
                 )
-              : null,
+              : imageUrl != null
+                ? DecorationImage(
+                    image: NetworkImage(imageUrl!),
+                    fit: BoxFit.cover,
+                  )
+                : null,
         ),
       ),
     );

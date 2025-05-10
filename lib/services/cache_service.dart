@@ -26,6 +26,7 @@ class CacheService {
   static const String _keyTrendingSongs = 'cache_trending_songs';
   static const String _keyTopArtists = 'cache_top_artists';
   static const String _keyNewSongs = 'cache_new_songs';
+  static const String _keyHomeSections = 'cache_home_sections';
 
   // Factory constructor
   factory CacheService() {
@@ -60,6 +61,7 @@ class CacheService {
     await prefs.remove(_keyTrendingSongs);
     await prefs.remove(_keyTopArtists);
     await prefs.remove(_keyNewSongs);
+    await prefs.remove(_keyHomeSections);
 
     debugPrint('All cached data cleared');
   }
@@ -635,6 +637,99 @@ class CacheService {
       return null;
     } catch (e) {
       debugPrint('Error getting cached new songs: $e');
+      return null;
+    }
+  }
+
+  /// Cache home sections
+  Future<void> cacheHomeSections(List<dynamic> sections) async {
+    try {
+      // Convert sections to JSON
+      final sectionsJson = sections.map((section) => {
+        'id': section.id,
+        'title': section.title,
+        'type': section.type.toString().split('.').last,
+        'items': _serializeItems(section.type, section.items),
+      }).toList();
+
+      final cacheData = {
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+        'data': sectionsJson,
+      };
+
+      // Save to memory cache
+      _memoryCache[_keyHomeSections] = cacheData;
+
+      // Save to persistent storage
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyHomeSections, json.encode(cacheData));
+
+      debugPrint('Cached ${sections.length} home sections');
+    } catch (e) {
+      debugPrint('Error caching home sections: $e');
+    }
+  }
+
+  // Helper method to serialize different types of items
+  List<Map<String, dynamic>> _serializeItems(dynamic sectionType, List<dynamic> items) {
+    if (items.isEmpty) return [];
+
+    if (sectionType.toString().contains('COLLECTIONS')) {
+      return items.map((item) => (item as Collection).toJson()).toList();
+    } else if (sectionType.toString().contains('SONGS')) {
+      return items.map((item) => (item as Song).toJson()).toList();
+    } else if (sectionType.toString().contains('ARTISTS')) {
+      return items.map((item) => (item as Artist).toJson()).toList();
+    } else {
+      // For banner items or other types, just return the raw items
+      return items.map((item) => item as Map<String, dynamic>).toList();
+    }
+  }
+
+  /// Get cached home sections
+  Future<List<dynamic>?> getCachedHomeSections() async {
+    try {
+      // First check memory cache
+      if (_memoryCache.containsKey(_keyHomeSections)) {
+        final cacheMap = _memoryCache[_keyHomeSections] as Map<String, dynamic>;
+        final timestamp = cacheMap['timestamp'] as int;
+        final expirationTime = timestamp + (_defaultExpirationMinutes * 60 * 1000);
+
+        // Check if memory cache is still valid
+        if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
+          final sectionsJson = cacheMap['data'] as List;
+          // We'll parse the sections in the HomeSectionService
+          debugPrint('Retrieved ${sectionsJson.length} home sections from memory cache');
+          return sectionsJson.cast<Map<String, dynamic>>();
+        }
+      }
+
+      // If not in memory or expired, check persistent storage
+      final prefs = await SharedPreferences.getInstance();
+      final cachedData = prefs.getString(_keyHomeSections);
+
+      if (cachedData != null) {
+        final cacheMap = json.decode(cachedData) as Map<String, dynamic>;
+        final timestamp = cacheMap['timestamp'] as int;
+        final expirationTime = timestamp + (_defaultExpirationMinutes * 60 * 1000);
+
+        // Check if persistent cache is still valid
+        if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
+          final sectionsJson = cacheMap['data'] as List;
+          // We'll parse the sections in the HomeSectionService
+
+          // Update memory cache
+          _memoryCache[_keyHomeSections] = cacheMap;
+
+          debugPrint('Retrieved ${sectionsJson.length} home sections from persistent cache');
+          return sectionsJson.cast<Map<String, dynamic>>();
+        }
+      }
+
+      // No valid cache found
+      return null;
+    } catch (e) {
+      debugPrint('Error getting cached home sections: $e');
       return null;
     }
   }

@@ -5,6 +5,7 @@ import '../models/collection.dart';
 import '../services/song_service.dart';
 import '../services/artist_service.dart';
 import '../services/collection_service.dart';
+import '../services/ad_service.dart';
 
 enum ListType {
   songs,
@@ -32,6 +33,7 @@ class _ListScreenState extends State<ListScreen> {
   final SongService _songService = SongService();
   final ArtistService _artistService = ArtistService();
   final CollectionService _collectionService = CollectionService();
+  final AdService _adService = AdService();
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -304,12 +306,23 @@ class _ListScreenState extends State<ListScreen> {
         style: const TextStyle(color: Colors.white70),
       ),
       trailing: const Icon(Icons.chevron_right, color: Colors.white70),
-      onTap: () {
-        Navigator.pushNamed(
-          context,
-          '/song_detail',
-          arguments: song,
-        );
+      onTap: () async {
+        // Show an interstitial ad before navigating to the song detail screen
+        // Only show ads occasionally (every 3rd song) to avoid annoying users
+        if (!_adService.isAdFree && song.id.hashCode % 3 == 0) {
+          // Try to show an interstitial ad
+          final adShown = await _adService.showInterstitialAd();
+          debugPrint('Interstitial ad shown: $adShown');
+        }
+
+        // Navigate to the song detail screen
+        if (mounted) {
+          Navigator.pushNamed(
+            context,
+            '/song_detail',
+            arguments: song,
+          );
+        }
       },
     );
   }

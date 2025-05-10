@@ -10,6 +10,8 @@ import '../screens/song_request_screen.dart';
 import '../screens/about_us_screen.dart';
 import '../screens/notification_screen.dart';
 import '../screens/login_screen.dart';
+import '../screens/remove_ads_screen.dart';
+import '../screens/premium_content_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -97,6 +99,8 @@ class AppDrawer extends StatelessWidget {
 
                     // Additional options
                     _buildMenuItem(context, Icons.handshake, 'Contribute'),
+                    _buildMenuItem(context, Icons.block_flipped, 'Remove Ads'),
+                    _buildMenuItem(context, Icons.star, 'Premium Content'),
 
                     // Add some bottom padding to ensure there's enough space
                     const SizedBox(height: 20),
@@ -223,14 +227,12 @@ class AppDrawer extends StatelessWidget {
             );
             break;
           case 'Remove Ads':
-            // Navigate to remove ads screen when available
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Remove Ads page coming soon!'),
-                backgroundColor: Color(0xFFFFC701),
-                duration: Duration(seconds: 2),
-              ),
-            );
+            // Navigate to remove ads screen
+            _navigateWithTransition(context, '/remove-ads');
+            break;
+          case 'Premium Content':
+            // Navigate to premium content screen
+            _navigateWithTransition(context, '/premium-content');
             break;
           case 'Logout':
             _showLogoutConfirmationDialog(context);
@@ -323,6 +325,12 @@ class AppDrawer extends StatelessWidget {
         break;
       case '/notifications':
         page = const NotificationScreen();
+        break;
+      case '/remove-ads':
+        page = const RemoveAdsScreen();
+        break;
+      case '/premium-content':
+        page = const PremiumContentScreen();
         break;
       default:
         // If we don't have a specific case, use the named route

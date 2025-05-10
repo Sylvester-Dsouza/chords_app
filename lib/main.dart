@@ -4,6 +4,7 @@ import 'utils/page_transitions.dart';
 import 'services/cache_service.dart';
 import 'services/auth_service.dart';
 import 'services/api_service.dart';
+import 'services/ad_service.dart';
 import 'providers/navigation_provider.dart';
 import 'screens/auth_test_screen.dart';
 import 'screens/playlist_detail_screen.dart';
@@ -25,6 +26,9 @@ import 'screens/privacy_policy_screen.dart';
 import 'screens/contribute_screen.dart';
 import 'screens/personal_details_screen.dart';
 import 'screens/rate_app_screen.dart';
+import 'screens/support_screen.dart';
+import 'screens/remove_ads_screen.dart';
+import 'screens/premium_content_screen.dart';
 import 'services/notification_service.dart';
 import 'config/firebase_config.dart';
 import 'providers/user_provider.dart';
@@ -69,6 +73,10 @@ void main() async {
   // Initialize cache service
   await CacheService().initialize();
   debugPrint('Cache service initialized');
+
+  // Initialize AdMob
+  await AdService().initialize();
+  debugPrint('AdMob service initialized');
 
   // Initialize UserProvider before running the app
   final userProvider = UserProvider();
@@ -201,6 +209,18 @@ class MyApp extends StatelessWidget {
           } else if (settings.name == '/rate-app') {
             return FadeSlidePageRoute(
               page: const RateAppScreen(),
+            );
+          } else if (settings.name == '/support') {
+            return FadeSlidePageRoute(
+              page: const SupportScreen(),
+            );
+          } else if (settings.name == '/remove-ads') {
+            return FadeSlidePageRoute(
+              page: const RemoveAdsScreen(),
+            );
+          } else if (settings.name == '/premium-content') {
+            return FadeSlidePageRoute(
+              page: const PremiumContentScreen(),
             );
           } else if (settings.name == '/song_detail') {
             final args = settings.arguments;
