@@ -6,6 +6,7 @@ class Artist {
   final String? bio;
   final String? imageUrl;
   final int songCount;
+  final bool isFeatured;
 
   Artist({
     required this.id,
@@ -13,6 +14,7 @@ class Artist {
     this.bio,
     this.imageUrl,
     this.songCount = 0,
+    this.isFeatured = false,
   });
 
   factory Artist.fromJson(Map<String, dynamic> json) {
@@ -42,6 +44,7 @@ class Artist {
       bio: json['bio'],
       imageUrl: json['imageUrl'],
       songCount: songCount,
+      isFeatured: json['isFeatured'] == true,
     );
   }
 
@@ -52,6 +55,7 @@ class Artist {
       'bio': bio,
       'imageUrl': imageUrl,
       'songCount': songCount,
+      'isFeatured': isFeatured,
     };
   }
 }

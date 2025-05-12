@@ -11,8 +11,8 @@
     <!-- Microphone permission for Guitar Tuner -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
-        android:name=".ChordsApplication"
         android:label="Christian Chords"
+        android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         tools:replace="android:label">
         <activity
@@ -66,11 +66,6 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="high_importance_channel" />
-
-        <!-- WebView configuration -->
-        <meta-data
-            android:name="io.flutter.embedded_views_preview"
-            android:value="true" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

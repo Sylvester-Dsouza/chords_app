@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/song_placeholder.dart';
 import '../widgets/animated_bottom_nav_bar.dart';
 import '../models/collection.dart';
@@ -23,7 +24,7 @@ class CollectionDetailScreen extends StatefulWidget {
 }
 
 class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
-  int _currentIndex = 2; // Set to 2 for Search tab
+  final int _currentIndex = 2; // Set to 2 for Search tab
 
   // Services
   final CollectionService _collectionService = CollectionService();
@@ -40,6 +41,33 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   void initState() {
     super.initState();
     _loadCollectionData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // This will be called when the screen is resumed
+    if (_collection != null) {
+      _refreshLikeStatus();
+    }
+  }
+
+  @override
+  void didUpdateWidget(CollectionDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Refresh like status when widget is updated
+    if (_collection != null) {
+      _refreshLikeStatus();
+    }
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    // This will be called when the screen is resumed from being paused
+    if (_collection != null) {
+      _refreshLikeStatus();
+    }
   }
 
   // Load collection data and songs
@@ -162,6 +190,189 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     }
   }
 
+  // Refresh the like status of the current collection
+  Future<void> _refreshLikeStatus() async {
+    if (_collection == null) return;
+
+    try {
+      // Get the current Firebase user to check login status
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser == null) return; // Not logged in, no need to refresh
+
+      // Get the like status for this collection
+      final result = await _collectionService.getLikeStatus(_collection!.id);
+
+      if (result['success'] == true && mounted) {
+        final bool isLiked = result['data']['isLiked'] ?? false;
+
+        // Only update if the like status has changed
+        if (isLiked != _collection!.isLiked) {
+          setState(() {
+            // Create a new collection with updated like status
+            _collection = Collection(
+              id: _collection!.id,
+              title: _collection!.title,
+              description: _collection!.description,
+              songCount: _collection!.songCount,
+              likeCount: _collection!.likeCount,
+              isLiked: isLiked,
+              color: _collection!.color,
+              imageUrl: _collection!.imageUrl,
+              songs: _collection!.songs,
+              isPublic: _collection!.isPublic,
+            );
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error refreshing like status: $e');
+      // Don't show an error message to the user for background refresh
+    }
+  }
+
+  // Toggle like status of the collection
+  Future<void> _toggleCollectionLike() async {
+    if (_collection == null) return;
+
+    final wasLiked = _collection!.isLiked;
+    final oldLikeCount = _collection!.likeCount;
+
+    try {
+      // Get the current Firebase user to check login status
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+
+      // Check if user is logged in using Firebase directly
+      if (firebaseUser == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('You need to be logged in to like collections'),
+              backgroundColor: Colors.orange,
+              action: SnackBarAction(
+                label: 'Login',
+                textColor: Colors.white,
+                onPressed: () {
+                  Navigator.pushNamed(context, '/login');
+                },
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Immediately update UI for responsive feedback
+      if (mounted) {
+        setState(() {
+          // Create a new collection with updated like status
+          _collection = Collection(
+            id: _collection!.id,
+            title: _collection!.title,
+            description: _collection!.description,
+            songCount: _collection!.songCount,
+            likeCount: oldLikeCount + (wasLiked ? -1 : 1), // Optimistically update like count
+            isLiked: !wasLiked, // Immediately toggle like status
+            color: _collection!.color,
+            imageUrl: _collection!.imageUrl,
+            songs: _collection!.songs,
+            isPublic: _collection!.isPublic,
+          );
+        });
+      }
+
+      // Show immediate feedback
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            wasLiked
+              ? 'Removed "${_collection!.title}" from liked collections'
+              : 'Added "${_collection!.title}" to liked collections'
+          ),
+          backgroundColor: wasLiked ? Colors.grey : Colors.green,
+          duration: const Duration(seconds: 1),
+        ),
+      );
+
+      // Make API call in the background
+      final result = await _collectionService.toggleLike(_collection!.id);
+
+      // If API call fails, revert the UI changes
+      if (result['success'] != true && mounted) {
+        setState(() {
+          // Revert to original state
+          _collection = Collection(
+            id: _collection!.id,
+            title: _collection!.title,
+            description: _collection!.description,
+            songCount: _collection!.songCount,
+            likeCount: oldLikeCount, // Revert to original like count
+            isLiked: wasLiked, // Revert to original like status
+            color: _collection!.color,
+            imageUrl: _collection!.imageUrl,
+            songs: _collection!.songs,
+            isPublic: _collection!.isPublic,
+          );
+        });
+
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Failed to update like status'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } else if (result['success'] == true && mounted) {
+        // Update with the actual like count from the server if different
+        final serverLikeCount = result['data']['likeCount'];
+        if (serverLikeCount != null && serverLikeCount != _collection!.likeCount) {
+          setState(() {
+            _collection = Collection(
+              id: _collection!.id,
+              title: _collection!.title,
+              description: _collection!.description,
+              songCount: _collection!.songCount,
+              likeCount: serverLikeCount,
+              isLiked: !wasLiked,
+              color: _collection!.color,
+              imageUrl: _collection!.imageUrl,
+              songs: _collection!.songs,
+              isPublic: _collection!.isPublic,
+            );
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error toggling collection like: $e');
+
+      // Revert UI changes on error
+      if (mounted) {
+        setState(() {
+          // Revert to original state
+          _collection = Collection(
+            id: _collection!.id,
+            title: _collection!.title,
+            description: _collection!.description,
+            songCount: _collection!.songCount,
+            likeCount: oldLikeCount, // Revert to original like count
+            isLiked: wasLiked, // Revert to original like status
+            color: _collection!.color,
+            imageUrl: _collection!.imageUrl,
+            songs: _collection!.songs,
+            isPublic: _collection!.isPublic,
+          );
+        });
+
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update like status: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _onItemTapped(int index) {
     if (index != _currentIndex) {
       // Update the navigation provider
@@ -177,10 +388,12 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
-      extendBodyBehindAppBar: true,
+      extendBodyBehindAppBar: true, // Ensures content goes behind the app bar
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        shadowColor: Colors.transparent,
+        foregroundColor: Colors.transparent,
         leading: IconButton(
           icon: Container(
             decoration: BoxDecoration(
@@ -196,14 +409,8 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
             Navigator.pop(context);
           },
         ),
-        title: Text(
-          _collection?.title ?? widget.collectionName,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
+        // Title removed to make image more visible
+        title: null,
       ),
       body: _isLoading
           ? const Center(
@@ -303,7 +510,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                 image: NetworkImage(_collection!.imageUrl!),
                 fit: BoxFit.cover,
                 colorFilter: ColorFilter.mode(
-                  Colors.black.withOpacity(0.3),
+                  Colors.black.withAlpha(77), // 0.3 * 255 = 77
                   BlendMode.darken,
                 ),
                 onError: (exception, stackTrace) {
@@ -319,49 +526,15 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
             end: Alignment.bottomCenter,
             colors: [
               Colors.transparent,
-              Colors.black.withOpacity(0.7),
+              Colors.black.withAlpha(179), // 0.7 * 255 = 179
             ],
           ),
         ),
         child: Stack(
           children: [
-            // Collection name
-            Positioned(
-              bottom: 60,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Text(
-                  (_collection?.title ?? widget.collectionName).toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2.0,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
+            // Collection name removed from image to make image more visible
 
-            // "MUSIC" text
-            const Positioned(
-              bottom: 30,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Text(
-                  "MUSIC",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2.0,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
+            // Removed "MUSIC" text
 
             // Song count
             Positioned(
@@ -376,24 +549,35 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
               ),
             ),
 
-            // Likes count
+            // Likes count and like button
             Positioned(
               bottom: 10,
               right: 16,
               child: Row(
                 children: [
                   Text(
-                    "${_collection?.likes ?? 0}",
+                    "${_collection?.likeCount ?? 0}",
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 14,
+                      fontSize: 16,
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  const Icon(
-                    Icons.thumb_up,
-                    color: Colors.white,
-                    size: 16,
+                  const SizedBox(width: 8),
+                  // Wrap in a Material widget for better touch feedback
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _toggleCollectionLike,
+                      borderRadius: BorderRadius.circular(24),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Icon(
+                          _collection?.isLiked == true ? Icons.favorite : Icons.favorite_border,
+                          color: _collection?.isLiked == true ? Colors.red : Colors.white,
+                          size: 28, // Increased size
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -408,12 +592,29 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16.0),
-      child: Text(
-        _collection?.description ?? 'No description available',
-        style: const TextStyle(
-          color: Colors.grey,
-          fontSize: 14,
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Collection name (moved from image)
+          Text(
+            (_collection?.title ?? widget.collectionName).toUpperCase(),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Description
+          Text(
+            _collection?.description ?? 'No description available',
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 14,
+            ),
+          ),
+        ],
       ),
     );
   }

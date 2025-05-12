@@ -24,7 +24,7 @@ class StarRating extends StatelessWidget {
   Widget build(BuildContext context) {
     final starColor = color ?? Theme.of(context).colorScheme.primary;
     final emptyColor = unratedColor ?? Colors.grey.shade400;
-    
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: alignment,
@@ -107,7 +107,9 @@ class _InteractiveStarRatingState extends State<InteractiveStarRating> {
   void didUpdateWidget(InteractiveStarRating oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initialRating != widget.initialRating) {
-      _currentRating = widget.initialRating;
+      setState(() {
+        _currentRating = widget.initialRating;
+      });
     }
   }
 
@@ -115,7 +117,7 @@ class _InteractiveStarRatingState extends State<InteractiveStarRating> {
   Widget build(BuildContext context) {
     final starColor = widget.color ?? Theme.of(context).colorScheme.primary;
     final emptyColor = widget.unratedColor ?? Colors.grey.shade400;
-    
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [

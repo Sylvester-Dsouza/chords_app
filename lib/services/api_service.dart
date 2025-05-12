@@ -288,6 +288,15 @@ class ApiService {
     }
   }
 
+  // Get auth options for authenticated requests
+  Options getAuthOptions(String token) {
+    return Options(
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+  }
+
   // Override the patch method to automatically add /api prefix
   Future<Response> patch(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) async {
     final apiPath = _ensureApiPrefix(path);

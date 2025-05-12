@@ -5,7 +5,8 @@ import '../models/collection.dart';
 import '../services/song_service.dart';
 import '../services/artist_service.dart';
 import '../services/collection_service.dart';
-import '../services/ad_service.dart';
+// AdMob service removed to fix crashing issues
+// import '../services/ad_service.dart';
 
 enum ListType {
   songs,
@@ -33,7 +34,9 @@ class _ListScreenState extends State<ListScreen> {
   final SongService _songService = SongService();
   final ArtistService _artistService = ArtistService();
   final CollectionService _collectionService = CollectionService();
-  final AdService _adService = AdService();
+  // AdService removed to fix crashing issues
+  // final AdService _adService = AdService();
+  final bool _isAdFree = true; // Always ad-free now
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -306,16 +309,9 @@ class _ListScreenState extends State<ListScreen> {
         style: const TextStyle(color: Colors.white70),
       ),
       trailing: const Icon(Icons.chevron_right, color: Colors.white70),
-      onTap: () async {
-        // Show an interstitial ad before navigating to the song detail screen
-        // Only show ads occasionally (every 3rd song) to avoid annoying users
-        if (!_adService.isAdFree && song.id.hashCode % 3 == 0) {
-          // Try to show an interstitial ad
-          final adShown = await _adService.showInterstitialAd();
-          debugPrint('Interstitial ad shown: $adShown');
-        }
-
-        // Navigate to the song detail screen
+      onTap: () {
+        // AdMob code removed to fix crashing issues
+        // Navigate directly to the song detail screen
         if (mounted) {
           Navigator.pushNamed(
             context,
@@ -441,32 +437,102 @@ class _ListScreenState extends State<ListScreen> {
           },
         );
       },
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8.0),
-          color: Colors.grey[800],
-          image: collection.imageUrl != null
-              ? DecorationImage(
-                  image: NetworkImage(collection.imageUrl!),
-                  fit: BoxFit.cover,
-                  onError: (exception, stackTrace) {
-                    debugPrint('Error loading collection image: ${collection.title} - ${collection.imageUrl}');
-                  },
-                )
-              : null,
-        ),
-        child: collection.imageUrl == null
-            ? Center(
-                child: Text(
-                  collection.title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
+      child: Stack(
+        children: [
+          // Collection background
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8.0),
+              color: Colors.grey[800],
+              image: collection.imageUrl != null
+                  ? DecorationImage(
+                      image: NetworkImage(collection.imageUrl!),
+                      fit: BoxFit.cover,
+                      onError: (exception, stackTrace) {
+                        debugPrint('Error loading collection image: ${collection.title} - ${collection.imageUrl}');
+                      },
+                    )
+                  : null,
+            ),
+            child: collection.imageUrl == null
+                ? Center(
+                    child: Text(
+                      collection.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  )
+                : null,
+          ),
+
+          // Gradient overlay for text visibility
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8.0),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withAlpha(179), // 0.7 * 255 = 179
+                  ],
                 ),
-              )
-            : null,
+              ),
+            ),
+          ),
+
+          // Collection title
+          if (collection.imageUrl != null)
+            Positioned(
+              bottom: 8,
+              left: 8,
+              right: 8,
+              child: Text(
+                collection.title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+
+          // Like count and icon
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.black.withAlpha(128),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    "${collection.likeCount}",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Icon(
+                    collection.isLiked ? Icons.favorite : Icons.favorite_border,
+                    color: collection.isLiked ? Colors.red : Colors.white,
+                    size: 14,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

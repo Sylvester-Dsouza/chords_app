@@ -149,9 +149,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildStatItem('Playlists', '12'),
-                  _buildStatItem('Favorites', '48'),
-                  _buildStatItem('Contributions', '5'),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(context, '/playlists');
+                    },
+                    child: _buildStatItem('Playlists', '12'),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(context, '/liked-collections');
+                    },
+                    child: _buildStatItem('Liked Collections', '${userProvider.likedCollectionsCount ?? 0}'),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(context, '/contribute');
+                    },
+                    child: _buildStatItem('Contributions', '5'),
+                  ),
                 ],
               ),
             ),

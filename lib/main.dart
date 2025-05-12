@@ -1,10 +1,14 @@
+// import 'dart:async' - removed unused import
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'utils/page_transitions.dart';
 import 'services/cache_service.dart';
 import 'services/auth_service.dart';
 import 'services/api_service.dart';
-import 'services/ad_service.dart';
+// AdMob service removed to fix crashing issues
+// import 'services/ad_service.dart';
 import 'providers/navigation_provider.dart';
 import 'screens/auth_test_screen.dart';
 import 'screens/playlist_detail_screen.dart';
@@ -28,9 +32,12 @@ import 'screens/personal_details_screen.dart';
 import 'screens/rate_app_screen.dart';
 import 'screens/support_screen.dart';
 import 'screens/remove_ads_screen.dart';
-import 'screens/premium_content_screen.dart';
+import 'screens/liked_collections_screen.dart';
+// Premium content screen removed to fix crashing issues
+// import 'screens/premium_content_screen.dart';
 import 'services/notification_service.dart';
 import 'config/firebase_config.dart';
+import 'config/theme.dart';
 import 'providers/user_provider.dart';
 import 'models/song.dart';
 
@@ -39,6 +46,16 @@ import 'models/song.dart';
 void main() async {
   // This ensures the Flutter binding is initialized before anything else
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize YouTube player iframe
+  try {
+    debugPrint('Initializing YouTube player iframe...');
+    // No static initialization needed for the latest version
+    debugPrint('YouTube player iframe will be initialized when used');
+  } catch (e) {
+    debugPrint('Error initializing YouTube player iframe: $e');
+    // Continue anyway
+  }
 
   // We'll initialize the Flutter Local Notifications plugin in the NotificationService
 
@@ -74,9 +91,8 @@ void main() async {
   await CacheService().initialize();
   debugPrint('Cache service initialized');
 
-  // Initialize AdMob
-  await AdService().initialize();
-  debugPrint('AdMob service initialized');
+  // AdMob initialization removed to fix crashing issues
+  debugPrint('AdMob has been completely removed from the app');
 
   // Initialize UserProvider before running the app
   final userProvider = UserProvider();
@@ -218,10 +234,15 @@ class MyApp extends StatelessWidget {
             return FadeSlidePageRoute(
               page: const RemoveAdsScreen(),
             );
-          } else if (settings.name == '/premium-content') {
+          } else if (settings.name == '/liked-collections') {
             return FadeSlidePageRoute(
-              page: const PremiumContentScreen(),
+              page: const LikedCollectionsScreen(),
             );
+          // Premium content screen removed to fix crashing issues
+          // } else if (settings.name == '/premium-content') {
+          //   return FadeSlidePageRoute(
+          //     page: const PremiumContentScreen(),
+          //   );
           } else if (settings.name == '/song_detail') {
             final args = settings.arguments;
             if (args is Song) {
@@ -250,66 +271,8 @@ class MyApp extends StatelessWidget {
 
           return null;
         },
-        theme: ThemeData(
-          // Custom page transitions for the entire app
-          pageTransitionsTheme: PageTransitionsTheme(
-            builders: {
-              TargetPlatform.android: ZoomPageTransitionsBuilder(),
-              TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-            },
-          ),
-          // Dark background color
-          scaffoldBackgroundColor: const Color(0xFF121212),
-          primaryColor: const Color(0xFFB388FF), // Main accent - Light Lavender
-          colorScheme: ColorScheme.dark(
-            // Using surface instead of deprecated background
-            surface: const Color(0xFF121212),      // Dark background color
-            primary: const Color(0xFFB388FF),      // Main accent - Light Lavender
-            secondary: const Color(0xFF9575CD),    // Secondary accent - Deeper Lavender
-            surfaceContainer: const Color(0xFF1E1E1E), // Slightly lighter than background for cards
-            // Using onSurface instead of deprecated onBackground
-            onSurface: Colors.white,              // Text color on surface/background
-            onPrimary: Colors.black,              // Text color on primary color
-            onSecondary: Colors.white,            // Text color on secondary color
-          ),
-          // AppBar theme
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFF121212),
-            foregroundColor: Colors.white,
-            elevation: 0,
-          ),
-          // Text theme with white text
-          textTheme: const TextTheme(
-            displayLarge: TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: Colors.white),
-            displayMedium: TextStyle(fontSize: 28.0, fontWeight: FontWeight.bold, color: Colors.white),
-            displaySmall: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold, color: Colors.white),
-            headlineMedium: TextStyle(fontSize: 20.0, fontWeight: FontWeight.w600, color: Colors.white),
-            titleLarge: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w500, color: Colors.white),
-            bodyLarge: TextStyle(fontSize: 16.0, color: Colors.white),
-            bodyMedium: TextStyle(fontSize: 14.0, color: Colors.white),
-          ),
-          // Button theme
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFB388FF), // Light Lavender
-              foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-          // Input decoration theme
-          inputDecorationTheme: InputDecorationTheme(
-            filled: true,
-            fillColor: const Color(0xFF1E1E1E),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none,
-            ),
-            hintStyle: const TextStyle(color: Colors.grey),
-            errorStyle: const TextStyle(color: Colors.redAccent),
-          ),
-        ),
+        // Use our custom theme from AppTheme class
+        theme: AppTheme.getTheme(),
     );
   }
 }

@@ -11,7 +11,8 @@ import '../screens/about_us_screen.dart';
 import '../screens/notification_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/remove_ads_screen.dart';
-import '../screens/premium_content_screen.dart';
+// Premium content screen removed to fix crashing issues
+// import '../screens/premium_content_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -100,7 +101,8 @@ class AppDrawer extends StatelessWidget {
                     // Additional options
                     _buildMenuItem(context, Icons.handshake, 'Contribute'),
                     _buildMenuItem(context, Icons.block_flipped, 'Remove Ads'),
-                    _buildMenuItem(context, Icons.star, 'Premium Content'),
+                    // Premium content removed to fix crashing issues
+                    // _buildMenuItem(context, Icons.star, 'Premium Content'),
 
                     // Add some bottom padding to ensure there's enough space
                     const SizedBox(height: 20),
@@ -230,10 +232,11 @@ class AppDrawer extends StatelessWidget {
             // Navigate to remove ads screen
             _navigateWithTransition(context, '/remove-ads');
             break;
-          case 'Premium Content':
-            // Navigate to premium content screen
-            _navigateWithTransition(context, '/premium-content');
-            break;
+          // Premium content removed to fix crashing issues
+          // case 'Premium Content':
+          //   // Navigate to premium content screen
+          //   _navigateWithTransition(context, '/premium-content');
+          //   break;
           case 'Logout':
             _showLogoutConfirmationDialog(context);
             break;
@@ -329,9 +332,10 @@ class AppDrawer extends StatelessWidget {
       case '/remove-ads':
         page = const RemoveAdsScreen();
         break;
-      case '/premium-content':
-        page = const PremiumContentScreen();
-        break;
+      // Premium content removed to fix crashing issues
+      // case '/premium-content':
+      //   page = const PremiumContentScreen();
+      //   break;
       default:
         // If we don't have a specific case, use the named route
         Navigator.pushNamed(context, routeName, arguments: arguments);

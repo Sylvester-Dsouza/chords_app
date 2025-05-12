@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -87,15 +88,32 @@ class CustomerService {
         return false;
       }
 
-      // Make the API request to check ads status
-      final response = await _apiService.get('/ads/$customerId/status');
+      // Set a timeout for the API request
+      final completer = Completer<bool>();
 
-      // If we get a 200 response with true, ads are removed
-      if (response.statusCode == 200) {
-        return response.data == true;
-      }
+      // Start the API request
+      _apiService.get('/ads/$customerId/status').then((response) {
+        // If we get a 200 response with true, ads are removed
+        if (response.statusCode == 200) {
+          completer.complete(response.data == true);
+        } else {
+          debugPrint('Failed to check ads status: ${response.statusCode}');
+          completer.complete(false);
+        }
+      }).catchError((e) {
+        debugPrint('Error checking ads status: $e');
+        completer.complete(false);
+      });
 
-      return false;
+      // Set a timeout to prevent blocking the UI
+      Timer(const Duration(seconds: 5), () {
+        if (!completer.isCompleted) {
+          debugPrint('Ads status check timed out');
+          completer.complete(false);
+        }
+      });
+
+      return await completer.future;
     } catch (e) {
       debugPrint('Error checking ads status: $e');
       return false;

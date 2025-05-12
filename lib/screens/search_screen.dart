@@ -713,7 +713,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                         collection.title,
                         '${collection.songCount} Songs',
                         collection.color,
-                        collection.likes
+                        collection.likeCount
                       ),
                     );
                   },
@@ -723,7 +723,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildCollectionCard(String title, String songCount, Color bgColor, int likes) {
+  Widget _buildCollectionCard(String title, String songCount, Color bgColor, int likeCount) {
     // Find the collection by title
     final collection = _collections.firstWhere(
       (c) => c.title == title,
@@ -816,16 +816,16 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                       Row(
                         children: [
                           Text(
-                            likes.toString(),
+                            likeCount.toString(),
                             style: const TextStyle(
                               color: Colors.grey,
                               fontSize: 14,
                             ),
                           ),
                           const SizedBox(width: 4),
-                          const Icon(
-                            Icons.thumb_up,
-                            color: Colors.grey,
+                          Icon(
+                            collection.isLiked ? Icons.favorite : Icons.favorite_border,
+                            color: collection.isLiked ? Colors.red : Colors.grey,
                             size: 14,
                           ),
                         ],
@@ -860,8 +860,8 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         leading: const SongPlaceholder(size: placeholderSize),
         title: Text(
           song.title,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.primary,
+          style: const TextStyle(
+            color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
           // Ensure text doesn't wrap unnecessarily

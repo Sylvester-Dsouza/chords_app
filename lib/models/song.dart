@@ -13,6 +13,12 @@ class Song {
   final List<String>? tags;
   final String? artistId;
   final int? capo; // Capo position
+  final int? tempo; // Tempo in BPM
+  final String? timeSignature; // Time signature (e.g., "4/4")
+  final String? difficulty; // Difficulty level (e.g., "Easy", "Medium", "Hard")
+  final String? languageId; // ID of the language
+  final Map<String, dynamic>? language; // Language details
+  final String? strummingPattern; // Strumming pattern notation
   bool isLiked; // Changed from isFavorite to isLiked and made non-final
   int commentCount; // Number of comments on the song
   double averageRating; // Average rating (1-5 stars)
@@ -32,6 +38,12 @@ class Song {
     this.tags,
     this.artistId,
     this.capo,
+    this.tempo,
+    this.timeSignature,
+    this.difficulty,
+    this.languageId,
+    this.language,
+    this.strummingPattern,
     this.isLiked = false,
     this.commentCount = 0,
     this.averageRating = 0.0,
@@ -84,6 +96,12 @@ class Song {
           : null,
       artistId: json['artistId'],
       capo: json['capo'] != null ? int.tryParse(json['capo'].toString()) : null,
+      tempo: json['tempo'] != null ? int.tryParse(json['tempo'].toString()) : null,
+      timeSignature: json['timeSignature'],
+      difficulty: json['difficulty'],
+      languageId: json['languageId'],
+      language: json['language'] != null ? Map<String, dynamic>.from(json['language']) : null,
+      strummingPattern: json['strummingPattern'],
       isLiked: json['isLiked'] ?? json['isFavorite'] ?? false,
       commentCount: json['commentCount'] ?? 0,
       averageRating: json['averageRating'] != null ? double.tryParse(json['averageRating'].toString()) ?? 0.0 : 0.0,
@@ -106,6 +124,12 @@ class Song {
       'tags': tags,
       'artistId': artistId,
       'capo': capo,
+      'tempo': tempo,
+      'timeSignature': timeSignature,
+      'difficulty': difficulty,
+      'languageId': languageId,
+      'language': language,
+      'strummingPattern': strummingPattern,
       'isLiked': isLiked,
       'commentCount': commentCount,
       'averageRating': averageRating,

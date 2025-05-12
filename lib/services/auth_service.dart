@@ -7,6 +7,12 @@ import 'dart:convert';
 import 'api_service.dart';
 import '../firebase_options.dart';
 
+// Constants for secure storage keys
+const String _tokenKey = 'auth_token';
+const String _userIdKey = 'user_id';
+const String _userEmailKey = 'user_email';
+const String _userNameKey = 'user_name';
+
 enum AuthProvider {
   email,
   google,
@@ -419,6 +425,32 @@ class AuthService {
     }
   }
 
+  // Check if user is logged in
+  Future<bool> isLoggedIn() async {
+    try {
+      // Check if we have a token in secure storage
+      final storage = FlutterSecureStorage();
+      final token = await storage.read(key: _tokenKey);
+      return token != null;
+    } catch (e) {
+      debugPrint('Error checking login status: $e');
+      return false;
+    }
+  }
+
+  // Get the authentication token
+  Future<String?> getToken() async {
+    try {
+      final storage = FlutterSecureStorage();
+      return await storage.read(key: _tokenKey);
+    } catch (e) {
+      debugPrint('Error getting token: $e');
+      return null;
+    }
+  }
+
+  // This method is intentionally removed to avoid duplication with the existing _storeFirebaseUserInfo method
+
   // Login with Google
   Future<Map<String, dynamic>> loginWithGoogle({
     required bool rememberMe,
@@ -635,10 +667,14 @@ class AuthService {
   Future<void> _storeFirebaseUserInfo(User user) async {
     try {
       final secureStorage = const FlutterSecureStorage();
-      await secureStorage.write(key: 'firebase_uid', value: user.uid);
-      await secureStorage.write(key: 'firebase_email', value: user.email);
-      await secureStorage.write(key: 'firebase_display_name', value: user.displayName);
+      final token = await user.getIdToken();
+
+      await secureStorage.write(key: _tokenKey, value: token);
+      await secureStorage.write(key: _userIdKey, value: user.uid);
+      await secureStorage.write(key: _userEmailKey, value: user.email);
+      await secureStorage.write(key: _userNameKey, value: user.displayName);
       await secureStorage.write(key: 'last_login_time', value: DateTime.now().toIso8601String());
+
       debugPrint('Stored Firebase user info for session management');
     } catch (e) {
       debugPrint('Error storing Firebase user info: $e');

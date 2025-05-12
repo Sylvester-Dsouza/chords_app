@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/collection.dart';
 import 'api_service.dart';
 import 'cache_service.dart';
@@ -6,6 +7,168 @@ import 'cache_service.dart';
 class CollectionService {
   final ApiService _apiService = ApiService();
   final CacheService _cacheService = CacheService();
+
+  // Toggle like status for a collection
+  Future<Map<String, dynamic>> toggleLike(String collectionId) async {
+    try {
+      // Check if user is logged in using Firebase directly
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser == null) {
+        return {
+          'success': false,
+          'message': 'You need to be logged in to like collections',
+          'requiresLogin': true,
+        };
+      }
+
+      // Get auth token directly from Firebase
+      final token = await firebaseUser.getIdToken();
+      if (token == null) {
+        return {
+          'success': false,
+          'message': 'Authentication token not found',
+          'requiresLogin': true,
+        };
+      }
+
+      // Set auth header
+      final options = _apiService.getAuthOptions(token);
+
+      // Call API to toggle like
+      final response = await _apiService.post(
+        '/collections/$collectionId/like',
+        options: options,
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': response.data,
+        };
+      }
+
+      return {
+        'success': false,
+        'message': 'Failed to toggle like status',
+      };
+    } catch (e) {
+      debugPrint('Error toggling like: $e');
+      return {
+        'success': false,
+        'message': 'An error occurred while toggling like status',
+      };
+    }
+  }
+
+  // Get like status for a collection
+  Future<Map<String, dynamic>> getLikeStatus(String collectionId) async {
+    try {
+      // Check if user is logged in using Firebase directly
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser == null) {
+        return {
+          'success': false,
+          'message': 'You need to be logged in to see like status',
+          'requiresLogin': true,
+        };
+      }
+
+      // Get auth token directly from Firebase
+      final token = await firebaseUser.getIdToken();
+      if (token == null) {
+        return {
+          'success': false,
+          'message': 'Authentication token not found',
+          'requiresLogin': true,
+        };
+      }
+
+      // Set auth header
+      final options = _apiService.getAuthOptions(token);
+
+      // Call API to get like status
+      final response = await _apiService.get(
+        '/collections/$collectionId/like',
+        options: options,
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': response.data,
+        };
+      }
+
+      return {
+        'success': false,
+        'message': 'Failed to get like status',
+      };
+    } catch (e) {
+      debugPrint('Error getting like status: $e');
+      return {
+        'success': false,
+        'message': 'An error occurred while getting like status',
+      };
+    }
+  }
+
+  // Get all liked collections
+  Future<List<Collection>> getLikedCollections() async {
+    try {
+      // Check if user is logged in using Firebase directly
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser == null) {
+        return [];
+      }
+
+      // Get auth token directly from Firebase
+      final token = await firebaseUser.getIdToken();
+      if (token == null) {
+        return [];
+      }
+
+      // Set auth header
+      final options = _apiService.getAuthOptions(token);
+
+      // Call API to get liked collections
+      final response = await _apiService.get(
+        '/collections/liked',
+        options: options,
+      );
+
+      if (response.statusCode == 200 && response.data is List) {
+        // Parse the response data
+        final List<dynamic> collectionsData = response.data;
+
+        // Get the full collection details for each liked collection
+        final List<Collection> likedCollections = [];
+        for (final likeData in collectionsData) {
+          if (likeData['collectionId'] != null) {
+            try {
+              // Get the full collection details
+              final collectionResponse = await _apiService.get(
+                '/collections/${likeData['collectionId']}',
+              );
+
+              if (collectionResponse.statusCode == 200) {
+                final collection = Collection.fromJson(collectionResponse.data);
+                likedCollections.add(collection);
+              }
+            } catch (e) {
+              debugPrint('Error fetching collection details: $e');
+            }
+          }
+        }
+
+        return likedCollections;
+      }
+
+      return [];
+    } catch (e) {
+      debugPrint('Error getting liked collections: $e');
+      return [];
+    }
+  }
 
   // Get all collections with optional limit
   Future<List<Collection>> getAllCollections({int? limit}) async {
@@ -132,8 +295,38 @@ class CollectionService {
         }
 
         try {
+          // Create the collection object
           final collection = Collection.fromJson(data);
           debugPrint('Successfully parsed collection: ${collection.title}');
+
+          // Check if user is logged in to get like status
+          final firebaseUser = FirebaseAuth.instance.currentUser;
+          if (firebaseUser != null) {
+            // Get the like status for this collection
+            try {
+              final likeStatusResult = await getLikeStatus(collection.id);
+              if (likeStatusResult['success'] == true) {
+                // Create a new collection with updated like status
+                final updatedCollection = Collection(
+                  id: collection.id,
+                  title: collection.title,
+                  description: collection.description,
+                  songCount: collection.songCount,
+                  likeCount: collection.likeCount,
+                  isLiked: likeStatusResult['data']['isLiked'] ?? false,
+                  color: collection.color,
+                  imageUrl: collection.imageUrl,
+                  songs: collection.songs,
+                  isPublic: collection.isPublic,
+                );
+                return updatedCollection;
+              }
+            } catch (e) {
+              debugPrint('Error getting like status: $e');
+              // Continue with the original collection if there's an error
+            }
+          }
+
           return collection;
         } catch (parseError) {
           debugPrint('Error parsing collection data: $parseError');

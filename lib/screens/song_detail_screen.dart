@@ -8,8 +8,11 @@ import '../services/liked_songs_service.dart';
 import '../services/comment_service.dart';
 import '../services/rating_service.dart';
 import '../widgets/chord_diagram_bottom_sheet.dart';
-import '../widgets/youtube_video_bottom_sheet.dart';
+// Import the new YouTube iFrame players
+import '../widgets/youtube_iframe_bottom_sheet.dart';
+import '../widgets/floating_youtube_iframe_player.dart';
 import '../widgets/star_rating.dart';
+import '../config/theme.dart';
 import './comments_screen.dart';
 
 
@@ -35,6 +38,11 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
   bool _isRatingLoading = false;
   String? _errorMessage;
 
+  // Floating video player state
+  bool _isVideoPlaying = false;
+  String? _currentVideoUrl;
+  String? _currentVideoTitle;
+
   // Services
   final SongService _songService = SongService();
   final LikedSongsService _likedSongsService = LikedSongsService();
@@ -56,9 +64,10 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
       // Use the song passed from the previous screen
       _song = widget.song!;
       _isLoading = false;
-      // Check if the song is liked from the API and fetch comment count
+      // Check if the song is liked from the API, fetch comment count, and rating info
       _checkIfSongIsLiked();
       _fetchCommentCount();
+      _fetchRatingInfo(); // Add this to fetch rating info even when song is passed
     } else {
       // Fetch song data from the API
       _fetchSongData();
@@ -332,6 +341,8 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
     try {
       setState(() {
         _isRatingLoading = true;
+        // Immediately update the UI with the new rating
+        _song.userRating = rating;
       });
 
       // Call the API to rate the song
@@ -352,6 +363,11 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
         }
       } else {
         if (mounted) {
+          // Reset the user rating if the API call failed
+          setState(() {
+            _song.userRating = null;
+          });
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Failed to rate song. Please try again.'),
@@ -363,6 +379,11 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
     } catch (e) {
       debugPrint('Error rating song: $e');
       if (mounted) {
+        // Reset the user rating if there was an error
+        setState(() {
+          _song.userRating = null;
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
@@ -460,7 +481,25 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                 ),
               ],
       ),
-      body: _buildBody(),
+      body: Stack(
+        children: [
+          _buildBody(),
+
+          // Floating video player (only show when video is playing)
+          if (_isVideoPlaying && _currentVideoUrl != null)
+            FloatingYoutubeIframePlayer(
+              videoUrl: _currentVideoUrl!,
+              title: _currentVideoTitle ?? 'Now Playing',
+              onClose: () {
+                setState(() {
+                  _isVideoPlaying = false;
+                  _currentVideoUrl = null;
+                  _currentVideoTitle = null;
+                });
+              },
+            ),
+        ],
+      ),
     );
   }
 
@@ -542,23 +581,10 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
 
           // Divider between details and content
           const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16.0),
+            padding: EdgeInsets.symmetric(vertical: 3.0),
             child: Divider(
               color: Color(0xFF333333),
               thickness: 1,
-            ),
-          ),
-
-          // Section title for chord sheet
-          const Padding(
-            padding: EdgeInsets.only(bottom: 12.0),
-            child: Text(
-              'Chord Sheet',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
             ),
           ),
 
@@ -591,21 +617,14 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
         // Song title
         Text(
           _song.title,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.primary,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
+          style: AppTheme.songTitleStyle,
         ),
         const SizedBox(height: 4),
 
         // Artist name
         Text(
           _song.artist,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 16,
-          ),
+          style: AppTheme.artistNameStyle,
         ),
         const SizedBox(height: 8),
 
@@ -632,90 +651,116 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
           const SizedBox(height: 8),
         ],
 
-        // Key and Capo in a row
-        Row(
-          children: [
-            // Key pill
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF333333),
-                borderRadius: BorderRadius.circular(16),
+        // Song details in a grid layout
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12.0),
+          child: Wrap(
+            spacing: 8.0,
+            runSpacing: 8.0,
+            children: [
+              // Key pill
+              _buildDetailPill(
+                icon: Icons.music_note,
+                label: 'Key',
+                value: _song.key,
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.music_note,
-                    color: Colors.white70,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Key: ${_song.key}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
 
-            // Capo pill (if available)
-            if (_song.capo != null && _song.capo! > 0) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF333333),
-                  borderRadius: BorderRadius.circular(16),
+              // Capo pill (if available)
+              if (_song.capo != null && _song.capo! > 0)
+                _buildDetailPill(
+                  icon: Icons.tune,
+                  label: 'Capo',
+                  value: _song.capo.toString(),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.tune,
-                      color: Colors.white70,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Capo: ${_song.capo}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
+
+              // Time signature pill (if available)
+              if (_song.timeSignature != null && _song.timeSignature!.isNotEmpty)
+                _buildDetailPill(
+                  icon: Icons.timer,
+                  label: 'Time',
+                  value: _song.timeSignature!,
                 ),
-              ),
+
+              // Tempo pill (if available)
+              if (_song.tempo != null && _song.tempo! > 0)
+                _buildDetailPill(
+                  icon: Icons.speed,
+                  label: 'Tempo',
+                  value: '${_song.tempo} BPM',
+                ),
+
+              // Difficulty pill (if available)
+              if (_song.difficulty != null && _song.difficulty!.isNotEmpty)
+                _buildDetailPill(
+                  icon: Icons.bar_chart,
+                  label: 'Difficulty',
+                  value: _song.difficulty!,
+                ),
+
+              // Language pill (if available)
+              if (_song.language != null)
+                _buildDetailPill(
+                  icon: Icons.language,
+                  label: 'Language',
+                  value: _song.language!['name'] ?? 'Unknown',
+                ),
+
+              // Video links (if available)
+              if (_song.officialVideoUrl != null && _song.officialVideoUrl!.isNotEmpty)
+                _buildDetailPill(
+                  icon: Icons.music_video,
+                  label: 'Video',
+                  value: 'Available',
+                  onTap: () => _showVideoOptions(),
+                ),
+
+              // Tutorial video (if available)
+              if (_song.tutorialVideoUrl != null && _song.tutorialVideoUrl!.isNotEmpty)
+                _buildDetailPill(
+                  icon: Icons.school,
+                  label: 'Tutorial',
+                  value: 'Available',
+                  onTap: () => _showVideoOptions(),
+                ),
             ],
-          ],
+          ),
         ),
 
         // Tags (if available)
         if (_song.tags != null && _song.tags!.isNotEmpty) ...[
           const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _song.tags!.map((tag) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFF444444)),
-                  borderRadius: BorderRadius.circular(12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.tag,
+                color: Colors.white70,
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _song.tags!.map((tag) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF333333),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        tag,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
-                child: Text(
-                  tag,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
-                ),
-              );
-            }).toList(),
+              ),
+            ],
           ),
         ],
       ],
@@ -731,7 +776,10 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
           child: Center(
             child: Text(
               'No chord sheet available',
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(
+                color: Colors.grey,
+                fontFamily: AppTheme.primaryFontFamily,
+              ),
             ),
           ),
         )
@@ -835,15 +883,11 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Section title
-        const Padding(
-          padding: EdgeInsets.only(bottom: 12.0),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12.0),
           child: Text(
             'Rate This Song',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppTheme.sectionTitleStyle,
           ),
         ),
 
@@ -908,6 +952,44 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  // Build a detail pill for song information
+  Widget _buildDetailPill({
+    required IconData icon,
+    required String label,
+    required String value,
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF333333),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: Colors.white70,
+              size: 16,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '$label: $value',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1247,7 +1329,64 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
   }
 
   void _showYouTubeVideo(String videoUrl, String title) {
-    // Show the YouTube video in a bottom sheet that takes up half the screen
+    // Check if the URL is empty or invalid
+    if (videoUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No video URL available for this song.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Log the video URL for debugging
+    debugPrint('Opening YouTube video: $videoUrl');
+
+    // Show dialog to choose between floating player and bottom sheet
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: const Text(
+          'Choose Video Mode',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'Would you like to watch the video in a floating window (so you can still see the chord sheet) or in full view?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Start floating player
+              setState(() {
+                _isVideoPlaying = true;
+                _currentVideoUrl = videoUrl;
+                _currentVideoTitle = title;
+              });
+            },
+            child: const Text('Floating'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Show in bottom sheet (original behavior)
+              _showVideoBottomSheet(videoUrl, title);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB388FF), // Light purple
+            ),
+            child: const Text('Full View'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Show video in bottom sheet (using the new iFrame player)
+  void _showVideoBottomSheet(String videoUrl, String title) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1255,12 +1394,12 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
       isDismissible: true,
       enableDrag: true,
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.5, // Make it larger
+        height: MediaQuery.of(context).size.height * 0.7, // Increased to 70% of screen height
         decoration: const BoxDecoration(
           color: Color(0xFF121212),
           borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
-        child: YouTubeVideoBottomSheet(
+        child: YouTubeIframeBottomSheet(
           videoUrl: videoUrl,
           title: title,
         ),

@@ -3,8 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../widgets/banner_ad_widget.dart';
-import '../services/ad_service.dart';
+// AdMob imports removed to fix crashing issues
+// import '../widgets/banner_ad_widget.dart';
+// import '../services/ad_service.dart';
 import '../providers/navigation_provider.dart';
 import '../widgets/app_drawer.dart';
 import '../providers/user_provider.dart';
@@ -33,7 +34,8 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
   final SongService _songService = SongService();
   final ArtistService _artistService = ArtistService();
   final HomeSectionService _homeSectionService = HomeSectionService();
-  final AdService _adService = AdService();
+  // AdService removed to fix crashing issues
+  // final AdService _adService = AdService();
 
   // Data
   List<HomeSection> _homeSections = [];
@@ -757,11 +759,11 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
             // Support Us section
             _buildSupportUsSection(),
 
-            // Banner ad (only shown if user hasn't removed ads)
-            if (!_adService.isAdFree) ...[
-              const SizedBox(height: 16),
-              const Center(child: BannerAdWidget()),
-            ],
+            // Banner ad section removed to fix crashing issues
+            // if (!_adService.isAdFree) ...[
+            //   const SizedBox(height: 16),
+            //   const Center(child: BannerAdWidget()),
+            // ],
 
             // Extra space at bottom to ensure all content is visible above bottom nav bar
             const SizedBox(height: 24),

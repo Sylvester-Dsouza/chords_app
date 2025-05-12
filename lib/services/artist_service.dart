@@ -31,6 +31,13 @@ class ArtistService {
           // Update song counts for cached artists
           final updatedArtists = _updateArtistSongCounts(cachedArtists);
 
+          // Sort artists to show featured artists first
+          updatedArtists.sort((a, b) {
+            if (a.isFeatured && !b.isFeatured) return -1;
+            if (!a.isFeatured && b.isFeatured) return 1;
+            return a.name.compareTo(b.name); // Sort by name if featured status is the same
+          });
+
           // Start a background refresh if the cache is older than 30 minutes
           _refreshArtistsIfNeeded();
 
@@ -90,6 +97,7 @@ class ArtistService {
                 bio: artist.bio,
                 imageUrl: artist.imageUrl,
                 songCount: _artistSongCounts[artistNameLower]!,
+                isFeatured: artist.isFeatured,
               );
               artists.add(updatedArtist);
               debugPrint('Updated song count for ${artist.name}: ${_artistSongCounts[artistNameLower]} songs');
@@ -101,6 +109,7 @@ class ArtistService {
                 bio: artist.bio,
                 imageUrl: artist.imageUrl,
                 songCount: 0,
+                isFeatured: artist.isFeatured,
               );
               artists.add(updatedArtist);
               debugPrint('No songs found for artist ${artist.name}, keeping count as 0');
@@ -109,9 +118,16 @@ class ArtistService {
 
           debugPrint('Successfully processed ${artists.length} artists with accurate song counts');
 
+          // Sort artists to show featured artists first
+          artists.sort((a, b) {
+            if (a.isFeatured && !b.isFeatured) return -1;
+            if (!a.isFeatured && b.isFeatured) return 1;
+            return a.name.compareTo(b.name); // Sort by name if featured status is the same
+          });
+
           // Log song counts for debugging
           for (var artist in artists.take(10)) {
-            debugPrint('Artist from API: ${artist.name}, Song Count: ${artist.songCount}, Image URL: ${artist.imageUrl}');
+            debugPrint('Artist from API: ${artist.name}, Song Count: ${artist.songCount}, Image URL: ${artist.imageUrl}, Featured: ${artist.isFeatured}');
           }
 
           // Cache the artists for future use
@@ -158,6 +174,7 @@ class ArtistService {
           bio: artist.bio,
           imageUrl: artist.imageUrl,
           songCount: _artistSongCounts[artistNameLower]!,
+          isFeatured: artist.isFeatured,
         );
       }
       return artist;
@@ -219,6 +236,13 @@ class ArtistService {
 
         // Update song counts for filtered artists
         final updatedArtists = _updateArtistSongCounts(filteredArtists);
+
+        // Sort artists to show featured artists first
+        updatedArtists.sort((a, b) {
+          if (a.isFeatured && !b.isFeatured) return -1;
+          if (!a.isFeatured && b.isFeatured) return 1;
+          return a.name.compareTo(b.name); // Sort by name if featured status is the same
+        });
 
         debugPrint('Found ${updatedArtists.length} artists in cache matching query');
         return updatedArtists;
@@ -289,9 +313,16 @@ class ArtistService {
 
           debugPrint('Successfully processed ${artists.length} artists from search with accurate song counts');
 
+          // Sort artists to show featured artists first
+          artists.sort((a, b) {
+            if (a.isFeatured && !b.isFeatured) return -1;
+            if (!a.isFeatured && b.isFeatured) return 1;
+            return a.name.compareTo(b.name); // Sort by name if featured status is the same
+          });
+
           // Log song counts for debugging
           for (var artist in artists.take(5)) {
-            debugPrint('Artist from search: ${artist.name}, Song Count: ${artist.songCount}');
+            debugPrint('Artist from search: ${artist.name}, Song Count: ${artist.songCount}, Featured: ${artist.isFeatured}');
           }
 
           return artists;

@@ -28,7 +28,6 @@ android {
     }
 
     defaultConfig {
-        multiDexEnabled = true
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.wpchords.app"
         // You can update the following values to match your application needs.
@@ -53,7 +52,6 @@ flutter {
 }
 
 dependencies {
-    implementation("androidx.multidex:multidex:2.0.1")
     // Add the desugaring dependency
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }

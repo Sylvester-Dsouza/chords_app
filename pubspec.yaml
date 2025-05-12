@@ -75,13 +75,16 @@ dependencies:
   # Removed flutter_local_notifications due to compatibility issues
   # Using custom SnackBar implementation instead of fluttertoast
 
-  # AdMob
-  google_mobile_ads: ^4.0.0
+  # AdMob removed to fix crashing issues
+  # google_mobile_ads: ^4.0.0
 
   # Audio processing for guitar tuner
   permission_handler: ^11.3.0
   syncfusion_flutter_gauges: ^24.2.6
-  youtube_player_flutter: ^9.1.1
+  youtube_player_iframe: ^5.2.1
+  webview_flutter: ^4.7.0
+  # Keeping the old package for reference
+  # youtube_player_flutter: ^9.1.1
 
 dev_dependencies:
   flutter_test:

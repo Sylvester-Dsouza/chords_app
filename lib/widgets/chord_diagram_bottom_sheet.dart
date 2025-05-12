@@ -135,7 +135,7 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.35, // Slightly more compact
+      height: MediaQuery.of(context).size.height * 0.30, // More compact height
       decoration: const BoxDecoration(
         color: Color(0xFF1A1A1A),
         borderRadius: BorderRadius.only(
@@ -265,21 +265,29 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
       itemBuilder: (context, index) {
         final variation = _chordVariations[index];
         return Center(
-          child: SizedBox(
+          child: Container(
             height: 160,
-            child: FlutterGuitarChord(
-              chordName: widget.chordName,
-              baseFret: variation['baseFret'],
-              frets: variation['frets'],
-              fingers: variation['fingers'],
-              totalString: 6,
-              labelColor: Colors.white, // White label
-              tabForegroundColor: Colors.black, // Black text for finger numbers
-              tabBackgroundColor: Theme.of(context).colorScheme.primary, // Theme primary color for finger dots
-              barColor: Colors.white, // White bar
-              stringColor: Colors.white, // White strings
-              firstFrameColor: Colors.white, // White first frame
-              mutedColor: Colors.white, // White X and O symbols
+            width: 140, // Even narrower width to better match reference image
+            decoration: BoxDecoration(
+              color: const Color(0xFF222222),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Transform.scale(
+              scale: 0.9, // Scale down slightly to fit better in the narrower container
+              child: FlutterGuitarChord(
+                chordName: widget.chordName,
+                baseFret: variation['baseFret'],
+                frets: variation['frets'],
+                fingers: variation['fingers'],
+                totalString: 6,
+                labelColor: Colors.white, // White label
+                tabForegroundColor: Colors.black, // Black text for finger numbers
+                tabBackgroundColor: Theme.of(context).colorScheme.primary, // Theme primary color for finger dots
+                barColor: Colors.white, // White bar
+                stringColor: Colors.white, // White strings
+                firstFrameColor: Colors.white, // White first frame
+                mutedColor: Colors.white, // White X and O symbols
+              ),
             ),
           ),
         );

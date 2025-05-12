@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import '../config/theme.dart';
 
 class ChordFormatter extends StatelessWidget {
   final String chordSheet;
@@ -24,10 +25,13 @@ class ChordFormatter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (chordSheet.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No chord sheet available',
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(
+            color: Colors.grey,
+            fontFamily: AppTheme.primaryFontFamily,
+          ),
         ),
       );
     }
@@ -57,13 +61,8 @@ class ChordFormatter extends StatelessWidget {
             padding: const EdgeInsets.only(top: 24, bottom: 8),
             child: Text(
               '[${sectionName.toUpperCase()}]', // Added square brackets around section name
-              style: TextStyle(
-                color: Colors.grey, // Changed from yellow to grey as requested
+              style: AppTheme.sectionHeaderStyle.copyWith(
                 fontSize: fontSize,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-                // Use a monospace font for consistent spacing if enabled
-                fontFamily: useMonospaceFont ? 'monospace' : null,
               ),
             ),
           ),
@@ -81,13 +80,8 @@ class ChordFormatter extends StatelessWidget {
             padding: const EdgeInsets.only(top: 24, bottom: 8),
             child: Text(
               line.trim(),
-              style: TextStyle(
-                color: Colors.grey, // Changed from yellow to grey for consistency
+              style: AppTheme.sectionHeaderStyle.copyWith(
                 fontSize: fontSize,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-                // Use a monospace font for consistent spacing if enabled
-                fontFamily: useMonospaceFont ? 'monospace' : null,
               ),
             ),
           ),
@@ -119,7 +113,7 @@ class ChordFormatter extends StatelessWidget {
               fontSize: fontSize,
               height: 1.3,
               // Use a monospace font to ensure consistent spacing if enabled
-              fontFamily: useMonospaceFont ? 'monospace' : null,
+              fontFamily: useMonospaceFont ? 'RobotoMono' : null,
             ),
             // Ensure the text is rendered exactly as it is, preserving all spaces
             textWidthBasis: TextWidthBasis.longestLine,
@@ -152,12 +146,9 @@ class ChordFormatter extends StatelessWidget {
         spans.add(
           TextSpan(
             text: textBefore,
-            style: TextStyle(
-              color: Colors.white,
+            style: AppTheme.chordSheetStyle.copyWith(
               fontSize: fontSize,
               height: 1.3,
-              // Use a monospace font to ensure consistent spacing if enabled
-              fontFamily: useMonospaceFont ? 'monospace' : null,
             ),
           ),
         );
@@ -173,15 +164,12 @@ class ChordFormatter extends StatelessWidget {
         spans.add(
           TextSpan(
             text: transposedChord,
-            style: TextStyle(
-              // Use provided chord color, or theme's primary color instead of hardcoded yellow
+            style: AppTheme.chordStyle.copyWith(
+              // Use provided chord color, or theme's primary color
               color: chordColor ?? Theme.of(context).colorScheme.primary,
               fontSize: fontSize,
-              fontWeight: FontWeight.bold,
               decoration: onChordTap != null ? TextDecoration.underline : null,
               decorationStyle: TextDecorationStyle.dotted,
-              // Use a monospace font to ensure consistent spacing if enabled
-              fontFamily: useMonospaceFont ? 'monospace' : null,
             ),
             recognizer: onChordTap != null ? (TapGestureRecognizer()..onTap = () {
               onChordTap!(transposedChord);
@@ -201,12 +189,9 @@ class ChordFormatter extends StatelessWidget {
       spans.add(
         TextSpan(
           text: remainingText,
-          style: TextStyle(
-            color: Colors.white,
+          style: AppTheme.chordSheetStyle.copyWith(
             fontSize: fontSize,
             height: 1.3,
-            // Use a monospace font to ensure consistent spacing if enabled
-            fontFamily: useMonospaceFont ? 'monospace' : null,
           ),
         ),
       );

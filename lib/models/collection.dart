@@ -7,7 +7,8 @@ class Collection {
   final String title;
   final String? description;
   final int songCount;
-  final int likes;
+  final int likeCount;
+  final bool isLiked;
   final Color color;
   final String? imageUrl;
   final List<Song>? songs;
@@ -18,7 +19,8 @@ class Collection {
     required this.title,
     this.description,
     this.songCount = 0,
-    this.likes = 0,
+    this.likeCount = 0,
+    this.isLiked = false,
     required this.color,
     this.imageUrl,
     this.songs,
@@ -54,7 +56,8 @@ class Collection {
       title: json['name'] ?? json['title'] ?? '',
       description: json['description'],
       songCount: json['songCount'] ?? json['songs']?.length ?? 0,
-      likes: json['likes'] ?? 0,
+      likeCount: json['likeCount'] ?? json['likes'] ?? 0,
+      isLiked: json['isLiked'] ?? false,
       color: parseColor(json['color']),
       imageUrl: json['imageUrl'],
       songs: parseSongs(json['songs'] as List<dynamic>?),
@@ -80,7 +83,8 @@ class Collection {
       'name': title,
       'description': description,
       'songCount': songCount,
-      'likes': likes,
+      'likeCount': likeCount,
+      'isLiked': isLiked,
       'color': colorToHex(color),
       'imageUrl': imageUrl,
       'songs': songsToJson(songs),

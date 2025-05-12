@@ -8,6 +8,7 @@ import '../services/api_service.dart';
 import '../services/liked_songs_service.dart';
 import '../services/optimized_cache_service.dart';
 import '../services/song_request_service.dart';
+import '../services/collection_service.dart';
 
 class UserProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -16,19 +17,40 @@ class UserProvider extends ChangeNotifier {
   final OptimizedCacheService _cacheService = OptimizedCacheService();
   final DefaultCacheManager _imageCacheManager = DefaultCacheManager();
   final SongRequestService _songRequestService = SongRequestService();
+  final CollectionService _collectionService = CollectionService();
 
   bool _isLoggedIn = false;
   Map<String, dynamic>? _userData;
   bool _isLoading = false;
+  int? _likedCollectionsCount;
 
   // Getters
   bool get isLoggedIn => _isLoggedIn;
   Map<String, dynamic>? get userData => _userData;
   bool get isLoading => _isLoading;
+  int? get likedCollectionsCount => _likedCollectionsCount;
 
   String? get userName => _userData?['name'];
   String? get userEmail => _userData?['email'];
   String? get userId => _userData?['id'];
+
+  // Update liked collections count
+  Future<void> updateLikedCollectionsCount() async {
+    if (!_isLoggedIn) {
+      _likedCollectionsCount = 0;
+      notifyListeners();
+      return;
+    }
+
+    try {
+      final likedCollections = await _collectionService.getLikedCollections();
+      _likedCollectionsCount = likedCollections.length;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error updating liked collections count: $e');
+      // Don't update the count if there's an error
+    }
+  }
 
   // Initialize the provider
   Future<void> initialize() async {
@@ -227,6 +249,11 @@ class UserProvider extends ChangeNotifier {
         debugPrint('Background profile fetch error: $e');
       });
 
+      // Update liked collections count in the background
+      updateLikedCollectionsCount().catchError((e) {
+        debugPrint('Error updating liked collections count: $e');
+      });
+
       return true;
     }
 
@@ -251,6 +278,11 @@ class UserProvider extends ChangeNotifier {
         // Try to fetch user profile in the background
         fetchUserProfile().catchError((e) {
           debugPrint('Background profile fetch error: $e');
+        });
+
+        // Update liked collections count in the background
+        updateLikedCollectionsCount().catchError((e) {
+          debugPrint('Error updating liked collections count: $e');
         });
 
         return true;
