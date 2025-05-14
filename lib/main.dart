@@ -10,7 +10,6 @@ import 'services/api_service.dart';
 // AdMob service removed to fix crashing issues
 // import 'services/ad_service.dart';
 import 'providers/navigation_provider.dart';
-import 'screens/auth_test_screen.dart';
 import 'screens/playlist_detail_screen.dart';
 import 'screens/main_navigation.dart';
 import 'screens/artist_detail_screen.dart';
@@ -137,8 +136,6 @@ class MyApp extends StatelessWidget {
         return const RegisterScreen();
       case '/forgot-password':
         return const ForgotPasswordScreen();
-      case '/auth_test':
-        return const AuthTestScreen();
       case '/song_request':
         return const SongRequestScreen();
       case '/about_us':
@@ -174,7 +171,6 @@ class MyApp extends StatelessWidget {
           '/search': (context) => const MainNavigation(),
           '/resources': (context) => const MainNavigation(),
           '/profile': (context) => const MainNavigation(),
-          '/auth_test': (context) => const AuthTestScreen(),
           '/song_request': (context) => const SongRequestScreen(),
           '/comments': (context) => CommentsScreen(song: ModalRoute.of(context)!.settings.arguments as Song),
           '/about_us': (context) => const AboutUsScreen(),

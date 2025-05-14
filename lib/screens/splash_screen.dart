@@ -3,14 +3,7 @@ import 'dart:async';
 import '../utils/preferences_util.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import '../providers/user_provider.dart';
-import '../services/auth_service.dart';
-import '../services/api_service.dart';
-import '../services/cache_service.dart';
-import '../services/song_service.dart';
-import '../services/artist_service.dart';
-import '../services/collection_service.dart';
 import 'dart:math' as math;
 
 class SplashScreen extends StatefulWidget {
@@ -34,11 +27,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   // Data loading progress
   double _loadingProgress = 0.0;
   String _loadingStatus = "Initializing...";
-
-  // Services
-  final SongService _songService = SongService();
-  final ArtistService _artistService = ArtistService();
-  final CollectionService _collectionService = CollectionService();
 
   @override
   void initState() {
@@ -90,82 +78,25 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   }
 
   Future<void> _initializeFirebaseAndPreloadData() async {
-    debugPrint('SplashScreen: Starting initialization and data preloading');
+    debugPrint('SplashScreen: Starting initialization');
     try {
       // Update loading status
-      _updateLoadingStatus('Initializing...', 0.05);
+      _updateLoadingStatus('Initializing...', 0.2);
 
-      // Test API connection
-      try {
-        debugPrint('SplashScreen: Testing API connection...');
-        final isConnected = await ApiService.testApiConnection();
-        debugPrint('SplashScreen: API connection test result: ${isConnected ? 'Connected' : 'Failed to connect'}');
-
-        if (!isConnected) {
-          _updateLoadingStatus('Network connection issues. Retrying...', 0.05);
-          // Wait a moment and try again
-          await Future.delayed(const Duration(seconds: 1));
-          await ApiService.testApiConnection();
-        }
-      } catch (apiError) {
-        debugPrint('SplashScreen: Error testing API connection: $apiError');
-        _updateLoadingStatus('Network connection issues. Continuing...', 0.05);
-        // Continue anyway
+      // Simulate loading with a simple timer
+      // This gives a smooth loading experience without actually preloading data
+      for (int i = 2; i <= 10; i++) {
+        if (!mounted) return;
+        await Future.delayed(const Duration(milliseconds: 150));
+        _updateLoadingStatus('Loading...', i * 0.1);
       }
-
-      // Initialize Firebase
-      _updateLoadingStatus('Initializing Firebase...', 0.1);
-      debugPrint('SplashScreen: Starting Firebase initialization');
-      final authService = AuthService();
-      await authService.initializeFirebase();
-      debugPrint('SplashScreen: Firebase initialization completed successfully');
-
-      // Test Google Sign-In availability
-      _updateLoadingStatus('Checking authentication services...', 0.15);
-      try {
-        debugPrint('SplashScreen: Testing Google Sign-In availability');
-        final GoogleSignIn googleSignIn = GoogleSignIn(
-          scopes: ['email', 'profile'],
-          clientId: '481447097360-13s3qaeafrg1htmndilphq984komvbti.apps.googleusercontent.com',
-        );
-
-        // Just check if we can get the current user, don't actually sign in
-        final isSignedIn = await googleSignIn.isSignedIn();
-        debugPrint('SplashScreen: Google Sign-In is available, isSignedIn: $isSignedIn');
-      } catch (googleError) {
-        debugPrint('SplashScreen: Google Sign-In test failed: $googleError');
-        // Continue anyway
-      }
-
-      // Initialize cache service
-      _updateLoadingStatus('Initializing cache service...', 0.2);
-      final cacheService = CacheService();
-      await cacheService.initialize();
-
-      // Preload data in parallel
-      _updateLoadingStatus('Preloading app data...', 0.3);
-
-      // Create a list of futures to execute in parallel
-      List<Future> preloadTasks = [];
-
-      // Preload songs
-      preloadTasks.add(_preloadSongs());
-
-      // Preload artists
-      preloadTasks.add(_preloadArtists());
-
-      // Preload collections
-      preloadTasks.add(_preloadCollections());
-
-      // Wait for all preload tasks to complete
-      await Future.wait(preloadTasks);
 
       // Final loading status
       _updateLoadingStatus('Ready!', 1.0);
 
       // Navigate to next screen after a short delay
-      debugPrint('SplashScreen: All data preloaded, navigating to next screen');
-      Timer(const Duration(milliseconds: 500), () {
+      debugPrint('SplashScreen: Loading complete, navigating to next screen');
+      Timer(const Duration(milliseconds: 300), () {
         debugPrint('SplashScreen: Timer completed, navigating to next screen');
         _navigateToNextScreen();
       });
@@ -174,7 +105,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       _updateLoadingStatus('Error occurred. Continuing...', 0.8);
 
       // Even if there's an error, try to navigate after a delay
-      Timer(const Duration(seconds: 2), () {
+      Timer(const Duration(seconds: 1), () {
         debugPrint('SplashScreen: Attempting to navigate despite error');
         _navigateToNextScreen();
       });
@@ -193,64 +124,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     debugPrint('SplashScreen: Loading status: $status ($progress)');
   }
 
-  // Preload songs data
-  Future<void> _preloadSongs() async {
-    try {
-      _updateLoadingStatus('Loading songs...', 0.4);
-      final songs = await _songService.getAllSongs(forceRefresh: true);
-      debugPrint('SplashScreen: Preloaded ${songs.length} songs');
 
-      // Also preload trending songs
-      _updateLoadingStatus('Loading trending songs...', 0.5);
-      final trendingSongs = songs.take(10).toList();
-      debugPrint('SplashScreen: Preloaded ${trendingSongs.length} trending songs');
-
-      return;
-    } catch (e) {
-      debugPrint('SplashScreen: Error preloading songs: $e');
-      // Continue with other preloading tasks
-    }
-  }
-
-  // Preload artists data
-  Future<void> _preloadArtists() async {
-    try {
-      _updateLoadingStatus('Loading artists...', 0.6);
-      final artists = await _artistService.getAllArtists(forceRefresh: true);
-      debugPrint('SplashScreen: Preloaded ${artists.length} artists');
-
-      // Also preload top artists
-      _updateLoadingStatus('Loading top artists...', 0.7);
-      final topArtists = artists.take(10).toList();
-      debugPrint('SplashScreen: Preloaded ${topArtists.length} top artists');
-
-      return;
-    } catch (e) {
-      debugPrint('SplashScreen: Error preloading artists: $e');
-      // Continue with other preloading tasks
-    }
-  }
-
-  // Preload collections data
-  Future<void> _preloadCollections() async {
-    try {
-      _updateLoadingStatus('Loading collections...', 0.8);
-
-      // Preload seasonal collections
-      final seasonalCollections = await _collectionService.getSeasonalCollections(forceRefresh: true);
-      debugPrint('SplashScreen: Preloaded ${seasonalCollections.length} seasonal collections');
-
-      // Preload beginner friendly collections
-      _updateLoadingStatus('Loading beginner collections...', 0.9);
-      final beginnerCollections = await _collectionService.getBeginnerFriendlyCollections(forceRefresh: true);
-      debugPrint('SplashScreen: Preloaded ${beginnerCollections.length} beginner collections');
-
-      return;
-    } catch (e) {
-      debugPrint('SplashScreen: Error preloading collections: $e');
-      // Continue with other preloading tasks
-    }
-  }
 
   Future<void> _navigateToNextScreen() async {
     if (!mounted) return;
@@ -302,8 +176,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
         debugPrint('SplashScreen: Navigating to home screen (user is logged in)');
         if (mounted) Navigator.of(context).pushReplacementNamed('/home');
       } else {
-        debugPrint('SplashScreen: Navigating to auth screen (user is not logged in)');
-        if (mounted) Navigator.of(context).pushReplacementNamed('/auth_test');
+        debugPrint('SplashScreen: Navigating to login screen (user is not logged in)');
+        if (mounted) Navigator.of(context).pushReplacementNamed('/login');
       }
     } catch (e) {
       debugPrint('SplashScreen: Error during navigation decision: $e');
@@ -402,20 +276,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     ),
                   ),
 
-                  // Additional loading details
+                  // Additional spacing at the bottom
                   const SizedBox(height: 24),
-                  AnimatedOpacity(
-                    opacity: _loadingProgress > 0.3 ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 500),
-                    child: Text(
-                      'Preparing your music experience...',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),

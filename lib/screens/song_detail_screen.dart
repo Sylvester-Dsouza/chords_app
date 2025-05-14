@@ -995,7 +995,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
 
   Widget _buildScrollButton() {
     // Light purple color
-    const Color lightPurple = Color(0xFFB388FF);
+    const Color lightPurple = Color(0xFFC19FFF);
 
     return InkWell(
       onTap: _toggleAutoScroll,
@@ -1376,7 +1376,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
               _showVideoBottomSheet(videoUrl, title);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFB388FF), // Light purple
+              backgroundColor: const Color(0xFFC19FFF), // Light purple
             ),
             child: const Text('Full View'),
           ),

@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../utils/toast_util.dart';
 import '../providers/user_provider.dart';
+import '../utils/page_transitions.dart';
+import 'register_screen.dart';
 import '../screens/main_navigation.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -417,7 +419,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                                   _rememberMe = value ?? false;
                                 });
                               },
-                              activeColor: Theme.of(context).colorScheme.primary,
+                              activeColor: Colors.grey,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(4),
                               ),
@@ -426,7 +428,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                           const SizedBox(width: 8),
                           const Text(
                             'Remember me',
-                            style: TextStyle(color: Colors.white, fontSize: 14),
+                            style: TextStyle(color: Colors.grey, fontSize: 14),
                           ),
                         ],
                       ),
@@ -436,8 +438,8 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                         onPressed: _forgotPassword,
                         child: Text(
                           'Forgot password ?',
-                          style: TextStyle(
-                            color: Colors.grey[400],
+                          style: const TextStyle(
+                            color: Colors.grey,
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),
@@ -451,8 +453,8 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                   ElevatedButton(
                     onPressed: _isEmailLoginLoading ? null : _login,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -585,7 +587,9 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                       ),
                       TextButton(
                         onPressed: () {
-                          Navigator.pushNamed(context, '/register');
+                          Navigator.of(context).push(
+                            FadeSlidePageRoute(page: const RegisterScreen()),
+                          );
                         },
                         child: Text(
                           'Register',

@@ -302,7 +302,7 @@ class _FloatingYoutubeIframePlayerState extends State<FloatingYoutubeIframePlaye
                 ),
                 child: const Center(
                   child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFB388FF)),
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC19FFF)),
                   ),
                 ),
               ),
@@ -358,7 +358,7 @@ class _FloatingYoutubeIframePlayerState extends State<FloatingYoutubeIframePlaye
                 _initializePlayer();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFB388FF),
+                backgroundColor: const Color(0xFFC19FFF),
                 foregroundColor: Colors.white,
                 minimumSize: const Size(100, 30),
               ),

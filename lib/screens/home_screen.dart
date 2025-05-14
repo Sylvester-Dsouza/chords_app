@@ -610,7 +610,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
           children: [
             // Featured Banner - Auto Sliding
             Padding(
-              padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 4.0),
+              padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 0.0),
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(5),
@@ -653,7 +653,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
             ),
 
             // Add extra space after the top banner
-            const SizedBox(height: 32.0), // Increased for consistent spacing
+            const SizedBox(height: 24.0), // Standard spacing between sections
 
             // Dynamic Home Sections
             if (_isLoadingHomeSections)
@@ -715,14 +715,24 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
                   ? _buildLoadingIndicator()
                   : _topArtists.isEmpty
                     ? _buildEmptyState('No top artists available')
-                    : _buildHorizontalScrollSection(
-                        _topArtists.map((artist) =>
-                          _buildArtistItem(
-                            artist.name,
-                            _getRandomColor(),
-                            artist: artist,
-                          )
-                        ).toList(),
+                    : Container(
+                        constraints: const BoxConstraints(
+                          minHeight: 110, // Slightly increased minimum height for artist content
+                          maxHeight: 140, // Keep the same maximum height
+                        ),
+                        height: 130, // Increased height for artist sections
+                        margin: const EdgeInsets.only(bottom: 16.0),
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          children: _topArtists.map((artist) =>
+                            _buildArtistItem(
+                              artist.name,
+                              _getRandomColor(),
+                              artist: artist,
+                            )
+                          ).toList(),
+                        ),
                       ),
 
                 // Discover new songs
@@ -774,52 +784,52 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
   }
 
   Widget _buildSectionHeader(String title, {SectionType? sectionType}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Add top padding to create consistent spacing between sections
-        const SizedBox(height: 8.0),
-
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 4,
-                    height: 20,
-                    color: Theme.of(context).colorScheme.primary,
-                    margin: const EdgeInsets.only(right: 8.0),
-                  ),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
+    return Padding(
+      padding: const EdgeInsets.only(top: 16.0), // Add consistent top padding between sections
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 4,
+                      height: 20,
+                      color: Theme.of(context).colorScheme.primary,
+                      margin: const EdgeInsets.only(right: 8.0),
                     ),
-                  ),
-                ],
-              ),
-              GestureDetector(
-                onTap: () {
-                  // Navigate to the appropriate list screen based on the section title and type
-                  _navigateToSeeMore(title, sectionType: sectionType);
-                },
-                child: Text(
-                  'See more',
-                  style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 14),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                GestureDetector(
+                  onTap: () {
+                    // Navigate to the appropriate list screen based on the section title and type
+                    _navigateToSeeMore(title, sectionType: sectionType);
+                  },
+                  child: Text(
+                    'See more',
+                    style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
 
-        // Add consistent spacing between section header and content
-        const SizedBox(height: 12.0), // Adjusted for consistent spacing
-      ],
+          // Add consistent spacing between section header and content
+          const SizedBox(height: 8.0), // Standard spacing between header and content
+        ],
+      ),
     );
   }
 
@@ -830,7 +840,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
         maxHeight: 170, // Maximum height for content
       ),
       height: 140, // Default height
-      margin: const EdgeInsets.only(top: 0.0, bottom: 24.0), // Increased bottom margin for more space between sections
+      margin: const EdgeInsets.only(bottom: 16.0), // Reduced bottom margin
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -848,7 +858,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
         maxHeight: 170, // Maximum height to match horizontal scroll section
       ),
       height: 140, // Default height to match horizontal scroll section
-      margin: const EdgeInsets.only(top: 0.0, bottom: 24.0), // Increased bottom margin to match horizontal scroll section
+      margin: const EdgeInsets.only(bottom: 16.0), // Reduced bottom margin
       child: Center(
         child: CircularProgressIndicator(
           valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
@@ -864,7 +874,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
         maxHeight: 170, // Maximum height to match horizontal scroll section
       ),
       height: 140, // Default height to match horizontal scroll section
-      margin: const EdgeInsets.only(top: 0.0, bottom: 24.0), // Increased bottom margin to match horizontal scroll section
+      margin: const EdgeInsets.only(bottom: 16.0), // Reduced bottom margin
       child: Center(
         child: Text(
           message,
@@ -1118,19 +1128,21 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
         }
       },
       child: Container(
-        width: 100,
+        width: 100, // Fixed width for artist items (same as song items)
         margin: const EdgeInsets.symmetric(horizontal: 8.0),
         child: LayoutBuilder(
           builder: (context, constraints) {
             // Calculate available height for the image and text
             final availableHeight = constraints.maxHeight;
-            // Reserve about 20% of height for text with increased spacing
-            final textHeight = (availableHeight * 0.2).clamp(16.0, 25.0);
-            // Adjust image size to account for the added spacing
-            final imageSize = ((availableHeight - textHeight - 4.0) * 0.9).clamp(50.0, 80.0);
+            // Reserve less height for text in artist items
+            final textHeight = (availableHeight * 0.16).clamp(14.0, 18.0);
+            // Increase artist image size
+            final imageSize = ((availableHeight - textHeight - 8.0) * 0.85).clamp(55.0, 75.0);
 
             return Column(
               mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.start, // Align to top to match other sections
+              crossAxisAlignment: CrossAxisAlignment.center, // Center horizontally
               children: [
                 // Placeholder for artist image (circular)
                 Container(
@@ -1205,15 +1217,15 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
                         ),
                 ),
 
-                // Add spacing between image and text
-                const SizedBox(height: 10.0),
+                // Reduced spacing between image and text for artist items
+                const SizedBox(height: 6.0),
 
                 // Name
                 SizedBox(
                   height: textHeight,
                   child: Text(
                     name,
-                    style: const TextStyle(color: Colors.white, fontSize: 14), // Increased font size
+                    style: const TextStyle(color: Colors.white, fontSize: 13), // Slightly smaller font size
                     textAlign: TextAlign.center,
                     maxLines: 1, // Only one line to save space
                     overflow: TextOverflow.ellipsis,
@@ -1304,7 +1316,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
 
     // Return a sliding banner with the items
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 32.0), // Increased bottom padding for more space after banner
+      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 16.0), // Consistent spacing between sections
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(5),
@@ -1573,14 +1585,24 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       case SectionType.ARTISTS:
         return section.items.isEmpty
           ? _buildEmptyState('No artists available')
-          : _buildHorizontalScrollSection(
-              section.items.map((artist) =>
-                _buildArtistItem(
-                  artist.name,
-                  _getRandomColor(),
-                  artist: artist,
-                )
-              ).toList(),
+          : Container(
+              constraints: const BoxConstraints(
+                minHeight: 130, // Slightly increased minimum height for artist content
+                maxHeight: 170, // Keep the same maximum height
+              ),
+              height: 30, // Increased height for artist sections
+              margin: const EdgeInsets.only(bottom: 5.0),
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                children: section.items.map((artist) =>
+                  _buildArtistItem(
+                    artist.name,
+                    _getRandomColor(),
+                    artist: artist,
+                  )
+                ).toList(),
+              ),
             );
 
       case SectionType.BANNER:

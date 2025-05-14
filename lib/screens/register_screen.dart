@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import '../services/auth_service.dart';
 import '../utils/toast_util.dart';
+import '../utils/page_transitions.dart';
+import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -46,12 +48,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
   }
 
-  // Safe navigation method that doesn't use context across async gaps
-  void _safeNavigate(String route) {
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed(route);
-    }
-  }
 
   // Safe toast method that doesn't use context across async gaps
   void _safeShowErrorToast(String message) {
@@ -77,14 +73,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 onPressed: () {
                   Navigator.of(context).pop(); // Close the dialog
                 },
-                child: const Text('No', style: TextStyle(color: Color(0xFFFFC701))),
+                child: const Text('No', style: TextStyle(color: Color(0xFFC19FFF))),
               ),
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop(); // Close the dialog
-                  _safeNavigate('/login'); // Navigate to login screen
+                  // Navigate to login screen with smooth transition
+                  if (mounted) {
+                    Navigator.of(context).pushReplacement(
+                      FadeSlidePageRoute(page: const LoginScreen()),
+                    );
+                  }
                 },
-                child: const Text('Yes', style: TextStyle(color: Color(0xFFFFC701))),
+                child: const Text('Yes', style: TextStyle(color: Color(0xFFC19FFF))),
               ),
             ],
           );
@@ -99,7 +100,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Terms & Conditions',
-          style: TextStyle(color: Color(0xFFFFC701)),
+          style: TextStyle(color: Color(0xFFC19FFF)),
         ),
         content: SingleChildScrollView(
           child: Column(
@@ -137,7 +138,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close', style: TextStyle(color: Color(0xFFFFC701))),
+            child: const Text('Close', style: TextStyle(color: Color(0xFFC19FFF))),
           ),
         ],
       ),
@@ -175,8 +176,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
           // Show success message
           _safeShowSuccessToast('Registration successful! Please log in.');
 
-          // Navigate to login screen instead of home
-          _safeNavigate('/login');
+          // Navigate to login screen with smooth transition
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              FadeSlidePageRoute(page: const LoginScreen()),
+            );
+          }
         } else {
           // Show error message
           setState(() {
@@ -400,7 +405,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             _agreeToTerms = value ?? false;
                           });
                         },
-                        activeColor: const Color(0xFFFFC701),
+                        activeColor: Colors.grey,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -416,7 +421,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             TextSpan(
                               text: 'Terms & Conditions',
                               style: const TextStyle(
-                                color: Color(0xFFFFC701),
+                                color: Color(0xFFC19FFF),
                                 fontWeight: FontWeight.bold,
                               ),
                               recognizer: TapGestureRecognizer()
@@ -437,7 +442,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ElevatedButton(
                   onPressed: _isLoading ? null : _register,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFC701),
+                    backgroundColor: Colors.white,
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -476,12 +481,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     TextButton(
                       onPressed: () {
-                        Navigator.pop(context);
+                        Navigator.of(context).pushReplacement(
+                          FadeSlidePageRoute(page: const LoginScreen()),
+                        );
                       },
                       child: const Text(
                         'Login',
                         style: TextStyle(
-                          color: Color(0xFFFFC701),
+                          color: Color(0xFFC19FFF),
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),

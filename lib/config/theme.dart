@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // Colors
-  static const Color primaryColor = Color(0xFFB388FF); // Light Lavender
+  static const Color primaryColor = Color(0xFFC19FFF); // Light Lavender
   static const Color secondaryColor = Color(0xFF9575CD); // Deeper Lavender
   static const Color backgroundColor = Color(0xFF121212); // Dark background
   static const Color surfaceColor = Color(0xFF1E1E1E); // Slightly lighter for cards
@@ -11,14 +11,14 @@ class AppTheme {
   static const Color subtitleColor = Color(0xFFAAAAAA); // Light gray for subtitles
 
   // Font family names
-  static const String primaryFontFamily = 'Montserrat';
+  static const String primaryFontFamily = 'DMSans';
   static const String monospaceFontFamily = 'RobotoMono';
 
   // Get the theme data
   static ThemeData getTheme() {
     return ThemeData(
-      // Use Montserrat as the base font - clean, modern, and similar to Ultimate Guitar
-      textTheme: GoogleFonts.montserratTextTheme(
+      // Use DM Sans as the base font - clean, modern, and minimal
+      textTheme: GoogleFonts.dmSansTextTheme(
         const TextTheme(
           displayLarge: TextStyle(fontSize: 32.0, fontWeight: FontWeight.bold, color: textColor),
           displayMedium: TextStyle(fontSize: 28.0, fontWeight: FontWeight.bold, color: textColor),
@@ -58,7 +58,7 @@ class AppTheme {
         backgroundColor: backgroundColor,
         foregroundColor: textColor,
         elevation: 0,
-        titleTextStyle: GoogleFonts.montserrat(
+        titleTextStyle: GoogleFonts.dmSans(
           fontSize: 18.0,
           fontWeight: FontWeight.w600,
           color: textColor,
@@ -72,7 +72,7 @@ class AppTheme {
           foregroundColor: Colors.black,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: GoogleFonts.montserrat(
+          textStyle: GoogleFonts.dmSans(
             fontSize: 14.0,
             fontWeight: FontWeight.w500,
           ),
@@ -83,7 +83,7 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: primaryColor,
-          textStyle: GoogleFonts.montserrat(
+          textStyle: GoogleFonts.dmSans(
             fontSize: 14.0,
             fontWeight: FontWeight.w500,
           ),
@@ -99,8 +99,8 @@ class AppTheme {
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,
         ),
-        hintStyle: GoogleFonts.montserrat(color: Colors.grey),
-        errorStyle: GoogleFonts.montserrat(color: Colors.redAccent),
+        hintStyle: GoogleFonts.dmSans(color: Colors.grey),
+        errorStyle: GoogleFonts.dmSans(color: Colors.redAccent),
       ),
 
       // Card theme
@@ -115,19 +115,19 @@ class AppTheme {
   }
 
   // Helper method to get specific text styles
-  static TextStyle songTitleStyle = GoogleFonts.montserrat(
+  static TextStyle songTitleStyle = GoogleFonts.dmSans(
     fontSize: 24.0,
     fontWeight: FontWeight.bold,
     color: textColor,
   );
 
-  static TextStyle artistNameStyle = GoogleFonts.montserrat(
+  static TextStyle artistNameStyle = GoogleFonts.dmSans(
     fontSize: 16.0,
     fontWeight: FontWeight.w400,
     color: subtitleColor,
   );
 
-  static TextStyle sectionTitleStyle = GoogleFonts.montserrat(
+  static TextStyle sectionTitleStyle = GoogleFonts.dmSans(
     fontSize: 16.0,
     fontWeight: FontWeight.w600,
     color: textColor,
@@ -152,12 +152,12 @@ class AppTheme {
     letterSpacing: 0.5,
   );
 
-  static TextStyle tabLabelStyle = GoogleFonts.montserrat(
+  static TextStyle tabLabelStyle = GoogleFonts.dmSans(
     fontSize: 14.0,
     fontWeight: FontWeight.w500,
   );
 
-  static TextStyle bottomNavLabelStyle = GoogleFonts.montserrat(
+  static TextStyle bottomNavLabelStyle = GoogleFonts.dmSans(
     fontSize: 12.0,
     fontWeight: FontWeight.w500,
   );
