@@ -15,6 +15,7 @@ import '../providers/navigation_provider.dart';
 import '../widgets/playlist_card.dart';
 import '../widgets/empty_playlist_state.dart';
 import '../widgets/create_playlist_dialog.dart';
+import '../widgets/song_placeholder.dart';
 
 class PlaylistScreen extends StatefulWidget {
   const PlaylistScreen({super.key});
@@ -707,21 +708,97 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
   }
 
   Widget _buildLikedSongItem(Song song) {
+    // Get the song placeholder size
+    const double placeholderSize = 48.0;
+
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(8.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(51), // 0.2 * 255 = 51
-            blurRadius: 4.0,
-            offset: const Offset(0, 2),
+        border: Border(
+          bottom: BorderSide(
+            color: const Color(0xFF333333),
+            width: 1.0,
           ),
-        ],
+        ),
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8.0),
+      child: ListTile(
+        // Reduce vertical padding to decrease space between items
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+        leading: SongPlaceholder(size: placeholderSize),
+        title: Text(
+          song.title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+          // Ensure text doesn't wrap unnecessarily
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          song.artist,
+          style: const TextStyle(
+            color: Colors.grey,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Song Key
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+              decoration: BoxDecoration(
+                color: const Color(0xFF333333),
+                borderRadius: BorderRadius.circular(4.0),
+              ),
+              child: Text(
+                song.key,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Unlike button
+            IconButton(
+              icon: const Icon(
+                Icons.favorite,
+                color: Colors.red,
+                size: 20,
+              ),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () async {
+                // Set isLiked to false before calling the service
+                song.isLiked = false;
+
+                // Unlike the song
+                final success = await _likedSongsService.unlikeSong(song);
+                if (success && mounted) {
+                  setState(() {
+                    // Remove from liked songs
+                    _likedSongs.removeWhere((s) => s.id == song.id);
+                  });
+
+                  // Notify other screens about the change
+                  _likedSongsNotifier.notifySongLikeChanged(song);
+
+                  // Show feedback
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Removed "${song.title}" from liked songs'),
+                      backgroundColor: Colors.grey,
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+                } else if (mounted) {
+                  // If the operation failed, revert the isLiked state
+                  song.isLiked = true;
+                }
+              },
+            ),
+          ],
+        ),
         onTap: () {
           // Navigate to song detail
           Navigator.pushNamed(
@@ -730,129 +807,6 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
             arguments: song,
           );
         },
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            children: [
-              // Song image or placeholder
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFC701).withAlpha(26), // 0.1 * 255 = 25.5 ≈ 26
-                  borderRadius: BorderRadius.circular(8.0),
-                  image: song.imageUrl != null
-                    ? DecorationImage(
-                        image: NetworkImage(song.imageUrl!),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-                ),
-                child: song.imageUrl == null
-                  ? const Icon(
-                      Icons.music_note,
-                      color: Color(0xFFFFC701),
-                      size: 24,
-                    )
-                  : null,
-              ),
-              const SizedBox(width: 12),
-              // Song info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      song.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      song.artist,
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-
-                  ],
-                ),
-              ),
-              // Action buttons
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Key badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 1.0),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF333333),
-                      borderRadius: BorderRadius.circular(4.0),
-                    ),
-                    child: Text(
-                      song.key,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  // Unlike button
-                  IconButton(
-                    constraints: const BoxConstraints(
-                      minWidth: 36,
-                      minHeight: 36,
-                    ),
-                    padding: EdgeInsets.zero,
-                    icon: const Icon(
-                      Icons.favorite,
-                      color: Colors.red,
-                      size: 22,
-                    ),
-                    onPressed: () async {
-                      // Set isLiked to false before calling the service
-                      song.isLiked = false;
-
-                      // Unlike the song
-                      final success = await _likedSongsService.unlikeSong(song);
-                      if (success && mounted) {
-                        setState(() {
-                          // Remove from liked songs
-                          _likedSongs.removeWhere((s) => s.id == song.id);
-                        });
-
-                        // Notify other screens about the change
-                        _likedSongsNotifier.notifySongLikeChanged(song);
-
-                        // Show feedback
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Removed "${song.title}" from liked songs'),
-                            backgroundColor: Colors.grey,
-                            duration: const Duration(seconds: 1),
-                          ),
-                        );
-                      } else if (mounted) {
-                        // If the operation failed, revert the isLiked state
-                        song.isLiked = true;
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

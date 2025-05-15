@@ -26,7 +26,6 @@ import 'screens/notification_screen.dart';
 import 'screens/comments_screen.dart';
 import 'screens/help_support_screen.dart';
 import 'screens/privacy_policy_screen.dart';
-import 'screens/contribute_screen.dart';
 import 'screens/personal_details_screen.dart';
 import 'screens/rate_app_screen.dart';
 import 'screens/support_screen.dart';
@@ -209,10 +208,6 @@ class MyApp extends StatelessWidget {
           } else if (settings.name == '/privacy-policy') {
             return FadeSlidePageRoute(
               page: const PrivacyPolicyScreen(),
-            );
-          } else if (settings.name == '/contribute') {
-            return FadeSlidePageRoute(
-              page: const ContributeScreen(),
             );
           } else if (settings.name == '/personal-details') {
             return FadeSlidePageRoute(

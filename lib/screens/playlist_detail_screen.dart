@@ -370,6 +370,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
   }
 
   Widget _buildSongItem(String title, String artist, String songId) {
+    // Get the song placeholder size
+    const double placeholderSize = 48.0;
+
     return Container(
       decoration: const BoxDecoration(
         border: Border(
@@ -380,30 +383,43 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         ),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        leading: const SongPlaceholder(),
+        // Reduce vertical padding to decrease space between items
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+        leading: const SongPlaceholder(size: placeholderSize),
         title: Text(
           title,
           style: const TextStyle(
-            color: Color(0xFFFFC701),
+            color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
+          // Ensure text doesn't wrap unnecessarily
+          overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(
           artist,
           style: const TextStyle(
             color: Colors.grey,
           ),
+          overflow: TextOverflow.ellipsis,
         ),
-        trailing: IconButton(
-          icon: const Icon(
-            Icons.delete_outline,
-            color: Colors.grey,
-          ),
-          onPressed: () {
-            // Delete song from playlist
-            _showRemoveSongDialog(songId, title);
-          },
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Delete button
+            IconButton(
+              icon: const Icon(
+                Icons.delete_outline,
+                color: Colors.grey,
+                size: 20,
+              ),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () {
+                // Delete song from playlist
+                _showRemoveSongDialog(songId, title);
+              },
+            ),
+          ],
         ),
         onTap: () {
           // Navigate to song detail or chord sheet

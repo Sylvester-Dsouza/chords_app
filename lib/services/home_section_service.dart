@@ -164,4 +164,38 @@ class HomeSectionService {
       debugPrint('Background refresh: Error refreshing home sections: $e');
     }
   }
+
+  // Get all items for a specific section by ID
+  Future<List<dynamic>> getSectionItems(String sectionId, SectionType type) async {
+    try {
+      debugPrint('Fetching items for section $sectionId');
+      final response = await _apiService.get('/home-sections/app/section/$sectionId/items');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> itemsJson = response.data;
+        List<dynamic> items = [];
+
+        // Parse the items based on the section type
+        if (type == SectionType.COLLECTIONS) {
+          items = itemsJson.map((item) => Collection.fromJson(item)).toList();
+        } else if (type == SectionType.SONGS) {
+          items = itemsJson.map((item) => Song.fromJson(item)).toList();
+        } else if (type == SectionType.ARTISTS) {
+          items = itemsJson.map((item) => Artist.fromJson(item)).toList();
+        } else if (type == SectionType.BANNER) {
+          // For banner items, we'll just keep the raw JSON for now
+          items = itemsJson;
+        }
+
+        debugPrint('Fetched ${items.length} items for section $sectionId');
+        return items;
+      } else {
+        debugPrint('Failed to load section items: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      debugPrint('Error getting section items: $e');
+      return [];
+    }
+  }
 }

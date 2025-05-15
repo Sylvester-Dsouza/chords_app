@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
+import 'dart:async'; // For TimeoutException
 import 'api_service.dart';
 import '../firebase_options.dart';
 
@@ -230,11 +231,17 @@ class AuthService {
       }
 
       try {
-        // Try to sign in with Firebase first
-        final UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: email,
-          password: password,
-        );
+        // Try to sign in with Firebase first with timeout
+        debugPrint('Signing in with Firebase with timeout');
+        final UserCredential userCredential = await Future.any([
+          FirebaseAuth.instance.signInWithEmailAndPassword(
+            email: email,
+            password: password,
+          ),
+          Future.delayed(const Duration(seconds: 15), () {
+            throw TimeoutException('Firebase sign-in timed out after 15 seconds');
+          }),
+        ]);
 
         // Check if user is null (rare but possible)
         if (userCredential.user == null) {
@@ -245,8 +252,19 @@ class AuthService {
           };
         }
 
-        // Get a fresh Firebase ID token with forceRefresh=true
-        final String? idToken = await userCredential.user?.getIdToken(true);
+        // Store Firebase user info for session management
+        await _storeFirebaseUserInfo(userCredential.user!);
+        debugPrint('Stored Firebase user info for session management');
+
+        // Get a fresh Firebase ID token with forceRefresh=true and timeout
+        debugPrint('Getting Firebase ID token with timeout');
+        final String? idToken = await Future.any([
+          userCredential.user!.getIdToken(true),
+          Future.delayed(const Duration(seconds: 10), () {
+            throw TimeoutException('Getting Firebase token timed out after 10 seconds');
+          }),
+        ]);
+
         debugPrint('Got Firebase ID token: ${idToken != null}');
 
         // Log the token length for debugging
@@ -274,16 +292,29 @@ class AuthService {
             }
           }
 
-          // Store Firebase user info for session management
-          await _storeFirebaseUserInfo(userCredential.user!);
-
-          // Login with backend using Firebase token
-          final result = await _apiService.loginWithFirebase(
-            firebaseToken: idToken,
-            authProvider: 'EMAIL',
-            name: userCredential.user?.displayName,
-            rememberMe: rememberMe,
-          );
+          // Login with backend using Firebase token with timeout
+          debugPrint('Sending token to backend API with timeout');
+          final result = await Future.any([
+            _apiService.loginWithFirebase(
+              firebaseToken: idToken,
+              authProvider: 'EMAIL',
+              name: userCredential.user?.displayName,
+              rememberMe: rememberMe,
+            ),
+            Future.delayed(const Duration(seconds: 15), () {
+              // If API call times out, return a partial success with Firebase user data
+              return {
+                'success': true,
+                'message': 'Logged in to Firebase but API connection timed out. Some features may be limited.',
+                'data': {
+                  'id': userCredential.user!.uid,
+                  'email': userCredential.user!.email,
+                  'name': userCredential.user!.displayName,
+                  'isActive': true,
+                }
+              };
+            }),
+          ]);
 
           // If backend login fails, sign out from Firebase to maintain consistent state
           if (result['success'] != true) {
@@ -294,16 +325,51 @@ class AuthService {
           return result;
         } else {
           debugPrint('Failed to get Firebase ID token after successful login');
-          // Sign out from Firebase to maintain consistent state
-          await FirebaseAuth.instance.signOut();
 
+          // Even if we failed to get the token, we're still logged in to Firebase
+          // Return a partial success so the UI can proceed
           return {
-            'success': false,
-            'message': 'Failed to get authentication token. Please try again.',
+            'success': true,
+            'message': 'Logged in to Firebase but failed to get authentication token. Some features may be limited.',
+            'data': {
+              'id': userCredential.user!.uid,
+              'email': userCredential.user!.email,
+              'name': userCredential.user!.displayName,
+              'isActive': true,
+            }
           };
         }
       } catch (firebaseError) {
         debugPrint('Firebase login error: $firebaseError');
+
+        // Handle timeout specifically
+        if (firebaseError is TimeoutException) {
+          debugPrint('Login timed out: ${firebaseError.message}');
+
+          // Check if we have a Firebase user despite the timeout
+          final firebaseUser = FirebaseAuth.instance.currentUser;
+          if (firebaseUser != null) {
+            debugPrint('Firebase user exists despite timeout: ${firebaseUser.email}');
+
+            // Return a partial success with the Firebase user data
+            return {
+              'success': true,
+              'message': 'Logged in to Firebase but connection timed out. Some features may be limited.',
+              'data': {
+                'id': firebaseUser.uid,
+                'email': firebaseUser.email,
+                'name': firebaseUser.displayName,
+                'isActive': true,
+              }
+            };
+          }
+
+          return {
+            'success': false,
+            'message': 'Sign in timed out. Please check your internet connection and try again.',
+            'errorCode': 'timeout',
+          };
+        }
 
         // Handle specific Firebase errors
         if (firebaseError is FirebaseAuthException) {
@@ -341,24 +407,73 @@ class AuthService {
             default:
               // For other Firebase errors, try direct backend login as fallback
               debugPrint('Falling back to direct backend login');
-              return await _apiService.loginWithEmail(
-                email: email,
-                password: password,
-                rememberMe: rememberMe,
-              );
+              try {
+                final result = await Future.any([
+                  _apiService.loginWithEmail(
+                    email: email,
+                    password: password,
+                    rememberMe: rememberMe,
+                  ),
+                  Future.delayed(const Duration(seconds: 15), () {
+                    throw TimeoutException('Direct backend login timed out after 15 seconds');
+                  }),
+                ]);
+                return result;
+              } catch (directLoginError) {
+                if (directLoginError is TimeoutException) {
+                  return {
+                    'success': false,
+                    'message': 'Login timed out. Please check your internet connection and try again.',
+                    'errorCode': 'timeout',
+                  };
+                }
+                return {
+                  'success': false,
+                  'message': 'Login failed: ${directLoginError.toString()}',
+                };
+              }
           }
         } else {
           // For non-Firebase errors, try direct backend login as fallback
           debugPrint('Falling back to direct backend login');
-          return await _apiService.loginWithEmail(
-            email: email,
-            password: password,
-            rememberMe: rememberMe,
-          );
+          try {
+            final result = await Future.any([
+              _apiService.loginWithEmail(
+                email: email,
+                password: password,
+                rememberMe: rememberMe,
+              ),
+              Future.delayed(const Duration(seconds: 15), () {
+                throw TimeoutException('Direct backend login timed out after 15 seconds');
+              }),
+            ]);
+            return result;
+          } catch (directLoginError) {
+            if (directLoginError is TimeoutException) {
+              return {
+                'success': false,
+                'message': 'Login timed out. Please check your internet connection and try again.',
+                'errorCode': 'timeout',
+              };
+            }
+            return {
+              'success': false,
+              'message': 'Login failed: ${directLoginError.toString()}',
+            };
+          }
         }
       }
     } catch (e) {
       debugPrint('Login error: $e');
+
+      if (e is TimeoutException) {
+        return {
+          'success': false,
+          'message': 'Login timed out. Please check your internet connection and try again.',
+          'errorCode': 'timeout',
+        };
+      }
+
       return {
         'success': false,
         'message': 'An error occurred during login: ${e.toString()}',
@@ -464,9 +579,15 @@ class AuthService {
         await initializeFirebase();
       }
 
-      // Sign in with Google using Firebase
-      debugPrint('Calling signInWithGoogle method');
-      final UserCredential userCredential = await signInWithGoogle();
+      // Sign in with Google using Firebase with timeout
+      debugPrint('Calling signInWithGoogle method with timeout');
+      final UserCredential userCredential = await Future.any([
+        signInWithGoogle(),
+        Future.delayed(const Duration(seconds: 15), () {
+          throw TimeoutException('Google sign-in timed out after 15 seconds');
+        }),
+      ]);
+
       final User? user = userCredential.user;
 
       if (user == null) {
@@ -479,9 +600,19 @@ class AuthService {
 
       debugPrint('Google sign-in successful, user: ${user.displayName}');
 
-      // Get a fresh Firebase ID token with forceRefresh=true
-      debugPrint('Getting Firebase ID token');
-      final String? idToken = await user.getIdToken(true);
+      // Store Firebase user info for session management
+      await _storeFirebaseUserInfo(user);
+      debugPrint('Stored Firebase user info for session management');
+
+      // Get a fresh Firebase ID token with forceRefresh=true and timeout
+      debugPrint('Getting Firebase ID token with timeout');
+      final String? idToken = await Future.any([
+        user.getIdToken(true),
+        Future.delayed(const Duration(seconds: 10), () {
+          throw TimeoutException('Getting Firebase token timed out after 10 seconds');
+        }),
+      ]);
+
       debugPrint('Got Firebase ID token from Google login: ${idToken != null}');
 
       // Log the token length for debugging
@@ -512,20 +643,44 @@ class AuthService {
 
       if (idToken == null) {
         debugPrint('Failed to get ID token from Firebase');
+
+        // Even if we failed to get the token, we're still logged in to Firebase
+        // Return a partial success so the UI can proceed
         return {
-          'success': false,
-          'message': 'Failed to get authentication token',
+          'success': true,
+          'message': 'Logged in to Firebase but failed to get authentication token. Some features may be limited.',
+          'data': {
+            'id': user.uid,
+            'email': user.email,
+            'name': user.displayName,
+            'isActive': true,
+          }
         };
       }
 
-      // Send token to backend
-      debugPrint('Sending token to backend API');
-      final result = await _apiService.loginWithFirebase(
-        firebaseToken: idToken,
-        authProvider: 'GOOGLE',
-        name: user.displayName,
-        rememberMe: rememberMe,
-      );
+      // Send token to backend with timeout
+      debugPrint('Sending token to backend API with timeout');
+      final result = await Future.any([
+        _apiService.loginWithFirebase(
+          firebaseToken: idToken,
+          authProvider: 'GOOGLE',
+          name: user.displayName,
+          rememberMe: rememberMe,
+        ),
+        Future.delayed(const Duration(seconds: 15), () {
+          // If API call times out, return a partial success with Firebase user data
+          return {
+            'success': true,
+            'message': 'Logged in to Firebase but API connection timed out. Some features may be limited.',
+            'data': {
+              'id': user.uid,
+              'email': user.email,
+              'name': user.displayName,
+              'isActive': true,
+            }
+          };
+        }),
+      ]);
 
       debugPrint('Google login API result: $result');
       return result;
@@ -534,7 +689,30 @@ class AuthService {
 
       String errorMessage = 'An error occurred during Google sign in.';
 
-      if (e is FirebaseAuthException) {
+      if (e is TimeoutException) {
+        // Handle timeout specifically
+        debugPrint('Login timed out: ${e.message}');
+
+        // Check if we have a Firebase user despite the timeout
+        final firebaseUser = FirebaseAuth.instance.currentUser;
+        if (firebaseUser != null) {
+          debugPrint('Firebase user exists despite timeout: ${firebaseUser.email}');
+
+          // Return a partial success with the Firebase user data
+          return {
+            'success': true,
+            'message': 'Logged in to Firebase but connection timed out. Some features may be limited.',
+            'data': {
+              'id': firebaseUser.uid,
+              'email': firebaseUser.email,
+              'name': firebaseUser.displayName,
+              'isActive': true,
+            }
+          };
+        }
+
+        errorMessage = 'Sign in timed out. Please check your internet connection and try again.';
+      } else if (e is FirebaseAuthException) {
         if (e.code == 'ERROR_ABORTED_BY_USER') {
           errorMessage = 'Sign in was cancelled by the user.';
         } else {

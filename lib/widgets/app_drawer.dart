@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../utils/page_transitions.dart';
+import '../config/theme.dart';
 import '../screens/playlist_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/resources_screen.dart';
@@ -19,8 +20,11 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+    final bool isLoggedIn = userProvider.isLoggedIn;
+
     return Drawer(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: AppTheme.backgroundColor,
       child: SafeArea(
         child: Column(
           children: [
@@ -29,80 +33,76 @@ class AppDrawer extends StatelessWidget {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    // Logo and close button
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Logo
-                          Row(
-                            children: [
-                              // Flame icon
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                child: Icon(
-                                  Icons.local_fire_department,
-                                  color: Theme.of(context).colorScheme.onPrimary,
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              // App name
-                              RichText(
-                                text: const TextSpan(
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  children: [
-                                    TextSpan(
-                                      text: 'Worship',
-                                      style: TextStyle(color: Color(0xFFFFC701)),
-                                    ),
-                                    TextSpan(
-                                      text: '\nParadise',
-                                      style: TextStyle(color: Color(0xFFFFC701)),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          // Close button
-                          IconButton(
-                            icon: const Icon(Icons.close, color: Colors.white),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ],
-                      ),
+                    // Modern header with logo
+                    _buildDrawerHeader(context),
+
+                    const SizedBox(height: 16),
+
+                    // Features Section
+                    _buildSectionHeader(context, 'Features'),
+                    _buildMenuItem(
+                      context,
+                      Icons.music_note_outlined,
+                      'Request a Song',
+                      routeName: '/song_request',
+                    ),
+                    _buildMenuItem(
+                      context,
+                      Icons.favorite_border_outlined,
+                      'Liked Collections',
+                      routeName: '/liked-collections',
                     ),
 
-                    const Divider(color: Color(0xFF333333)),
+                    const SizedBox(height: 16),
 
-                    // Main menu items
-                    _buildMenuItem(context, Icons.music_note, 'Request a Song'),
-                    _buildMenuItem(context, Icons.school, 'Resources'),
+                    // Support Section
+                    _buildSectionHeader(context, 'Support'),
+                    _buildMenuItem(
+                      context,
+                      Icons.help_outline,
+                      'Help & Support',
+                      routeName: '/help-support',
+                    ),
+                    _buildMenuItem(
+                      context,
+                      Icons.info_outline,
+                      'About Us',
+                      routeName: '/about_us',
+                    ),
+                    _buildMenuItem(
+                      context,
+                      Icons.mail_outline,
+                      'Contact Us',
+                      routeName: '/contact-us',
+                    ),
 
-                    const Divider(color: Color(0xFF333333)),
+                    const SizedBox(height: 16),
 
-                    // Support menu items
-                    _buildMenuItem(context, Icons.help, 'Help & Support'),
-                    _buildMenuItem(context, Icons.info, 'About us'),
-                    _buildMenuItem(context, Icons.mail, 'Contact us'),
+                    // Contribute Section
+                    _buildSectionHeader(context, 'Contribute'),
+                    _buildMenuItem(
+                      context,
+                      Icons.handshake_outlined,
+                      'Contribute Songs',
+                      routeName: '/contribute',
+                    ),
+                    _buildMenuItem(
+                      context,
+                      Icons.volunteer_activism_outlined,
+                      'Support Us',
+                      routeName: '/support',
+                    ),
 
-                    const Divider(color: Color(0xFF333333)),
+                    const SizedBox(height: 16),
 
-                    // Additional options
-                    _buildMenuItem(context, Icons.handshake, 'Contribute'),
-                    _buildMenuItem(context, Icons.block_flipped, 'Remove Ads'),
-                    // Premium content removed to fix crashing issues
-                    // _buildMenuItem(context, Icons.star, 'Premium Content'),
+                    // Premium Section
+                    _buildSectionHeader(context, 'Premium'),
+                    _buildMenuItem(
+                      context,
+                      Icons.block_outlined,
+                      'Remove Ads',
+                      routeName: '/remove-ads',
+                    ),
 
                     // Add some bottom padding to ensure there's enough space
                     const SizedBox(height: 20),
@@ -111,135 +111,251 @@ class AppDrawer extends StatelessWidget {
               ),
             ),
 
-            // Fixed logout button at the bottom
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Divider(color: Color(0xFF333333)),
-                // Logout (only shown when logged in)
-                Consumer<UserProvider>(
-                  builder: (context, userProvider, _) {
-                    if (userProvider.isLoggedIn) {
-                      return _buildMenuItem(context, Icons.logout, 'Logout');
-                    } else {
-                      return const SizedBox.shrink(); // Hide when not logged in
-                    }
-                  },
-                ),
-                const SizedBox(height: 8), // Small padding at the bottom
-              ],
-            ),
+            // Fixed login/logout button at the bottom
+            _buildBottomSection(context, isLoggedIn, userProvider),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMenuItem(BuildContext context, IconData icon, String title) {
+  // Modern drawer header with logo
+  Widget _buildDrawerHeader(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Logo and app name
+          Row(
+            children: [
+              // App icon with gradient
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppTheme.primaryColor,
+                      AppTheme.primaryColor.withAlpha(179), // 0.7 * 255 = 179
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withAlpha(77), // 0.3 * 255 = 77
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.music_note,
+                  color: AppTheme.backgroundColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              // App name
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Worship',
+                    style: TextStyle(
+                      color: AppTheme.primaryColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'Paradise',
+                    style: TextStyle(
+                      color: AppTheme.primaryColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          // Close button
+          IconButton(
+            icon: const Icon(Icons.close, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+            style: IconButton.styleFrom(
+              backgroundColor: AppTheme.surfaceColor,
+              padding: const EdgeInsets.all(8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Section header
+  Widget _buildSectionHeader(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 20, right: 20, bottom: 8, top: 8),
+      child: Row(
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              color: AppTheme.subtitleColor,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Container(
+              height: 1,
+              color: const Color(0xFF333333),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Bottom section with login/logout
+  Widget _buildBottomSection(BuildContext context, bool isLoggedIn, UserProvider userProvider) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        border: const Border(
+          top: BorderSide(color: Color(0xFF333333), width: 1),
+        ),
+      ),
+      child: isLoggedIn
+        ? ElevatedButton.icon(
+            onPressed: () => _showLogoutConfirmationDialog(context),
+            icon: const Icon(Icons.logout, size: 18),
+            label: const Text('Logout'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.withAlpha(51), // 0.2 * 255 = 51
+              foregroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          )
+        : ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushReplacementNamed(context, '/login');
+            },
+            icon: const Icon(Icons.login, size: 18),
+            label: const Text('Login'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+    );
+  }
+
+  Widget _buildMenuItem(
+    BuildContext context,
+    IconData icon,
+    String title,
+    {String? routeName}
+  ) {
     return ListTile(
-      leading: Icon(
-        icon,
-        color: Colors.grey,
-        size: 24,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      leading: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          color: Colors.white,
+          size: 20,
+        ),
       ),
       title: Text(
         title,
         style: const TextStyle(
-          color: Colors.grey,
-          fontSize: 16,
+          color: Colors.white,
+          fontSize: 15,
+          fontWeight: FontWeight.w400,
         ),
+      ),
+      trailing: const Icon(
+        Icons.chevron_right,
+        color: Colors.grey,
+        size: 20,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
       ),
       onTap: () {
         // Close the drawer
         Navigator.pop(context);
 
-        // Handle navigation based on the menu item
-        switch (title) {
-          case 'Home':
-            Navigator.pushReplacementNamed(context, '/home');
-            break;
-          case 'My Playlist':
-            _navigateWithTransition(context, '/playlist');
-            break;
-          case 'Profile':
-            _navigateWithTransition(context, '/profile');
-            break;
-          case 'Resources':
-            _navigateWithTransition(context, '/resources');
-            break;
-          case 'Artists':
-            // Navigate to artists screen when available
-            // For now, show a message that it's coming soon
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Artists page coming soon!'),
-                backgroundColor: Color(0xFFFFC701),
-                duration: Duration(seconds: 2),
-              ),
-            );
-            break;
-          case 'Collections':
-            // Navigate to collections screen when available
-            // For now, show a message that it's coming soon
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Collections page coming soon!'),
-                backgroundColor: Color(0xFFFFC701),
-                duration: Duration(seconds: 2),
-              ),
-            );
-            break;
-          case 'Search Chords':
-            _navigateWithTransition(context, '/search');
-            break;
-          case 'Request a Song':
-            _navigateWithTransition(context, '/song_request');
-            break;
-          case 'Help & Support':
-            // Navigate to help screen when available
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Help & Support page coming soon!'),
-                backgroundColor: Color(0xFFFFC701),
-                duration: Duration(seconds: 2),
-              ),
-            );
-            break;
-          case 'About us':
-            _navigateWithTransition(context, '/about_us');
-            break;
-          case 'Contact us':
-            // Navigate to contact screen when available
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Contact us page coming soon!'),
-                backgroundColor: Color(0xFFFFC701),
-                duration: Duration(seconds: 2),
-              ),
-            );
-            break;
-          case 'Contribute':
-            // Navigate to contribute screen when available
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Contribute page coming soon!'),
-                backgroundColor: Color(0xFFFFC701),
-                duration: Duration(seconds: 2),
-              ),
-            );
-            break;
-          case 'Remove Ads':
-            // Navigate to remove ads screen
-            _navigateWithTransition(context, '/remove-ads');
-            break;
-          // Premium content removed to fix crashing issues
-          // case 'Premium Content':
-          //   // Navigate to premium content screen
-          //   _navigateWithTransition(context, '/premium-content');
-          //   break;
-          case 'Logout':
-            _showLogoutConfirmationDialog(context);
-            break;
+        // If routeName is provided, navigate to that route
+        if (routeName != null) {
+          _navigateWithTransition(context, routeName);
+        } else {
+          // Handle navigation based on the menu item title as fallback
+          switch (title) {
+            case 'Request a Song':
+              _navigateWithTransition(context, '/song_request');
+              break;
+            case 'Liked Collections':
+              _navigateWithTransition(context, '/liked-collections');
+              break;
+            case 'Help & Support':
+              _navigateWithTransition(context, '/help-support');
+              break;
+            case 'About Us':
+              _navigateWithTransition(context, '/about_us');
+              break;
+            case 'Contact Us':
+              // Navigate to contact screen when available
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Contact page coming soon!'),
+                  backgroundColor: AppTheme.primaryColor,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+              break;
+            case 'Contribute Songs':
+              // Navigate to contribute screen when available
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Contribute page coming soon!'),
+                  backgroundColor: AppTheme.primaryColor,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+              break;
+            case 'Support Us':
+              _navigateWithTransition(context, '/support');
+              break;
+            case 'Remove Ads':
+              _navigateWithTransition(context, '/remove-ads');
+              break;
+            case 'Logout':
+              _showLogoutConfirmationDialog(context);
+              break;
+          }
         }
       },
     );
@@ -251,10 +367,13 @@ class AppDrawer extends StatelessWidget {
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF1E1E1E),
+          backgroundColor: AppTheme.surfaceColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           title: const Text(
             'Confirm Logout',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           content: const Text(
             'Are you sure you want to log out?',
@@ -265,9 +384,9 @@ class AppDrawer extends StatelessWidget {
               onPressed: () {
                 Navigator.of(dialogContext).pop(); // Close dialog
               },
-              child: const Text(
+              child: Text(
                 'Cancel',
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(color: AppTheme.primaryColor),
               ),
             ),
             TextButton(
@@ -277,7 +396,7 @@ class AppDrawer extends StatelessWidget {
               },
               child: const Text(
                 'Logout',
-                style: TextStyle(color: Color(0xFFFFC701)),
+                style: TextStyle(color: Colors.red),
               ),
             ),
           ],

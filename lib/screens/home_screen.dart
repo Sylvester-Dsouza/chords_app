@@ -9,11 +9,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../providers/navigation_provider.dart';
 import '../widgets/app_drawer.dart';
 import '../providers/user_provider.dart';
-import '../services/collection_service.dart';
 import '../models/collection.dart';
-import '../services/song_service.dart';
 import '../models/song.dart';
-import '../services/artist_service.dart';
 import '../models/artist.dart';
 import '../widgets/sliding_banner.dart';
 import '../services/notification_service.dart';
@@ -30,29 +27,16 @@ class HomeScreenNew extends StatefulWidget {
 class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserver {
 
   // Services
-  final CollectionService _collectionService = CollectionService();
-  final SongService _songService = SongService();
-  final ArtistService _artistService = ArtistService();
   final HomeSectionService _homeSectionService = HomeSectionService();
   // AdService removed to fix crashing issues
   // final AdService _adService = AdService();
 
   // Data
   List<HomeSection> _homeSections = [];
-  List<Collection> _seasonalCollections = [];
-  List<Collection> _beginnerFriendlyCollections = [];
-  List<Song> _trendingSongs = [];
-  List<Artist> _topArtists = [];
-  List<Song> _newSongs = [];
   int _unreadNotificationCount = 0;
 
   // Loading states
   bool _isLoadingHomeSections = true;
-  bool _isLoadingSeasonalCollections = true;
-  bool _isLoadingBeginnerCollections = true;
-  bool _isLoadingTrendingSongs = true;
-  bool _isLoadingTopArtists = true;
-  bool _isLoadingNewSongs = true;
   bool _isLoadingNotifications = true;
 
   @override
@@ -91,15 +75,10 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       _saveLastOpenTime(now);
     });
 
-    // Load dynamic home sections first (will use cache initially)
+    // Load dynamic home sections
     _fetchHomeSections();
 
-    // Also load traditional sections as fallback
-    _fetchSeasonalCollections();
-    _fetchBeginnerFriendlyCollections();
-    _fetchTrendingSongs();
-    _fetchTopArtists();
-    _fetchNewSongs();
+    // Load notification count
     _fetchUnreadNotificationCount();
   }
 
@@ -191,140 +170,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
     }
   }
 
-  // Fetch seasonal collections
-  Future<void> _fetchSeasonalCollections() async {
-    try {
-      final collections = await _collectionService.getSeasonalCollections(limit: 10);
-      if (mounted) {
-        setState(() {
-          _seasonalCollections = collections;
-          _isLoadingSeasonalCollections = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error fetching seasonal collections: $e');
-      if (mounted) {
-        setState(() {
-          _isLoadingSeasonalCollections = false;
-        });
-      }
-    }
-  }
 
-  // Fetch beginner friendly collections
-  Future<void> _fetchBeginnerFriendlyCollections() async {
-    try {
-      final collections = await _collectionService.getBeginnerFriendlyCollections(limit: 10);
-      if (mounted) {
-        setState(() {
-          _beginnerFriendlyCollections = collections;
-          _isLoadingBeginnerCollections = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error fetching beginner friendly collections: $e');
-      if (mounted) {
-        setState(() {
-          _isLoadingBeginnerCollections = false;
-        });
-      }
-    }
-  }
-
-  // Fetch trending songs
-  Future<void> _fetchTrendingSongs() async {
-    try {
-      // In a real implementation, you would have an API endpoint for trending songs
-      // For now, we'll just get all songs and limit to 10
-      final songs = await _songService.getAllSongs();
-      // Log image URLs for debugging
-      for (var song in songs.take(10)) {
-        debugPrint('Song: ${song.title}, Image URL: ${song.imageUrl}');
-      }
-
-      if (mounted) {
-        setState(() {
-          _trendingSongs = songs.take(10).toList();
-          _isLoadingTrendingSongs = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error fetching trending songs: $e');
-      if (mounted) {
-        setState(() {
-          _isLoadingTrendingSongs = false;
-        });
-      }
-    }
-  }
-
-  // Fetch top artists
-  Future<void> _fetchTopArtists() async {
-    try {
-      // First try to get cached artists to show something quickly
-      List<Artist> artists = [];
-
-      try {
-        // Get cached artists first for quick display
-        artists = await _artistService.getAllArtists();
-
-        if (mounted && artists.isNotEmpty) {
-          setState(() {
-            _topArtists = artists.take(10).toList();
-            // Keep loading state true as we'll refresh from API
-          });
-        }
-      } catch (cacheError) {
-        debugPrint('Error fetching cached artists: $cacheError');
-        // Continue to fetch from API
-      }
-
-      // Then force a refresh from the API to get the latest data
-      artists = await _artistService.getAllArtists(forceRefresh: true);
-
-      // Log artist data for debugging
-      debugPrint('Fetched ${artists.length} artists from API');
-      for (var artist in artists.take(10)) {
-        debugPrint('Artist after refresh: ${artist.name}, Image URL: ${artist.imageUrl}');
-      }
-
-      if (mounted) {
-        setState(() {
-          _topArtists = artists.take(10).toList();
-          _isLoadingTopArtists = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error fetching top artists: $e');
-      if (mounted) {
-        setState(() {
-          _isLoadingTopArtists = false;
-        });
-      }
-    }
-  }
-
-  // Fetch new songs
-  Future<void> _fetchNewSongs() async {
-    try {
-      // In a real implementation, you would have an API endpoint for new songs
-      // For now, we'll just get all songs, sort by date, and limit to 10
-      final songs = await _songService.getAllSongs();
-      if (mounted) {
-        setState(() {
-          _newSongs = songs.take(10).toList();
-          _isLoadingNewSongs = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error fetching new songs: $e');
-      if (mounted) {
-        setState(() {
-          _isLoadingNewSongs = false;
-        });
-      }
-    }
-  }
 
   // Get the last time the app was opened from shared preferences
   int _getLastOpenTime() {
@@ -417,11 +263,24 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
 
   // Navigate to the appropriate list screen based on the section title and type
   void _navigateToSeeMore(String sectionTitle, {SectionType? sectionType}) {
-    // If we have a section type from a dynamic section, use it to determine the list type
-    if (sectionType != null) {
-      ListType listType;
-      String? filterType;
+    // Find the section by title
+    HomeSection? section;
+    for (var s in _homeSections) {
+      if (s.title == sectionTitle && s.type == sectionType) {
+        section = s;
+        break;
+      }
+    }
 
+    if (section == null) {
+      debugPrint('Section not found: $sectionTitle');
+      return;
+    }
+
+    // Determine the list type based on section type
+    ListType listType;
+
+    if (sectionType != null) {
       switch (sectionType) {
         case SectionType.COLLECTIONS:
           listType = ListType.collections;
@@ -437,95 +296,23 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
           listType = ListType.songs;
           break;
       }
+    } else {
+      // Default to songs if no section type is provided
+      listType = ListType.songs;
+    }
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ListScreen(
-            title: sectionTitle,
-            listType: listType,
-            filterType: filterType,
-          ),
+    // Navigate to the list screen with the section ID if available
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ListScreen(
+          title: sectionTitle,
+          listType: listType,
+          sectionId: section?.id,
+          sectionType: sectionType,
         ),
-      );
-      return;
-    }
-
-    // For traditional hardcoded sections, use the title to determine the list type
-    switch (sectionTitle) {
-      case 'Seasonal Collections':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const ListScreen(
-              title: 'Seasonal Collections',
-              listType: ListType.collections,
-              filterType: 'seasonal',
-            ),
-          ),
-        );
-        break;
-      case 'Trending Song Chords':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const ListScreen(
-              title: 'Trending Song Chords',
-              listType: ListType.songs,
-              filterType: 'trending',
-            ),
-          ),
-        );
-        break;
-      case 'Beginner Friendly':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const ListScreen(
-              title: 'Beginner Friendly',
-              listType: ListType.collections,
-              filterType: 'beginner',
-            ),
-          ),
-        );
-        break;
-      case 'Top Artist of the Month':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const ListScreen(
-              title: 'Top Artists',
-              listType: ListType.artists,
-              filterType: 'top',
-            ),
-          ),
-        );
-        break;
-      case 'Discover new songs':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const ListScreen(
-              title: 'New Songs',
-              listType: ListType.songs,
-              filterType: 'new',
-            ),
-          ),
-        );
-        break;
-      default:
-        // Default case for any other section titles
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ListScreen(
-              title: sectionTitle,
-              listType: ListType.songs,
-            ),
-          ),
-        );
-        break;
-    }
+      ),
+    );
   }
 
 
@@ -548,7 +335,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
               ),
         ),
         title: const Text(
-          'Worship Paradise',
+          'Stuthi Christian Chords & Lyrics',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -608,149 +395,12 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Featured Banner - Auto Sliding
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 0.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(40),
-                      blurRadius: 4.0,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: SlidingBanner(
-                  autoSlideDuration: const Duration(seconds: 5),
-                  items: [
-                    BannerItem(
-                      imagePath: 'assets/images/banner1.jpg',
-                      onTap: () {
-                        // Navigate to featured content
-                        debugPrint('Banner 1 tapped');
-                      },
-                    ),
-                    BannerItem(
-                      imagePath: 'assets/images/banner2.jpg',
-                      onTap: () {
-                        // Navigate to event details
-                        debugPrint('Banner 2 tapped');
-                      },
-                    ),
-                    BannerItem(
-                      imagePath: 'assets/images/banner3.jpg',
-                      onTap: () {
-                        // Navigate to top songs
-                        debugPrint('Banner 3 tapped');
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Add extra space after the top banner
-            const SizedBox(height: 24.0), // Standard spacing between sections
+            // Top spacing
+            const SizedBox(height: 16.0),
 
             // Dynamic Home Sections
             if (_isLoadingHomeSections)
               _buildLoadingIndicator()
-            else if (_homeSections.isEmpty)
-              ...[
-                // Fallback to traditional sections if no dynamic sections are available
-                // Seasonal Collections
-                _buildSectionHeader('Seasonal Collections', sectionType: SectionType.COLLECTIONS),
-                _isLoadingSeasonalCollections
-                  ? _buildLoadingIndicator()
-                  : _seasonalCollections.isEmpty
-                    ? _buildEmptyState('No seasonal collections available')
-                    : _buildHorizontalScrollSection(
-                        _seasonalCollections.map((collection) =>
-                          _buildCollectionItem(
-                            collection.title,
-                            collection.color,
-                            collection: collection,
-                          )
-                        ).toList(),
-                      ),
-
-                // Trending Song Chords
-                _buildSectionHeader('Trending Song Chords', sectionType: SectionType.SONGS),
-                _isLoadingTrendingSongs
-                  ? _buildLoadingIndicator()
-                  : _trendingSongs.isEmpty
-                    ? _buildEmptyState('No trending songs available')
-                    : _buildHorizontalScrollSection(
-                        _trendingSongs.map((song) =>
-                          _buildSongItem(
-                            song.title,
-                            _getRandomColor(),
-                            song: song,
-                          )
-                        ).toList(),
-                      ),
-
-                // Beginner Friendly
-                _buildSectionHeader('Beginner Friendly', sectionType: SectionType.COLLECTIONS),
-                _isLoadingBeginnerCollections
-                  ? _buildLoadingIndicator()
-                  : _beginnerFriendlyCollections.isEmpty
-                    ? _buildEmptyState('No beginner friendly collections available')
-                    : _buildHorizontalScrollSection(
-                        _beginnerFriendlyCollections.map((collection) =>
-                          _buildCollectionItem(
-                            collection.title,
-                            collection.color,
-                            collection: collection,
-                          )
-                        ).toList(),
-                      ),
-
-                // Top Artist of the Month
-                _buildSectionHeader('Top Artist of the Month', sectionType: SectionType.ARTISTS),
-                _isLoadingTopArtists
-                  ? _buildLoadingIndicator()
-                  : _topArtists.isEmpty
-                    ? _buildEmptyState('No top artists available')
-                    : Container(
-                        constraints: const BoxConstraints(
-                          minHeight: 110, // Slightly increased minimum height for artist content
-                          maxHeight: 140, // Keep the same maximum height
-                        ),
-                        height: 130, // Increased height for artist sections
-                        margin: const EdgeInsets.only(bottom: 16.0),
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          children: _topArtists.map((artist) =>
-                            _buildArtistItem(
-                              artist.name,
-                              _getRandomColor(),
-                              artist: artist,
-                            )
-                          ).toList(),
-                        ),
-                      ),
-
-                // Discover new songs
-                _buildSectionHeader('Discover new songs', sectionType: SectionType.SONGS),
-                _isLoadingNewSongs
-                  ? _buildLoadingIndicator()
-                  : _newSongs.isEmpty
-                    ? _buildEmptyState('No new songs available')
-                    : _buildHorizontalScrollSection(
-                        _newSongs.map((song) =>
-                          _buildSongItem(
-                            song.title,
-                            _getRandomColor(),
-                            song: song,
-                          )
-                        ).toList(),
-                      ),
-              ]
             else
               // Render dynamic sections
               for (var section in _homeSections)
@@ -769,11 +419,6 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
             // Support Us section
             _buildSupportUsSection(),
 
-            // Banner ad section removed to fix crashing issues
-            // if (!_adService.isAdFree) ...[
-            //   const SizedBox(height: 16),
-            //   const Center(child: BannerAdWidget()),
-            // ],
 
             // Extra space at bottom to ensure all content is visible above bottom nav bar
             const SizedBox(height: 24),
@@ -839,8 +484,8 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
         minHeight: 120, // Minimum height for content
         maxHeight: 170, // Maximum height for content
       ),
-      height: 140, // Default height
-      margin: const EdgeInsets.only(bottom: 16.0), // Reduced bottom margin
+      height: 10, // Default height
+      margin: const EdgeInsets.only(bottom: 8.0), // Consistent bottom margin
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -1013,100 +658,103 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
             // Reserve about 18% of height for text to accommodate larger font
             final textHeight = (availableHeight * 0.18).clamp(16.0, 22.0);
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Song image with square aspect ratio
-                AspectRatio(
-                  aspectRatio: 1, // Square aspect ratio for song images
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: _getColorWithOpacity(color, 0.3),
-                      borderRadius: BorderRadius.circular(8.0),
-                      // Fallback gradient if no image is available
-                      gradient: song?.imageUrl == null ? LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          _getColorWithOpacity(color, 0.7),
-                          Color.fromRGBO(0, 0, 0, 0.9), // Black with opacity
-                        ],
-                      ) : null,
-                    ),
-                    child: song?.imageUrl != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(8.0),
-                          child: CachedNetworkImage(
-                            imageUrl: song!.imageUrl!,
-                            fit: BoxFit.cover,
-                            // Use these settings for better image loading
-                            fadeInDuration: const Duration(milliseconds: 300),
-                            // Add a cache key with timestamp to force refresh
-                            cacheKey: '${song.imageUrl}_${DateTime.now().day}',
-                            placeholder: (context, url) => const Center(
-                              child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
-                                strokeWidth: 2,
-                              ),
-                            ),
-                            errorWidget: (context, url, error) {
-                              debugPrint('Error loading song image: ${song.title} - $url');
-                              debugPrint('Error details: $error');
+            // Calculate the size of the square image
+            final imageSize = availableHeight - textHeight - 10.0; // Subtract text height and spacing
 
-                              // Try to refresh the image by adding a timestamp to the URL
-                              final timestamp = DateTime.now().millisecondsSinceEpoch;
-                              final refreshedUrl = '$url?t=$timestamp';
+            // Calculate the total height needed
+            final totalContentHeight = imageSize + 10.0 + textHeight;
+            // Calculate top padding to center the content vertically
+            final topPadding = (availableHeight - totalContentHeight) / 2;
 
-                              // Return a new CachedNetworkImage with the refreshed URL
-                              return CachedNetworkImage(
-                                imageUrl: refreshedUrl,
-                                fit: BoxFit.cover,
-                                fadeInDuration: const Duration(milliseconds: 300),
-                                // Force network request with a unique cache key
-                                cacheKey: '${refreshedUrl}_retry_$timestamp',
-                                placeholder: (context, url) => const Center(
-                                  child: CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
-                                    strokeWidth: 2,
-                                  ),
+            return Padding(
+              padding: EdgeInsets.only(top: topPadding > 0 ? topPadding : 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Song image with square aspect ratio
+                  SizedBox(
+                    width: imageSize,
+                    height: imageSize,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: _getColorWithOpacity(color, 0.3),
+                        borderRadius: BorderRadius.circular(8.0),
+                        // Fallback gradient if no image is available
+                        gradient: song?.imageUrl == null ? LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            _getColorWithOpacity(color, 0.7),
+                            Color.fromRGBO(0, 0, 0, 0.9), // Black with opacity
+                          ],
+                        ) : null,
+                      ),
+                      child: song?.imageUrl != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8.0),
+                            child: CachedNetworkImage(
+                              imageUrl: song!.imageUrl!,
+                              fit: BoxFit.cover,
+                              fadeInDuration: const Duration(milliseconds: 300),
+                              cacheKey: '${song.imageUrl}_${DateTime.now().day}',
+                              placeholder: (context, url) => const Center(
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
+                                  strokeWidth: 2,
                                 ),
-                                errorWidget: (context, url, error) {
-                                  // If still failing, show fallback icon
-                                  return Icon(
-                                    Icons.music_note,
-                                    color: Colors.white,
-                                    size: 40,
-                                  );
-                                },
-                              );
-                            },
+                              ),
+                              errorWidget: (context, url, error) {
+                                debugPrint('Error loading song image: ${song.title} - $url');
+                                final timestamp = DateTime.now().millisecondsSinceEpoch;
+                                final refreshedUrl = '$url?t=$timestamp';
+                                return CachedNetworkImage(
+                                  imageUrl: refreshedUrl,
+                                  fit: BoxFit.cover,
+                                  fadeInDuration: const Duration(milliseconds: 300),
+                                  cacheKey: '${refreshedUrl}_retry_$timestamp',
+                                  placeholder: (context, url) => const Center(
+                                    child: CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) {
+                                    return Icon(
+                                      Icons.music_note,
+                                      color: Colors.white,
+                                      size: 40,
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          )
+                        : Center(
+                            child: Icon(
+                              Icons.music_note,
+                              color: Colors.white,
+                              size: 40,
+                            ),
                           ),
-                        )
-                      : Center(
-                          child: Icon(
-                            Icons.music_note,
-                            color: Colors.white,
-                            size: 40,
-                          ),
-                        ),
+                    ),
                   ),
-                ),
 
-                // Add spacing between image and text
-                const SizedBox(height: 10.0),
+                  // Add spacing between image and text
+                  const SizedBox(height: 10.0),
 
-                // Title
-                SizedBox(
-                  height: textHeight,
-                  child: Text(
-                    title,
-                    style: const TextStyle(color: Colors.white, fontSize: 14), // Increased font size
-                    maxLines: 1, // Only one line to save space
-                    overflow: TextOverflow.ellipsis,
+                  // Title
+                  SizedBox(
+                    height: textHeight,
+                    child: Text(
+                      title,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             );
           },
         ),
@@ -1134,104 +782,100 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
           builder: (context, constraints) {
             // Calculate available height for the image and text
             final availableHeight = constraints.maxHeight;
-            // Reserve less height for text in artist items
-            final textHeight = (availableHeight * 0.16).clamp(14.0, 18.0);
-            // Increase artist image size
-            final imageSize = ((availableHeight - textHeight - 8.0) * 0.85).clamp(55.0, 75.0);
+            // Minimize text height to give more space to the image
+            final textHeight = (availableHeight * 0.14).clamp(12.0, 16.0);
+            // Increase artist image size - make it larger
+            final imageSize = ((availableHeight - textHeight - 4.0) * 0.95).clamp(65.0, 95.0);
 
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.start, // Align to top to match other sections
-              crossAxisAlignment: CrossAxisAlignment.center, // Center horizontally
-              children: [
-                // Placeholder for artist image (circular)
-                Container(
-                  width: imageSize,
-                  height: imageSize,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _getColorWithOpacity(color, 0.3),
-                    gradient: RadialGradient(
-                      colors: [color, Colors.black],
-                      stops: const [0.5, 1.0],
+            // Calculate the total height needed
+            final totalContentHeight = imageSize + 4.0 + textHeight;
+            // Calculate top padding to center the content vertically
+            final topPadding = (availableHeight - totalContentHeight) / 2;
+
+            return Padding(
+              padding: EdgeInsets.only(top: topPadding > 0 ? topPadding : 0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center, // Center horizontally
+                children: [
+                  // Placeholder for artist image (circular)
+                  Container(
+                    width: imageSize,
+                    height: imageSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _getColorWithOpacity(color, 0.3),
+                      gradient: RadialGradient(
+                        colors: [color, Colors.black],
+                        stops: const [0.5, 1.0],
+                      ),
                     ),
-                    // No image here, we'll use a child instead
-                  ),
-                  child: artist?.imageUrl != null
-                      ? ClipOval(
-                          child: CachedNetworkImage(
-                            imageUrl: artist!.imageUrl!,
-                            fit: BoxFit.cover,
-                            width: imageSize,
-                            height: imageSize,
-                            // Use these settings for better image loading
-                            fadeInDuration: const Duration(milliseconds: 300),
-                            // Add a cache key with timestamp to force refresh
-                            cacheKey: '${artist.imageUrl}_${DateTime.now().day}',
-                            placeholder: (context, url) => const Center(
-                              child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
-                                strokeWidth: 2,
-                              ),
-                            ),
-                            errorWidget: (context, url, error) {
-                              debugPrint('Error loading artist image: ${artist.name} - $url');
-                              debugPrint('Error details: $error');
-
-                              // Try to refresh the image by adding a timestamp to the URL
-                              // This forces a network fetch instead of using cache
-                              final timestamp = DateTime.now().millisecondsSinceEpoch;
-                              final refreshedUrl = '$url?t=$timestamp';
-
-                              // Return a new CachedNetworkImage with the refreshed URL
-                              return CachedNetworkImage(
-                                imageUrl: refreshedUrl,
-                                fit: BoxFit.cover,
-                                width: imageSize,
-                                height: imageSize,
-                                fadeInDuration: const Duration(milliseconds: 300),
-                                // Force network request with a unique cache key
-                                cacheKey: '${refreshedUrl}_retry_$timestamp',
-                                placeholder: (context, url) => const Center(
-                                  child: CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
-                                    strokeWidth: 2,
-                                  ),
+                    child: artist?.imageUrl != null
+                        ? ClipOval(
+                            child: CachedNetworkImage(
+                              imageUrl: artist!.imageUrl!,
+                              fit: BoxFit.cover,
+                              width: imageSize,
+                              height: imageSize,
+                              fadeInDuration: const Duration(milliseconds: 300),
+                              cacheKey: '${artist.imageUrl}_${DateTime.now().day}',
+                              placeholder: (context, url) => const Center(
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
+                                  strokeWidth: 2,
                                 ),
-                                errorWidget: (context, url, error) {
-                                  // If still failing, show fallback icon
-                                  return Icon(
-                                    Icons.person,
-                                    color: Colors.white,
-                                    size: imageSize * 0.5,
-                                  );
-                                },
-                              );
-                            },
+                              ),
+                              errorWidget: (context, url, error) {
+                                debugPrint('Error loading artist image: ${artist.name} - $url');
+                                final timestamp = DateTime.now().millisecondsSinceEpoch;
+                                final refreshedUrl = '$url?t=$timestamp';
+                                return CachedNetworkImage(
+                                  imageUrl: refreshedUrl,
+                                  fit: BoxFit.cover,
+                                  width: imageSize,
+                                  height: imageSize,
+                                  fadeInDuration: const Duration(milliseconds: 300),
+                                  cacheKey: '${refreshedUrl}_retry_$timestamp',
+                                  placeholder: (context, url) => const Center(
+                                    child: CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) {
+                                    return Icon(
+                                      Icons.person,
+                                      color: Colors.white,
+                                      size: imageSize * 0.5,
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          )
+                        : Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: imageSize * 0.5,
                           ),
-                        )
-                      : Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: imageSize * 0.5, // Responsive icon size
-                        ),
-                ),
-
-                // Reduced spacing between image and text for artist items
-                const SizedBox(height: 6.0),
-
-                // Name
-                SizedBox(
-                  height: textHeight,
-                  child: Text(
-                    name,
-                    style: const TextStyle(color: Colors.white, fontSize: 13), // Slightly smaller font size
-                    textAlign: TextAlign.center,
-                    maxLines: 1, // Only one line to save space
-                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
+
+                  // Minimal spacing between image and text for artist items
+                  const SizedBox(height: 4.0),
+
+                  // Name
+                  SizedBox(
+                    height: textHeight,
+                    child: Text(
+                      name,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
             );
           },
         ),
@@ -1585,24 +1229,14 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       case SectionType.ARTISTS:
         return section.items.isEmpty
           ? _buildEmptyState('No artists available')
-          : Container(
-              constraints: const BoxConstraints(
-                minHeight: 130, // Slightly increased minimum height for artist content
-                maxHeight: 170, // Keep the same maximum height
-              ),
-              height: 30, // Increased height for artist sections
-              margin: const EdgeInsets.only(bottom: 5.0),
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                children: section.items.map((artist) =>
-                  _buildArtistItem(
-                    artist.name,
-                    _getRandomColor(),
-                    artist: artist,
-                  )
-                ).toList(),
-              ),
+          : _buildHorizontalScrollSection(
+              section.items.map((artist) =>
+                _buildArtistItem(
+                  artist.name,
+                  _getRandomColor(),
+                  artist: artist,
+                )
+              ).toList(),
             );
 
       case SectionType.BANNER:

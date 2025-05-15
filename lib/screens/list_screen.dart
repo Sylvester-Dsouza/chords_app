@@ -5,6 +5,8 @@ import '../models/collection.dart';
 import '../services/song_service.dart';
 import '../services/artist_service.dart';
 import '../services/collection_service.dart';
+import '../services/home_section_service.dart';
+import '../widgets/song_placeholder.dart';
 // AdMob service removed to fix crashing issues
 // import '../services/ad_service.dart';
 
@@ -18,12 +20,16 @@ class ListScreen extends StatefulWidget {
   final String title;
   final ListType listType;
   final String? filterType; // Optional filter type (e.g., "trending", "new", "seasonal")
+  final String? sectionId; // Optional section ID for fetching specific items
+  final SectionType? sectionType; // Optional section type
 
   const ListScreen({
     super.key,
     required this.title,
     required this.listType,
     this.filterType,
+    this.sectionId,
+    this.sectionType,
   });
 
   @override
@@ -34,9 +40,9 @@ class _ListScreenState extends State<ListScreen> {
   final SongService _songService = SongService();
   final ArtistService _artistService = ArtistService();
   final CollectionService _collectionService = CollectionService();
+  final HomeSectionService _homeSectionService = HomeSectionService();
   // AdService removed to fix crashing issues
   // final AdService _adService = AdService();
-  final bool _isAdFree = true; // Always ad-free now
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -59,22 +65,65 @@ class _ListScreenState extends State<ListScreen> {
     });
 
     try {
-      switch (widget.listType) {
-        case ListType.songs:
-          await _loadSongs();
-          break;
-        case ListType.artists:
-          await _loadArtists();
-          break;
-        case ListType.collections:
-          await _loadCollections();
-          break;
+      // If we have a section ID and section type, load items from that section
+      if (widget.sectionId != null && widget.sectionType != null) {
+        await _loadSectionItems();
+      } else {
+        // Otherwise, load all items of the specified type
+        switch (widget.listType) {
+          case ListType.songs:
+            await _loadSongs();
+            break;
+          case ListType.artists:
+            await _loadArtists();
+            break;
+          case ListType.collections:
+            await _loadCollections();
+            break;
+        }
       }
     } catch (e) {
       setState(() {
         _errorMessage = 'Error loading data: $e';
         _isLoading = false;
       });
+    }
+  }
+
+  // Load items from a specific section
+  Future<void> _loadSectionItems() async {
+    try {
+      debugPrint('Loading items from section ${widget.sectionId}');
+      final items = await _homeSectionService.getSectionItems(
+        widget.sectionId!,
+        widget.sectionType!,
+      );
+
+      if (mounted) {
+        setState(() {
+          switch (widget.listType) {
+            case ListType.songs:
+              _songs = items.cast<Song>();
+              break;
+            case ListType.artists:
+              _artists = items.cast<Artist>();
+              break;
+            case ListType.collections:
+              _collections = items.cast<Collection>();
+              break;
+          }
+          _isLoading = false;
+        });
+
+        debugPrint('Loaded ${items.length} items from section ${widget.sectionId}');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error loading section items: $e';
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -264,62 +313,100 @@ class _ListScreenState extends State<ListScreen> {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      itemCount: _songs.length,
-      itemBuilder: (context, index) {
-        final song = _songs[index];
-        return _buildSongListItem(song);
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section title
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            widget.title,
+            style: TextStyle(color: Colors.grey[400], fontSize: 14),
+          ),
+        ),
+
+        // Songs list
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 0),
+            itemCount: _songs.length,
+            itemBuilder: (context, index) {
+              final song = _songs[index];
+              return _buildSongListItem(song);
+            },
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildSongListItem(Song song) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      leading: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          color: Colors.grey[800],
-          borderRadius: BorderRadius.circular(8.0),
-          image: song.imageUrl != null
-              ? DecorationImage(
-                  image: NetworkImage(song.imageUrl!),
-                  fit: BoxFit.cover,
-                  onError: (exception, stackTrace) {
-                    debugPrint('Error loading song image: ${song.title} - ${song.imageUrl}');
-                  },
-                )
-              : null,
-        ),
-        child: song.imageUrl == null
-            ? const Icon(Icons.music_note, color: Colors.white70)
-            : null,
-      ),
-      title: Text(
-        song.title,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
+    // Get the song placeholder size
+    const double placeholderSize = 48.0;
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: const Color(0xFF333333),
+            width: 1.0,
+          ),
         ),
       ),
-      subtitle: Text(
-        song.artist,
-        style: const TextStyle(color: Colors.white70),
+      child: ListTile(
+        // Reduce vertical padding to decrease space between items
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+        leading: SongPlaceholder(size: placeholderSize),
+        title: Text(
+          song.title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+          // Ensure text doesn't wrap unnecessarily
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          song.artist,
+          style: const TextStyle(
+            color: Colors.grey,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Song Key
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+              decoration: BoxDecoration(
+                color: const Color(0xFF333333),
+                borderRadius: BorderRadius.circular(4.0),
+              ),
+              child: Text(
+                song.key,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Chevron
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ],
+        ),
+        onTap: () {
+          // Navigate to song detail
+          if (mounted) {
+            Navigator.pushNamed(
+              context,
+              '/song_detail',
+              arguments: song,
+            );
+          }
+        },
       ),
-      trailing: const Icon(Icons.chevron_right, color: Colors.white70),
-      onTap: () {
-        // AdMob code removed to fix crashing issues
-        // Navigate directly to the song detail screen
-        if (mounted) {
-          Navigator.pushNamed(
-            context,
-            '/song_detail',
-            arguments: song,
-          );
-        }
-      },
     );
   }
 
@@ -409,24 +496,38 @@ class _ListScreenState extends State<ListScreen> {
       );
     }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(16.0),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 16/9, // 16:9 aspect ratio for collection items
-        crossAxisSpacing: 16.0,
-        mainAxisSpacing: 16.0,
-      ),
-      itemCount: _collections.length,
-      itemBuilder: (context, index) {
-        final collection = _collections[index];
-        return _buildCollectionGridItem(collection);
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section title
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            widget.title,
+            style: TextStyle(color: Colors.grey[400], fontSize: 14),
+          ),
+        ),
+
+        // Collections list
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            itemCount: _collections.length,
+            itemBuilder: (context, index) {
+              final collection = _collections[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: _buildCollectionCard(collection),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildCollectionGridItem(Collection collection) {
-    return GestureDetector(
+  Widget _buildCollectionCard(Collection collection) {
+    return InkWell(
       onTap: () {
         Navigator.pushNamed(
           context,
@@ -437,102 +538,105 @@ class _ListScreenState extends State<ListScreen> {
           },
         );
       },
-      child: Stack(
-        children: [
-          // Collection background
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8.0),
-              color: Colors.grey[800],
-              image: collection.imageUrl != null
-                  ? DecorationImage(
-                      image: NetworkImage(collection.imageUrl!),
-                      fit: BoxFit.cover,
-                      onError: (exception, stackTrace) {
-                        debugPrint('Error loading collection image: ${collection.title} - ${collection.imageUrl}');
-                      },
-                    )
-                  : null,
-            ),
-            child: collection.imageUrl == null
-                ? Center(
-                    child: Text(
-                      collection.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  )
-                : null,
-          ),
-
-          // Gradient overlay for text visibility
-          Positioned.fill(
-            child: Container(
+      borderRadius: BorderRadius.circular(8.0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
+          borderRadius: BorderRadius.circular(8.0),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image Container
+            Container(
+              height: 140,
+              width: double.infinity,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8.0),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withAlpha(179), // 0.7 * 255 = 179
-                  ],
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(8.0),
+                  topRight: Radius.circular(8.0),
                 ),
-              ),
-            ),
-          ),
-
-          // Collection title
-          if (collection.imageUrl != null)
-            Positioned(
-              bottom: 8,
-              left: 8,
-              right: 8,
-              child: Text(
-                collection.title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                // Use image if available, otherwise use gradient
+                image: collection.imageUrl != null
+                    ? DecorationImage(
+                        image: NetworkImage(collection.imageUrl!),
+                        fit: BoxFit.cover,
+                        onError: (exception, stackTrace) {
+                          debugPrint('Error loading collection image: ${collection.title} - ${collection.imageUrl}');
+                        },
+                      )
+                    : null,
+                gradient: collection.imageUrl == null
+                    ? LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          collection.color,
+                          collection.color.withAlpha(150),
+                        ],
+                      )
+                    : null,
               ),
             ),
 
-          // Like count and icon
-          Positioned(
-            top: 8,
-            right: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.black.withAlpha(128),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
+            // Info Container
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Title
                   Text(
-                    "${collection.likeCount}",
+                    collection.title,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 12,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(width: 2),
-                  Icon(
-                    collection.isLiked ? Icons.favorite : Icons.favorite_border,
-                    color: collection.isLiked ? Colors.red : Colors.white,
-                    size: 14,
+
+                  const SizedBox(height: 4),
+
+                  // Song count and likes in a row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Song count
+                      Text(
+                        "${collection.songCount} Songs",
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                        ),
+                      ),
+
+                      // Likes count
+                      Row(
+                        children: [
+                          Text(
+                            collection.likeCount.toString(),
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            collection.isLiked ? Icons.favorite : Icons.favorite_border,
+                            color: collection.isLiked ? Colors.red : Colors.grey,
+                            size: 14,
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

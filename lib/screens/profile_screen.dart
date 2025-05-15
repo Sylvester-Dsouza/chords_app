@@ -5,6 +5,7 @@ import '../widgets/auth_wrapper.dart';
 import '../providers/user_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../utils/toast_util.dart';
+import '../config/theme.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -41,167 +42,130 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return AuthWrapper(
       requireAuth: false, // Allow both logged in and guest users
       child: Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      appBar: const InnerScreenAppBar(
-        title: 'Profile',
-        showBackButton: false,
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Profile Header - Compact layout with image on left, text on right
-            Container(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Profile Image
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.grey[800],
-                      border: Border.all(
-                        color: const Color(0xFFFFC701),
-                        width: 2,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: 40,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
+        backgroundColor: const Color(0xFF121212),
+        appBar: const InnerScreenAppBar(
+          title: 'Profile',
+          showBackButton: false,
+        ),
+        body: SingleChildScrollView(
+          child: Column(
+            children: [
+              // Modern Profile Header
+              _buildProfileHeader(isLoggedIn, userData),
 
-                  // User Info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // User Name
-                        Text(
-                          isLoggedIn ? (userData?['name'] ?? 'User') : 'Guest User',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
+              const Divider(color: Color(0xFF333333)),
 
-                        // Email
-                        Text(
-                          isLoggedIn ? (userData?['email'] ?? 'No email') : 'Not logged in',
-                          style: TextStyle(
-                            color: Colors.grey[400],
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Profile Button
-                        SizedBox(
-                          width: double.infinity,
-                          child: isLoggedIn
-                            ? ElevatedButton(
-                                onPressed: () {
-                                  Navigator.pushNamed(context, '/personal-details');
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF1E1E1E),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                ),
-                                child: const Text('Edit Profile'),
-                              )
-                            : ElevatedButton(
-                                onPressed: () {
-                                  Navigator.pushReplacementNamed(context, '/login');
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFFFC701),
-                                  foregroundColor: Colors.black,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                ),
-                                child: const Text('Login'),
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const Divider(color: Color(0xFF333333)),
-
-            // Stats Section - More compact
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pushNamed(context, '/playlists');
-                    },
-                    child: _buildStatItem('Playlists', '12'),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pushNamed(context, '/liked-collections');
-                    },
-                    child: _buildStatItem('Liked Collections', '${userProvider.likedCollectionsCount ?? 0}'),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pushNamed(context, '/contribute');
-                    },
-                    child: _buildStatItem('Contributions', '5'),
-                  ),
-                ],
-              ),
-            ),
-
-            const Divider(color: Color(0xFF333333)),
-
-            // Settings Section
-            _buildSettingsSection(),
-          ],
+              // Settings Sections
+              _buildSettingsSection(),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 
-  Widget _buildStatItem(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            color: Color(0xFFFFC701),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+  Widget _buildProfileHeader(bool isLoggedIn, Map<String, dynamic>? userData) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Row(
+        children: [
+          // Profile Image
+          Container(
+            width: 85,
+            height: 85,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.grey[800],
+              border: Border.all(
+                color: AppTheme.primaryColor,
+                width: 2,
+              ),
+            ),
+            child: const Icon(
+              Icons.person,
+              color: Colors.white,
+              size: 42,
+            ),
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.grey[400],
-            fontSize: 12,
+          const SizedBox(width: 20),
+
+          // User Info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // User Name
+                Text(
+                  isLoggedIn ? (userData?['name'] ?? 'User') : 'Guest User',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+
+                // Email
+                Text(
+                  isLoggedIn ? (userData?['email'] ?? 'No email') : 'Not logged in',
+                  style: TextStyle(
+                    color: AppTheme.subtitleColor,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Show joined date for logged in users or login button for guests
+                isLoggedIn
+                  ? Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          size: 14,
+                          color: AppTheme.subtitleColor,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Joined January 2023',
+                          style: TextStyle(
+                            color: AppTheme.subtitleColor,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 4),
+                        // Login Button
+                        SizedBox(
+                          height: 36,
+                          child: TextButton.icon(
+                            onPressed: () {
+                              Navigator.pushReplacementNamed(context, '/login');
+                            },
+                            icon: const Icon(
+                              Icons.login,
+                              size: 16,
+                            ),
+                            label: const Text('Login'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppTheme.primaryColor,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              textStyle: const TextStyle(
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -209,132 +173,156 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final bool isLoggedIn = userProvider.isLoggedIn;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text(
-            'Menu',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+
+          // Account Section
+          _buildSectionHeader('Account'),
+          _buildSettingsCard([
+            _buildSettingsItem(
+              Icons.person,
+              'Personal Details',
+              onTap: () {
+                Navigator.pushNamed(context, '/personal-details');
+              },
             ),
-          ),
-        ),
-
-        // Account Section
-        _buildSectionHeader('Account'),
-        _buildSettingsItem(
-          Icons.person,
-          'Personal Details',
-          onTap: () {
-            Navigator.pushNamed(context, '/personal-details');
-          },
-        ),
-        _buildSettingsItem(
-          Icons.notifications,
-          'Notifications',
-          onTap: () {
-            Navigator.pushNamed(context, '/notifications');
-          },
-        ),
-
-        // App Section
-        _buildSectionHeader('App'),
-        _buildSettingsItem(
-          Icons.info,
-          'About Us',
-          onTap: () {
-            Navigator.pushNamed(context, '/about_us');
-          },
-        ),
-        _buildSettingsItem(
-          Icons.privacy_tip,
-          'Privacy Policy',
-          onTap: () {
-            Navigator.pushNamed(context, '/privacy-policy');
-          },
-        ),
-        _buildSettingsItem(
-          Icons.help,
-          'Help & Support',
-          onTap: () {
-            Navigator.pushNamed(context, '/help-support');
-          },
-        ),
-        _buildSettingsItem(
-          Icons.star,
-          'Rate the App',
-          onTap: () {
-            Navigator.pushNamed(context, '/rate-app');
-          },
-        ),
-
-        // Contribute Section
-        _buildSectionHeader('Contribute'),
-        _buildSettingsItem(
-          Icons.music_note,
-          'Contribute Songs',
-          onTap: () {
-            Navigator.pushNamed(context, '/contribute');
-          },
-          isHighlighted: true,
-        ),
-
-        // Logout (only if logged in)
-        if (isLoggedIn) ...[
+            _buildSettingsItem(
+              Icons.notifications,
+              'Notifications',
+              onTap: () {
+                Navigator.pushNamed(context, '/notifications');
+              },
+            ),
+          ]),
           const SizedBox(height: 24),
-          _buildSettingsItem(
-            Icons.logout,
-            'Logout',
-            isLogout: true,
-            onTap: () async {
-              // Show confirmation dialog
-              final bool? confirm = await showDialog<bool>(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    backgroundColor: const Color(0xFF1E1E1E),
-                    title: const Text('Logout', style: TextStyle(color: Colors.white)),
-                    content: const Text('Are you sure you want to logout?', style: TextStyle(color: Colors.white)),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(false),
-                        child: const Text('Cancel', style: TextStyle(color: Color(0xFFFFC701))),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(true),
-                        child: const Text('Logout', style: TextStyle(color: Colors.red)),
-                      ),
-                    ],
-                  );
-                },
-              );
 
-              if (confirm == true) {
-                // Use a separate method to handle logout to avoid BuildContext issues
-                _handleLogout(userProvider);
-              }
-            },
-          ),
+          // App Section
+          _buildSectionHeader('App'),
+          _buildSettingsCard([
+            _buildSettingsItem(
+              Icons.info,
+              'About Us',
+              onTap: () {
+                Navigator.pushNamed(context, '/about_us');
+              },
+            ),
+            _buildSettingsItem(
+              Icons.privacy_tip,
+              'Privacy Policy',
+              onTap: () {
+                Navigator.pushNamed(context, '/privacy-policy');
+              },
+            ),
+            _buildSettingsItem(
+              Icons.help,
+              'Help & Support',
+              onTap: () {
+                Navigator.pushNamed(context, '/help-support');
+              },
+            ),
+            _buildSettingsItem(
+              Icons.star,
+              'Rate the App',
+              onTap: () {
+                Navigator.pushNamed(context, '/rate-app');
+              },
+            ),
+          ]),
+          const SizedBox(height: 24),
+
+          // Support Section
+          _buildSectionHeader('Support'),
+          _buildSettingsCard([
+            _buildSettingsItem(
+              Icons.volunteer_activism,
+              'Support Us',
+              onTap: () {
+                Navigator.pushNamed(context, '/support');
+              },
+            ),
+          ]),
+          const SizedBox(height: 24),
+
+          // Logout (only if logged in)
+          if (isLoggedIn) ...[
+            _buildLogoutButton(userProvider),
+            const SizedBox(height: 32),
+          ],
         ],
-
-        const SizedBox(height: 24),
-      ],
+      ),
     );
   }
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
+      padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
       child: Text(
         title,
         style: TextStyle(
-          color: Colors.grey[400],
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
+          color: AppTheme.primaryColor,
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsCard(List<Widget> items) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: items,
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton(UserProvider userProvider) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () async {
+          // Show confirmation dialog
+          final bool? confirm = await showDialog<bool>(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                backgroundColor: const Color(0xFF1E1E1E),
+                title: const Text('Logout', style: TextStyle(color: Colors.white)),
+                content: const Text('Are you sure you want to logout?', style: TextStyle(color: Colors.white)),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text('Cancel', style: TextStyle(color: AppTheme.primaryColor)),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text('Logout', style: TextStyle(color: Colors.red)),
+                  ),
+                ],
+              );
+            },
+          );
+
+          if (confirm == true) {
+            // Use a separate method to handle logout to avoid BuildContext issues
+            _handleLogout(userProvider);
+          }
+        },
+        icon: const Icon(Icons.logout),
+        label: const Text('Logout'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red.withAlpha(51), // 0.2 * 255 = 51
+          foregroundColor: Colors.red,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 16),
         ),
       ),
     );
@@ -394,38 +382,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildSettingsItem(
     IconData icon,
     String title, {
-    bool isLogout = false,
     bool isHighlighted = false,
     VoidCallback? onTap,
   }) {
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: isLogout
-          ? Colors.red
-          : isHighlighted
-            ? const Color(0xFFFFC701)
-            : Colors.grey,
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: isLogout
-            ? Colors.red
-            : isHighlighted
-              ? const Color(0xFFFFC701)
-              : Colors.white,
-          fontWeight: isHighlighted ? FontWeight.bold : FontWeight.normal,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+        child: Row(
+          children: [
+            // Icon
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: isHighlighted
+                    ? AppTheme.primaryColor.withAlpha(51) // 0.2 * 255 = 51
+                    : Colors.grey[800],
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              child: Icon(
+                icon,
+                color: isHighlighted
+                    ? AppTheme.primaryColor
+                    : Colors.white,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 16),
+
+            // Title
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+
+            // Arrow
+            const Icon(
+              Icons.chevron_right,
+              color: Colors.grey,
+              size: 20,
+            ),
+          ],
         ),
       ),
-      trailing: isLogout
-          ? null
-          : const Icon(
-              Icons.arrow_forward_ios,
-              color: Colors.grey,
-              size: 16,
-            ),
-      onTap: onTap,
     );
   }
 }
