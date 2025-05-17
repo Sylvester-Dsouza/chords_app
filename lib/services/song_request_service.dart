@@ -10,38 +10,6 @@ class SongRequestService {
   // Key for storing upvoted song requests in SharedPreferences
   static const String _upvotedSongRequestsKey = 'upvoted_song_requests';
 
-  // Save upvoted song request ID to local storage
-  Future<void> _saveUpvotedSongRequest(String songRequestId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final upvotedRequests = prefs.getStringList(_upvotedSongRequestsKey) ?? [];
-
-      if (!upvotedRequests.contains(songRequestId)) {
-        upvotedRequests.add(songRequestId);
-        await prefs.setStringList(_upvotedSongRequestsKey, upvotedRequests);
-        debugPrint('Saved upvoted song request to local storage: $songRequestId');
-      }
-    } catch (e) {
-      debugPrint('Error saving upvoted song request: $e');
-    }
-  }
-
-  // Remove upvoted song request ID from local storage
-  Future<void> _removeUpvotedSongRequest(String songRequestId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final upvotedRequests = prefs.getStringList(_upvotedSongRequestsKey) ?? [];
-
-      if (upvotedRequests.contains(songRequestId)) {
-        upvotedRequests.remove(songRequestId);
-        await prefs.setStringList(_upvotedSongRequestsKey, upvotedRequests);
-        debugPrint('Removed upvoted song request from local storage: $songRequestId');
-      }
-    } catch (e) {
-      debugPrint('Error removing upvoted song request: $e');
-    }
-  }
-
   // Get all upvoted song request IDs from local storage
   Future<List<String>> getUpvotedSongRequests() async {
     try {

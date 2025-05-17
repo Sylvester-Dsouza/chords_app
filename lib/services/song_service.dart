@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/song.dart';
+import '../models/search_filters.dart';
 import 'api_service.dart';
 import 'cache_service.dart';
 
@@ -93,29 +94,44 @@ class SongService {
   }
 
   // Search songs by query
-  Future<List<Song>> searchSongs(String query) async {
-    if (query.isEmpty) {
+  Future<List<Song>> searchSongs(String query, {SongSearchFilters? filters}) async {
+    if (query.isEmpty && (filters == null || !filters.isActive)) {
       return getAllSongs();
     }
 
     try {
-      // For search, we'll use the cached songs if available and filter them locally
-      // This provides instant search results without API calls
-      final cachedSongs = await _cacheService.getCachedSongs();
-      if (cachedSongs != null) {
-        debugPrint('Searching in cached songs with query: $query');
-        final lowercaseQuery = query.toLowerCase();
-        final filteredSongs = cachedSongs.where((song) {
-          return song.title.toLowerCase().contains(lowercaseQuery) ||
-              song.artist.toLowerCase().contains(lowercaseQuery);
-        }).toList();
-        debugPrint('Found ${filteredSongs.length} songs in cache matching query');
-        return filteredSongs;
+      // If we only have a simple query and no filters, try to use cached songs
+      if (query.isNotEmpty && (filters == null || !filters.isActive)) {
+        // For simple search, we'll use the cached songs if available and filter them locally
+        // This provides instant search results without API calls
+        final cachedSongs = await _cacheService.getCachedSongs();
+        if (cachedSongs != null) {
+          debugPrint('Searching in cached songs with query: $query');
+          final lowercaseQuery = query.toLowerCase();
+          final filteredSongs = cachedSongs.where((song) {
+            return song.title.toLowerCase().contains(lowercaseQuery) ||
+                song.artist.toLowerCase().contains(lowercaseQuery);
+          }).toList();
+          debugPrint('Found ${filteredSongs.length} songs in cache matching query');
+          return filteredSongs;
+        }
       }
 
-      // If no cache, fall back to API search
-      debugPrint('No cached songs, searching via API with query: $query');
-      final response = await _apiService.get('/songs', queryParameters: {'search': query});
+      // If we have filters or no cache, use the API
+      final Map<String, String> queryParameters = {};
+
+      // Add search query if provided
+      if (query.isNotEmpty) {
+        queryParameters['search'] = query;
+      }
+
+      // Add filters if provided
+      if (filters != null && filters.isActive) {
+        queryParameters.addAll(filters.toQueryParameters());
+      }
+
+      debugPrint('Searching songs via API with parameters: $queryParameters');
+      final response = await _apiService.get('/songs', queryParameters: queryParameters);
 
       debugPrint('Song search API response: ${response.toString()}');
       debugPrint('Song search API response data type: ${response.data.runtimeType}');

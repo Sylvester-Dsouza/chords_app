@@ -25,13 +25,13 @@ class _RateAppScreenState extends State<RateAppScreen> {
     // Replace with your actual app store links
     final Uri appStoreUrl = Uri.parse('https://apps.apple.com/app/yourappid');
     final Uri playStoreUrl = Uri.parse('https://play.google.com/store/apps/details?id=com.yourapp.id');
-    
+
     try {
       // Determine which store to open based on platform
       final Uri storeUrl = Theme.of(context).platform == TargetPlatform.iOS
           ? appStoreUrl
           : playStoreUrl;
-      
+
       if (await canLaunchUrl(storeUrl)) {
         await launchUrl(storeUrl, mode: LaunchMode.externalApplication);
       } else {
@@ -49,20 +49,20 @@ class _RateAppScreenState extends State<RateAppScreen> {
       ToastUtil.showError(context, 'Please select a rating');
       return;
     }
-    
+
     setState(() {
       _isSubmitting = true;
     });
-    
+
     try {
       // Simulate API call
       await Future.delayed(const Duration(seconds: 2));
-      
+
       if (!mounted) return;
-      
+
       // Show success message
       ToastUtil.showSuccess(context, 'Thank you for your feedback!');
-      
+
       // If rating is high (4-5), prompt to rate on app store
       if (_rating >= 4) {
         _showRateOnStoreDialog();
@@ -134,7 +134,7 @@ class _RateAppScreenState extends State<RateAppScreen> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 16),
-            
+
             // App Icon
             Container(
               width: 100,
@@ -144,7 +144,7 @@ class _RateAppScreenState extends State<RateAppScreen> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withAlpha(77), // 0.3 * 255 ≈ 77
                     blurRadius: 10,
                     offset: const Offset(0, 5),
                   ),
@@ -156,9 +156,9 @@ class _RateAppScreenState extends State<RateAppScreen> {
                 size: 60,
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             const Text(
               'Christian Chords',
               style: TextStyle(
@@ -167,9 +167,9 @@ class _RateAppScreenState extends State<RateAppScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
+
             const SizedBox(height: 8),
-            
+
             const Text(
               'v1.0.0',
               style: TextStyle(
@@ -177,9 +177,9 @@ class _RateAppScreenState extends State<RateAppScreen> {
                 fontSize: 16,
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             const Text(
               'How would you rate your experience?',
               style: TextStyle(
@@ -188,9 +188,9 @@ class _RateAppScreenState extends State<RateAppScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Star Rating
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -209,9 +209,9 @@ class _RateAppScreenState extends State<RateAppScreen> {
                 );
               }),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Feedback Text Field
             TextField(
               controller: _feedbackController,
@@ -229,9 +229,9 @@ class _RateAppScreenState extends State<RateAppScreen> {
               style: const TextStyle(color: Colors.white),
               maxLines: 5,
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Submit Button
             SizedBox(
               width: double.infinity,
@@ -259,9 +259,9 @@ class _RateAppScreenState extends State<RateAppScreen> {
                       ),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Rate on Store Button
             TextButton.icon(
               onPressed: _launchAppStore,
@@ -277,7 +277,7 @@ class _RateAppScreenState extends State<RateAppScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 32),
           ],
         ),

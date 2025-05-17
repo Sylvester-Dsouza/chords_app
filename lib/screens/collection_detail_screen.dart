@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/song_placeholder.dart';
-import '../widgets/animated_bottom_nav_bar.dart';
 import '../models/collection.dart';
 import '../models/song.dart';
 import '../services/collection_service.dart';
 import '../services/liked_songs_service.dart';
-import '../providers/navigation_provider.dart';
 
 class CollectionDetailScreen extends StatefulWidget {
   final String collectionName;
@@ -24,7 +21,7 @@ class CollectionDetailScreen extends StatefulWidget {
 }
 
 class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
-  final int _currentIndex = 2; // Set to 2 for Search tab
+  // Removed _currentIndex as we don't need it anymore
 
   // Services
   final CollectionService _collectionService = CollectionService();
@@ -373,16 +370,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     }
   }
 
-  void _onItemTapped(int index) {
-    if (index != _currentIndex) {
-      // Update the navigation provider
-      final navigationProvider = Provider.of<NavigationProvider>(context, listen: false);
-      navigationProvider.updateIndex(index);
-
-      // Navigate to the main navigation screen
-      Navigator.pushReplacementNamed(context, '/home');
-    }
-  }
+  // Removed _onItemTapped method as we don't need it anymore
 
   @override
   Widget build(BuildContext context) {
@@ -492,10 +480,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                     ),
                   ],
                 ),
-      bottomNavigationBar: AnimatedBottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: _onItemTapped,
-      ),
+      // Bottom navigation bar removed from inner screens
     );
   }
 

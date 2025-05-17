@@ -5,7 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
 class SupportScreen extends StatefulWidget {
-  const SupportScreen({Key? key}) : super(key: key);
+  const SupportScreen({super.key});
 
   @override
   State<SupportScreen> createState() => _SupportScreenState();
@@ -14,7 +14,7 @@ class SupportScreen extends StatefulWidget {
 class _SupportScreenState extends State<SupportScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isQrExpanded = false;
-  
+
   // Support platform links
   final Map<String, String> _supportLinks = {
     'Ko-fi': 'https://ko-fi.com/worshipparadise',
@@ -22,7 +22,7 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
     'Buy Me a Coffee': 'https://www.buymeacoffee.com/worshipparadise',
     'GitHub Sponsors': 'https://github.com/sponsors/worshipparadise',
   };
-  
+
   // Bank details
   final Map<String, String> _bankDetails = {
     'Account Name': 'Worship Paradise',
@@ -31,7 +31,7 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
     'IFSC Code': 'EXMP0001234',
     'Branch': 'Main Branch',
   };
-  
+
   // UPI details
   final String _upiId = 'worshipparadise@upi';
   final String _upiQrData = 'upi://pay?pa=worshipparadise@upi&pn=Worship%20Paradise&am=&cu=INR';
@@ -98,14 +98,14 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
             style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
           ),
           const SizedBox(height: 24),
-          
+
           // Platform cards
           ..._supportLinks.entries.map((entry) => _buildPlatformCard(
             platform: entry.key,
             url: entry.value,
             icon: _getPlatformIcon(entry.key),
-          )).toList(),
-          
+          )),
+
           const SizedBox(height: 24),
           _buildShareAppSection(),
         ],
@@ -127,7 +127,7 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
             style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
           ),
           const SizedBox(height: 24),
-          
+
           // Bank details card
           Container(
             decoration: BoxDecoration(
@@ -144,7 +144,7 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
               )).toList(),
             ),
           ),
-          
+
           const SizedBox(height: 24),
           const Text(
             'Note: Please include "Worship Paradise Support" in the transfer description so we can identify your contribution.',
@@ -169,7 +169,7 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
             style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
           ),
           const SizedBox(height: 24),
-          
+
           // UPI ID card
           Container(
             decoration: BoxDecoration(
@@ -184,9 +184,9 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
               canCopy: true,
             ),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // QR Code
           GestureDetector(
             onTap: () {
@@ -211,7 +211,14 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
                     version: QrVersions.auto,
                     size: _isQrExpanded ? 250 : 150,
                     backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
+                    eyeStyle: const QrEyeStyle(
+                      eyeShape: QrEyeShape.square,
+                      color: Colors.black,
+                    ),
+                    dataModuleStyle: const QrDataModuleStyle(
+                      dataModuleShape: QrDataModuleShape.square,
+                      color: Colors.black,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -222,7 +229,7 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
               ),
             ),
           ),
-          
+
           const SizedBox(height: 16),
           Center(
             child: TextButton.icon(
@@ -400,12 +407,23 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
 
   void _launchUrl(String url) async {
     final Uri uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not launch $url'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Could not launch $url'),
+          content: Text('Error: ${e.toString()}'),
           duration: const Duration(seconds: 2),
         ),
       );

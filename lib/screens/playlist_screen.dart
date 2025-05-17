@@ -26,7 +26,6 @@ class PlaylistScreen extends StatefulWidget {
 
 class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late TabController _tabController;
-  int _currentIndex = 1; // Set to 1 for My Playlist tab
 
   final PlaylistService _playlistService = PlaylistService();
   final LikedSongsService _likedSongsService = LikedSongsService();
@@ -186,9 +185,6 @@ class _PlaylistScreenState extends State<PlaylistScreen> with SingleTickerProvid
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final navigationProvider = Provider.of<NavigationProvider>(context, listen: false);
       navigationProvider.updateIndex(1); // Playlist screen is index 1
-      setState(() {
-        _currentIndex = 1;
-      });
     });
   }
 

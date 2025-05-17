@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import '../models/collection.dart';
 import '../services/collection_service.dart';
 import '../services/auth_service.dart';
-import '../widgets/animated_bottom_nav_bar.dart';
-import '../providers/navigation_provider.dart';
-import 'package:provider/provider.dart';
 
 class LikedCollectionsScreen extends StatefulWidget {
   const LikedCollectionsScreen({super.key});
@@ -14,7 +11,7 @@ class LikedCollectionsScreen extends StatefulWidget {
 }
 
 class _LikedCollectionsScreenState extends State<LikedCollectionsScreen> {
-  final int _currentIndex = 3; // Profile tab
+  // Removed _currentIndex as we don't need it anymore
   final CollectionService _collectionService = CollectionService();
   final AuthService _authService = AuthService();
 
@@ -75,34 +72,7 @@ class _LikedCollectionsScreenState extends State<LikedCollectionsScreen> {
     }
   }
 
-  void _onItemTapped(int index) {
-    if (index != _currentIndex) {
-      // Update the navigation provider
-      Provider.of<NavigationProvider>(context, listen: false).updateIndex(index);
-
-      // Navigate to the appropriate route
-      final route = _getRouteForIndex(index);
-      Navigator.of(context).pushReplacementNamed(route);
-    }
-  }
-
-  // Helper method to get the route for a specific index
-  String _getRouteForIndex(int index) {
-    switch (index) {
-      case 0:
-        return '/home';
-      case 1:
-        return '/playlist';
-      case 2:
-        return '/search';
-      case 3:
-        return '/resources';
-      case 4:
-        return '/profile';
-      default:
-        return '/home';
-    }
-  }
+  // Removed navigation methods as we don't need them anymore
 
   @override
   Widget build(BuildContext context) {
@@ -114,10 +84,7 @@ class _LikedCollectionsScreenState extends State<LikedCollectionsScreen> {
         elevation: 0,
       ),
       body: _buildBody(),
-      bottomNavigationBar: AnimatedBottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: _onItemTapped,
-      ),
+      // Bottom navigation bar removed from inner screens
     );
   }
 

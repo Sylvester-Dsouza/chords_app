@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/collection.dart';
+import '../models/search_filters.dart';
 import 'api_service.dart';
 import 'cache_service.dart';
 
@@ -226,26 +227,50 @@ class CollectionService {
     }
   }
 
-  // Search collections by query with optional limit
-  Future<List<Collection>> searchCollections(String query, {int? limit}) async {
-    if (query.isEmpty) {
+  // Search collections by query with optional limit and filters
+  Future<List<Collection>> searchCollections(String query, {int? limit, CollectionSearchFilters? filters}) async {
+    if (query.isEmpty && (filters == null || !filters.isActive)) {
       return getAllCollections(limit: limit);
     }
 
     try {
-      debugPrint('Searching collections with query: $query');
-      // Use the correct endpoint and parameter based on the API
+      debugPrint('Searching collections with query: $query and filters: ${filters?.toQueryParameters()}');
+
+      // Build query parameters
+      final Map<String, dynamic> queryParams = {};
+
+      // Add search query if provided
+      if (query.isNotEmpty) {
+        queryParams['search'] = query;
+      }
+
       // Add limit parameter if provided
-      final Map<String, dynamic> queryParams = {'search': query};
       if (limit != null) {
         queryParams['limit'] = limit.toString();
+      }
+
+      // Add filters if provided
+      if (filters != null && filters.isActive) {
+        queryParams.addAll(filters.toQueryParameters());
       }
 
       final response = await _apiService.get('/collections', queryParameters: queryParams);
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
-        debugPrint('Received ${data.length} collections from search');
+        List<dynamic> data;
+
+        // Check if the response data is a Map with a 'data' field (common API pattern)
+        if (response.data is Map && response.data['data'] != null) {
+          data = response.data['data'] as List<dynamic>;
+          debugPrint('Received ${data.length} collections from search (nested data field)');
+        } else if (response.data is List) {
+          data = response.data as List<dynamic>;
+          debugPrint('Received ${data.length} collections from search (direct list)');
+        } else {
+          debugPrint('Unexpected response format: ${response.data.runtimeType}');
+          throw Exception('Unexpected response format: ${response.data.runtimeType}');
+        }
+
         debugPrint('Raw search data: $data');
 
         // Check if data is empty
@@ -256,6 +281,12 @@ class CollectionService {
 
         try {
           final collections = data.map((json) => Collection.fromJson(json)).toList();
+
+          // Apply sorting if needed
+          if (filters?.sortBy != null) {
+            _sortCollections(collections, filters!.sortBy!);
+          }
+
           debugPrint('Successfully parsed ${collections.length} collections from search');
           return collections;
         } catch (parseError) {
@@ -269,6 +300,30 @@ class CollectionService {
     } catch (e) {
       debugPrint('Error searching collections: $e');
       throw Exception('Failed to search collections: $e');
+    }
+  }
+
+  // Helper method to sort collections based on sort option
+  void _sortCollections(List<Collection> collections, String sortBy) {
+    switch (sortBy) {
+      case 'alphabetical':
+        collections.sort((a, b) => a.title.compareTo(b.title));
+        break;
+      case 'newest':
+        // We don't have a createdAt field in our Collection model that's accessible,
+        // so we'll keep the default order from the API
+        break;
+      case 'mostLiked':
+        collections.sort((a, b) => b.likeCount.compareTo(a.likeCount));
+        break;
+      case 'mostViewed':
+        // If we had a viewCount field, we would sort by it
+        // For now, we'll sort by likeCount as a proxy
+        collections.sort((a, b) => b.likeCount.compareTo(a.likeCount));
+        break;
+      default:
+        // Default sorting: alphabetical
+        collections.sort((a, b) => a.title.compareTo(b.title));
     }
   }
 

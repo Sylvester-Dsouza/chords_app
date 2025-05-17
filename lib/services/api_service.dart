@@ -9,7 +9,7 @@ class ApiService {
   // For Android emulator, use 10.0.2.2 instead of localhost
   // For physical devices, use your computer's IP address
   // Fixed IP address for development
-  static const String _devIpAddress = '192.168.1.2';
+  static const String _devIpAddress = '192.168.26.155';
 
   static String get baseUrl {
     if (kIsWeb) {

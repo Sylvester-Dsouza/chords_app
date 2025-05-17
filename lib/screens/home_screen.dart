@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 // AdMob imports removed to fix crashing issues
 // import '../widgets/banner_ad_widget.dart';
@@ -39,6 +38,15 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
   bool _isLoadingHomeSections = true;
   bool _isLoadingNotifications = true;
 
+  // Track if data is already loaded to prevent unnecessary refreshes
+  bool _dataInitiallyLoaded = false; // Can't be final as we need to update it
+
+  // Track the last time data was refreshed to prevent frequent refreshes
+  int _lastRefreshTime = 0;
+
+  // Minimum time between refreshes in milliseconds (5 minutes)
+  static const int _minRefreshInterval = 5 * 60 * 1000;
+
   @override
   void initState() {
     super.initState();
@@ -53,8 +61,10 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       final navigationProvider = Provider.of<NavigationProvider>(context, listen: false);
       navigationProvider.updateIndex(0); // Home screen is index 0
 
-      // Clear image cache to ensure fresh images
-      _clearImageCache();
+      // Only clear image cache on first load, not on every navigation
+      if (!_dataInitiallyLoaded) {
+        _clearImageCache();
+      }
 
       // Check if app was recently opened (within last 5 seconds)
       // This helps identify app startup vs normal navigation
@@ -62,21 +72,27 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       final lastOpenTime = _getLastOpenTime();
       final timeSinceLastOpen = now - lastOpenTime;
 
-      if (timeSinceLastOpen > 5000) { // More than 5 seconds since last open
+      if (timeSinceLastOpen > 5000 && !_dataInitiallyLoaded) { // More than 5 seconds since last open and data not loaded
         debugPrint('App was reopened after ${timeSinceLastOpen}ms, refreshing data...');
-        // Force refresh on app reopen
+        // Force refresh on app reopen only if data hasn't been loaded yet
         _fetchHomeSections(forceRefresh: true);
-      } else {
+      } else if (!_dataInitiallyLoaded) {
         debugPrint('Normal navigation to home screen, using cached data if available');
         _fetchHomeSections();
+      } else {
+        debugPrint('Data already loaded, skipping refresh');
+        // If data is already loaded, just check if we need a background refresh
+        _checkForBackgroundRefresh();
       }
 
       // Save current time as last open time
       _saveLastOpenTime(now);
     });
 
-    // Load dynamic home sections
-    _fetchHomeSections();
+    // Load dynamic home sections only if not already loaded
+    if (!_dataInitiallyLoaded) {
+      _fetchHomeSections();
+    }
 
     // Load notification count
     _fetchUnreadNotificationCount();
@@ -89,56 +105,117 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
     super.dispose();
   }
 
+  // Check if we need to refresh data in the background
+  void _checkForBackgroundRefresh() {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final timeSinceLastRefresh = now - _lastRefreshTime;
+
+    // Only refresh in background if it's been more than the minimum interval
+    if (timeSinceLastRefresh > _minRefreshInterval) {
+      debugPrint('Background refresh check: Last refresh was ${timeSinceLastRefresh}ms ago, refreshing in background');
+      _homeSectionService.refreshHomeSectionsInBackground().then((_) {
+        // After background refresh completes, check if we have new data
+        _checkForNewData();
+      });
+      _lastRefreshTime = now;
+    } else {
+      debugPrint('Background refresh check: Last refresh was ${timeSinceLastRefresh}ms ago, skipping refresh');
+    }
+  }
+
+  // Check if there's new data available after a background refresh
+  Future<void> _checkForNewData() async {
+    if (!mounted) return;
+
+    try {
+      final cachedSections = await _homeSectionService.getCachedHomeSections(checkOnly: true);
+      if (cachedSections != null && cachedSections.isNotEmpty && mounted) {
+        // Only update UI if the data has actually changed
+        if (_homeSections.length != cachedSections.length ||
+            _homeSections.isEmpty ||
+            _hasContentChanged(_homeSections, cachedSections)) {
+          setState(() {
+            _homeSections = cachedSections;
+            debugPrint('Updated home sections with new data from background refresh');
+          });
+        } else {
+          debugPrint('No changes detected in background refresh data');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error checking for new data: $e');
+    }
+  }
+
+  // Helper method to check if content has changed
+  bool _hasContentChanged(List<HomeSection> oldSections, List<HomeSection> newSections) {
+    if (oldSections.length != newSections.length) return true;
+
+    for (int i = 0; i < oldSections.length; i++) {
+      if (oldSections[i].id != newSections[i].id ||
+          oldSections[i].title != newSections[i].title ||
+          oldSections[i].items.length != newSections[i].items.length) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Handle app lifecycle changes
     switch (state) {
       case AppLifecycleState.resumed:
         // App is in the foreground and visible to the user
-        debugPrint('App resumed - refreshing data');
-        _fetchHomeSections(forceRefresh: true);
+        debugPrint('App resumed - checking if refresh needed');
+
+        // Only refresh if it's been more than the minimum interval since last refresh
+        final now = DateTime.now().millisecondsSinceEpoch;
+        final timeSinceLastRefresh = now - _lastRefreshTime;
+
+        if (timeSinceLastRefresh > _minRefreshInterval) {
+          debugPrint('Last refresh was ${timeSinceLastRefresh}ms ago, refreshing in background');
+          // Instead of forcing a refresh that blocks the UI, refresh in background
+          _homeSectionService.refreshHomeSectionsInBackground().then((_) {
+            // After background refresh completes, check if we have new data
+            _checkForNewData();
+          });
+          _lastRefreshTime = now;
+        } else {
+          debugPrint('Last refresh was ${timeSinceLastRefresh}ms ago, skipping refresh');
+        }
         break;
       case AppLifecycleState.inactive:
         // App is inactive, might be entering background
-        debugPrint('App inactive');
+        // This happens when notification shade is pulled down
+        // Don't do anything here to prevent refreshes when notification shade is pulled
+        debugPrint('App inactive - no action needed');
         break;
       case AppLifecycleState.paused:
         // App is in the background
         debugPrint('App paused - saving state');
-        // Save any important state here
+        // Save any important state here, but don't clear caches
         break;
       case AppLifecycleState.detached:
         // App is detached (terminated)
-        debugPrint('App detached - clearing cache');
-        _clearCache();
+        debugPrint('App detached - saving state before exit');
+        // Don't clear cache on detach, as we want to keep data for next launch
         break;
       default:
         break;
     }
   }
 
-  // Clear all caches when app is closed
-  void _clearCache() {
-    try {
-      // Clear image cache
-      _clearImageCache();
 
-      // Clear other caches if needed
-      // This is a good place to clear any temporary data
-      debugPrint('Cleared all caches on app close');
-    } catch (e) {
-      debugPrint('Error clearing cache: $e');
-    }
-  }
 
-  // Clear the image cache to ensure fresh images
+  // Clear the image cache to ensure fresh images - only used on first load
   void _clearImageCache() {
     try {
-      // Clear the CachedNetworkImage cache
-      DefaultCacheManager().emptyCache();
-      PaintingBinding.instance.imageCache.clear();
+      // Don't clear the entire cache, just clear live images
+      // This is less aggressive and prevents unnecessary network requests
       PaintingBinding.instance.imageCache.clearLiveImages();
-      debugPrint('Cleared image cache to ensure fresh images');
+      debugPrint('Cleared live images from cache');
     } catch (e) {
       debugPrint('Error clearing image cache: $e');
     }
@@ -204,9 +281,12 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
   // Fetch dynamic home sections
   Future<void> _fetchHomeSections({bool forceRefresh = false}) async {
     try {
-      setState(() {
-        _isLoadingHomeSections = true;
-      });
+      // Only show loading indicator if data isn't already loaded
+      if (!_dataInitiallyLoaded) {
+        setState(() {
+          _isLoadingHomeSections = true;
+        });
+      }
 
       final sections = await _homeSectionService.getHomeSections(forceRefresh: forceRefresh);
 
@@ -214,6 +294,8 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
         setState(() {
           _homeSections = sections;
           _isLoadingHomeSections = false;
+          _dataInitiallyLoaded = true; // Mark data as loaded
+          _lastRefreshTime = DateTime.now().millisecondsSinceEpoch; // Update last refresh time
         });
 
         debugPrint('Fetched ${sections.length} dynamic home sections');
@@ -223,6 +305,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       if (mounted) {
         setState(() {
           _isLoadingHomeSections = false;
+          // Don't set _dataInitiallyLoaded to true if there was an error
         });
       }
     }
@@ -698,9 +781,9 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
                               fit: BoxFit.cover,
                               fadeInDuration: const Duration(milliseconds: 300),
                               cacheKey: '${song.imageUrl}_${DateTime.now().day}',
-                              placeholder: (context, url) => const Center(
+                              placeholder: (context, url) => Center(
                                 child: CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
+                                  valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
                                   strokeWidth: 2,
                                 ),
                               ),
@@ -713,9 +796,9 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
                                   fit: BoxFit.cover,
                                   fadeInDuration: const Duration(milliseconds: 300),
                                   cacheKey: '${refreshedUrl}_retry_$timestamp',
-                                  placeholder: (context, url) => const Center(
+                                  placeholder: (context, url) => Center(
                                     child: CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
+                                      valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
                                       strokeWidth: 2,
                                     ),
                                   ),

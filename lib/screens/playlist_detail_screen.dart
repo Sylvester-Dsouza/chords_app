@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/animated_bottom_nav_bar.dart';
 import '../widgets/inner_screen_app_bar.dart';
 import '../widgets/song_placeholder.dart';
 import '../models/playlist.dart';
@@ -9,7 +8,6 @@ import '../services/liked_songs_service.dart';
 import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
-import '../providers/navigation_provider.dart';
 
 class PlaylistDetailScreen extends StatefulWidget {
   final String playlistId;
@@ -26,7 +24,7 @@ class PlaylistDetailScreen extends StatefulWidget {
 }
 
 class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
-  int _currentIndex = 1; // Set to 1 for My Playlist tab
+  // Removed _currentIndex as we don't need it anymore
 
   final PlaylistService _playlistService = PlaylistService();
   final LikedSongsService _likedSongsService = LikedSongsService();
@@ -177,16 +175,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     }
   }
 
-  void _onItemTapped(int index) {
-    if (index != _currentIndex) {
-      // Update the navigation provider
-      final navigationProvider = Provider.of<NavigationProvider>(context, listen: false);
-      navigationProvider.updateIndex(index);
-
-      // Pop back to the main navigation screen with the updated index
-      Navigator.of(context).pop();
-    }
-  }
+  // Removed _onItemTapped method as we don't need it anymore
 
   @override
   Widget build(BuildContext context) {
@@ -362,10 +351,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           _showAddSongDialog();
         },
       ),
-      bottomNavigationBar: AnimatedBottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: _onItemTapped,
-      ),
+      // Bottom navigation bar removed from inner screens
     );
   }
 

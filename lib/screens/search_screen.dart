@@ -4,9 +4,12 @@ import '../providers/navigation_provider.dart';
 
 import '../widgets/inner_screen_app_bar.dart';
 import '../widgets/song_placeholder.dart';
+import '../widgets/search_filter_dialog.dart';
+import '../widgets/animated_search_bar.dart';
 import '../models/song.dart';
 import '../models/artist.dart';
 import '../models/collection.dart';
+import '../models/search_filters.dart';
 import '../services/song_service.dart';
 import '../services/artist_service.dart';
 import '../services/collection_service.dart';
@@ -21,12 +24,11 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
-  int _currentIndex = 2; // Set to 2 for Search tab
   final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
 
   String _screenTitle = 'Song Chords & Lyrics';
-  String _searchHint = 'Search for Songs';
+  String _searchHint = 'Search for Songs...';
 
   // Services
   final SongService _songService = SongService();
@@ -48,6 +50,16 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   // Search query
   String _searchQuery = '';
 
+  // Filters
+  SongSearchFilters _songFilters = SongSearchFilters();
+  ArtistSearchFilters _artistFilters = ArtistSearchFilters();
+  CollectionSearchFilters _collectionFilters = CollectionSearchFilters();
+
+  // Filter active states
+  bool _isSongFilterActive = false;
+  bool _isArtistFilterActive = false;
+  bool _isCollectionFilterActive = false;
+
   @override
   void initState() {
     super.initState();
@@ -64,9 +76,6 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final navigationProvider = Provider.of<NavigationProvider>(context, listen: false);
       navigationProvider.updateIndex(2); // Search screen is index 2
-      setState(() {
-        _currentIndex = 2;
-      });
     });
 
     // Load initial data
@@ -82,6 +91,52 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   void _handleLikedSongsChanged() {
     debugPrint('Liked songs changed, updating UI');
     _updateLikedStatus();
+  }
+
+  // Check if filter is active for current tab
+  bool _getFilterActiveForCurrentTab() {
+    switch (_tabController.index) {
+      case 0:
+        return _isSongFilterActive;
+      case 1:
+        return _isArtistFilterActive;
+      case 2:
+        return _isCollectionFilterActive;
+      default:
+        return false;
+    }
+  }
+
+  // Get search result text based on tab index
+  String _getSearchResultText(int tabIndex) {
+    bool hasQuery = _searchQuery.isNotEmpty;
+    bool hasFilter = false;
+
+    switch (tabIndex) {
+      case 0: // Songs
+        hasFilter = _isSongFilterActive;
+        if (!hasQuery && !hasFilter) return 'All Songs';
+        if (hasQuery && !hasFilter) return 'Search results for: $_searchQuery';
+        if (!hasQuery && hasFilter) return 'Filtered Songs';
+        return 'Search results for: $_searchQuery (Filtered)';
+
+      case 1: // Artists
+        hasFilter = _isArtistFilterActive;
+        if (!hasQuery && !hasFilter) return 'All Artists';
+        if (hasQuery && !hasFilter) return 'Search results for: $_searchQuery';
+        if (!hasQuery && hasFilter) return 'Filtered Artists';
+        return 'Search results for: $_searchQuery (Filtered)';
+
+      case 2: // Collections
+        hasFilter = _isCollectionFilterActive;
+        if (!hasQuery && !hasFilter) return 'All Collections';
+        if (hasQuery && !hasFilter) return 'Search results for: $_searchQuery';
+        if (!hasQuery && hasFilter) return 'Filtered Collections';
+        return 'Search results for: $_searchQuery (Filtered)';
+
+      default:
+        return 'Search Results';
+    }
   }
 
   // Update liked status of songs
@@ -221,15 +276,15 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         switch (_tabController.index) {
           case 0:
             _screenTitle = 'Song Chords & Lyrics';
-            _searchHint = 'Search for Songs';
+            _searchHint = 'Search for Songs...';
             break;
           case 1:
             _screenTitle = 'Find Chords by Artists';
-            _searchHint = 'Search for Artists';
+            _searchHint = 'Search for Artists...';
             break;
           case 2:
             _screenTitle = 'Search Collections';
-            _searchHint = 'Search for Collections';
+            _searchHint = 'Search for Collections...';
             break;
         }
       });
@@ -263,6 +318,40 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     }
   }
 
+  // Show filter dialog
+  void _showFilterDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => SearchFilterDialog(
+        tabIndex: _tabController.index,
+        songFilters: _songFilters,
+        artistFilters: _artistFilters,
+        collectionFilters: _collectionFilters,
+        onSongFiltersApplied: (filters) {
+          setState(() {
+            _songFilters = filters;
+            _isSongFilterActive = filters.isActive;
+          });
+          _searchSongs(_searchQuery);
+        },
+        onArtistFiltersApplied: (filters) {
+          setState(() {
+            _artistFilters = filters;
+            _isArtistFilterActive = filters.isActive;
+          });
+          _searchArtists(_searchQuery);
+        },
+        onCollectionFiltersApplied: (filters) {
+          setState(() {
+            _collectionFilters = filters;
+            _isCollectionFilterActive = filters.isActive;
+          });
+          _searchCollections(_searchQuery);
+        },
+      ),
+    );
+  }
+
   // Search songs
   Future<void> _searchSongs(String query) async {
     if (mounted) {
@@ -272,7 +361,10 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     }
 
     try {
-      final songs = await _songService.searchSongs(query);
+      final songs = await _songService.searchSongs(
+        query,
+        filters: _isSongFilterActive ? _songFilters : null,
+      );
 
       // Get liked songs to update status
       final likedSongs = await _likedSongsService.getLikedSongs();
@@ -316,7 +408,11 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     }
 
     try {
-      final artists = await _artistService.searchArtists(query);
+      final artists = await _artistService.searchArtists(
+        query,
+        filters: _isArtistFilterActive ? _artistFilters : null,
+      );
+
       if (mounted) {
         setState(() {
           _artists = artists;
@@ -351,7 +447,11 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     }
 
     try {
-      final collections = await _collectionService.searchCollections(query);
+      final collections = await _collectionService.searchCollections(
+        query,
+        filters: _isCollectionFilterActive ? _collectionFilters : null,
+      );
+
       if (mounted) {
         setState(() {
           _collections = collections;
@@ -412,56 +512,21 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
             color: const Color(0xFF121212), // Solid background color
             child: Column(
               children: [
-                // Search Bar and Filter
+                // Animated Search Bar
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                  child: Row(
-                    children: [
-                      // Search Bar
-                      Expanded(
-                        child: Container(
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E1E1E),
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          child: TextField(
-                            controller: _searchController,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              hintText: _searchHint,
-                              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-                              prefixIcon: const Icon(Icons.search, color: Colors.grey, size: 20),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 10.0),
-                            ),
-                            onChanged: (value) {
-                              setState(() {
-                                _searchQuery = value;
-                              });
-                              _handleSearch(value);
-                            },
-                          ),
-                        ),
-                      ),
-
-                      // Filter Button
-                      Container(
-                        margin: const EdgeInsets.only(left: 8.0),
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E1E1E),
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.filter_list, color: Colors.white),
-                          onPressed: () {
-                            // Show filter options
-                          },
-                        ),
-                      ),
-                    ],
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                  child: AnimatedSearchBar(
+                    controller: _searchController,
+                    hintText: _searchHint,
+                    isFilterActive: _getFilterActiveForCurrentTab(),
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value;
+                      });
+                      _handleSearch(value);
+                    },
+                    onFilterPressed: _showFilterDialog,
+                    primaryColor: const Color(0xFFC19FFF), // Light purple/lavender
                   ),
                 ),
 
@@ -567,7 +632,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: Text(
-            _searchQuery.isEmpty ? 'All Songs' : 'Search results for: $_searchQuery',
+            _getSearchResultText(0),
             style: TextStyle(color: Colors.grey[400], fontSize: 14),
           ),
         ),
@@ -598,7 +663,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: Text(
-            _searchQuery.isEmpty ? 'All Artists' : 'Search results for: $_searchQuery',
+            _getSearchResultText(1),
             style: TextStyle(color: Colors.grey[400], fontSize: 14),
           ),
         ),
@@ -691,7 +756,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: Text(
-            _searchQuery.isEmpty ? 'All Collections' : 'Search results for: $_searchQuery',
+            _getSearchResultText(2),
             style: TextStyle(color: Colors.grey[400], fontSize: 14),
           ),
         ),

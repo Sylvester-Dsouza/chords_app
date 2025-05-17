@@ -189,7 +189,7 @@ class HelpSupportScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
+                  color: iconColor.withAlpha(26), // 0.1 * 255 ≈ 26
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/artist.dart';
+import '../models/search_filters.dart';
 import 'api_service.dart';
 import 'cache_service.dart';
 import 'song_service.dart';
@@ -211,9 +212,9 @@ class ArtistService {
     }
   }
 
-  // Search artists by query
-  Future<List<Artist>> searchArtists(String query) async {
-    if (query.isEmpty) {
+  // Search artists by query with optional filters
+  Future<List<Artist>> searchArtists(String query, {ArtistSearchFilters? filters}) async {
+    if (query.isEmpty && (filters == null || !filters.isActive)) {
       return getAllArtists();
     }
 
@@ -224,33 +225,44 @@ class ArtistService {
         debugPrint('Loaded song counts for ${_artistSongCounts.length} artists');
       }
 
-      // For search, we'll use the cached artists if available and filter them locally
-      // This provides instant search results without API calls
-      final cachedArtists = await _cacheService.getCachedArtists();
-      if (cachedArtists != null) {
-        debugPrint('Searching in cached artists with query: $query');
-        final lowercaseQuery = query.toLowerCase();
-        final filteredArtists = cachedArtists.where((artist) {
-          return artist.name.toLowerCase().contains(lowercaseQuery);
-        }).toList();
+      // If we only have a simple query and no filters, try to use cached artists
+      if (query.isNotEmpty && (filters == null || !filters.isActive)) {
+        // For simple search, we'll use the cached artists if available and filter them locally
+        // This provides instant search results without API calls
+        final cachedArtists = await _cacheService.getCachedArtists();
+        if (cachedArtists != null) {
+          debugPrint('Searching in cached artists with query: $query');
+          final lowercaseQuery = query.toLowerCase();
+          final filteredArtists = cachedArtists.where((artist) {
+            return artist.name.toLowerCase().contains(lowercaseQuery);
+          }).toList();
 
-        // Update song counts for filtered artists
-        final updatedArtists = _updateArtistSongCounts(filteredArtists);
+          // Update song counts for filtered artists
+          final updatedArtists = _updateArtistSongCounts(filteredArtists);
 
-        // Sort artists to show featured artists first
-        updatedArtists.sort((a, b) {
-          if (a.isFeatured && !b.isFeatured) return -1;
-          if (!a.isFeatured && b.isFeatured) return 1;
-          return a.name.compareTo(b.name); // Sort by name if featured status is the same
-        });
+          // Apply sorting based on filters if provided
+          _sortArtists(updatedArtists, filters?.sortBy);
 
-        debugPrint('Found ${updatedArtists.length} artists in cache matching query');
-        return updatedArtists;
+          debugPrint('Found ${updatedArtists.length} artists in cache matching query');
+          return updatedArtists;
+        }
       }
 
-      // If no cache, fall back to API search
-      debugPrint('No cached artists, searching via API with query: $query');
-      final response = await _apiService.get('/api/artists', queryParameters: {'search': query});
+      // If we have filters or no cache, use the API
+      final Map<String, String> queryParameters = {};
+
+      // Add search query if provided
+      if (query.isNotEmpty) {
+        queryParameters['search'] = query;
+      }
+
+      // Add filters if provided
+      if (filters != null && filters.isActive) {
+        queryParameters.addAll(filters.toQueryParameters());
+      }
+
+      debugPrint('Searching artists via API with parameters: $queryParameters');
+      final response = await _apiService.get('/api/artists', queryParameters: queryParameters);
 
       debugPrint('Artist search API response: ${response.toString()}');
       debugPrint('Artist search API response data type: ${response.data.runtimeType}');
@@ -294,6 +306,7 @@ class ArtistService {
                 bio: artist.bio,
                 imageUrl: artist.imageUrl,
                 songCount: _artistSongCounts[artistNameLower]!,
+                isFeatured: artist.isFeatured,
               );
               artists.add(updatedArtist);
               debugPrint('Updated song count for ${artist.name}: ${_artistSongCounts[artistNameLower]} songs');
@@ -305,6 +318,7 @@ class ArtistService {
                 bio: artist.bio,
                 imageUrl: artist.imageUrl,
                 songCount: 0,
+                isFeatured: artist.isFeatured,
               );
               artists.add(updatedArtist);
               debugPrint('No songs found for artist ${artist.name}, keeping count as 0');
@@ -313,12 +327,8 @@ class ArtistService {
 
           debugPrint('Successfully processed ${artists.length} artists from search with accurate song counts');
 
-          // Sort artists to show featured artists first
-          artists.sort((a, b) {
-            if (a.isFeatured && !b.isFeatured) return -1;
-            if (!a.isFeatured && b.isFeatured) return 1;
-            return a.name.compareTo(b.name); // Sort by name if featured status is the same
-          });
+          // Apply sorting based on filters
+          _sortArtists(artists, filters?.sortBy);
 
           // Log song counts for debugging
           for (var artist in artists.take(5)) {
@@ -337,6 +347,43 @@ class ArtistService {
     } catch (e) {
       debugPrint('Error searching artists: $e');
       throw Exception('Failed to search artists: $e');
+    }
+  }
+
+  // Helper method to sort artists based on sort option
+  void _sortArtists(List<Artist> artists, String? sortBy) {
+    if (sortBy == null) {
+      // Default sorting: featured first, then alphabetical
+      artists.sort((a, b) {
+        if (a.isFeatured && !b.isFeatured) return -1;
+        if (!a.isFeatured && b.isFeatured) return 1;
+        return a.name.compareTo(b.name);
+      });
+    } else {
+      switch (sortBy) {
+        case 'alphabetical':
+          artists.sort((a, b) => a.name.compareTo(b.name));
+          break;
+        case 'mostSongs':
+          artists.sort((a, b) => b.songCount.compareTo(a.songCount));
+          break;
+        case 'newest':
+          // We don't have a createdAt field in our Artist model, so we'll keep the default
+          // In a real implementation, you would sort by createdAt
+          artists.sort((a, b) {
+            if (a.isFeatured && !b.isFeatured) return -1;
+            if (!a.isFeatured && b.isFeatured) return 1;
+            return a.name.compareTo(b.name);
+          });
+          break;
+        default:
+          // Default sorting: featured first, then alphabetical
+          artists.sort((a, b) {
+            if (a.isFeatured && !b.isFeatured) return -1;
+            if (!a.isFeatured && b.isFeatured) return 1;
+            return a.name.compareTo(b.name);
+          });
+      }
     }
   }
 

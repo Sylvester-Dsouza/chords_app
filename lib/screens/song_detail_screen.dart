@@ -31,7 +31,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
   bool _isLiked = false;
   bool _showChords = true;
   double _fontSize = 14.0; // Reduced default font size from 16.0 to 14.0
-  int _transposeValue = 0;
+  final int _transposeValue = 0;
   bool _isAutoScrollEnabled = false;
   double _autoScrollSpeed = 1.0;
   bool _isLoading = true;
@@ -336,6 +336,94 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
     );
   }
 
+  // Show more options menu
+  void _showMoreOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.share, color: Colors.white),
+                title: const Text('Share Song', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  // Share song implementation
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Share functionality will be implemented soon'),
+                      backgroundColor: Colors.grey,
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.report_problem, color: Colors.white),
+                title: const Text('Report Issue', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  // Show report issue dialog
+                  _showReportIssueDialog();
+                },
+              ),
+              if (_song.officialVideoUrl != null || _song.tutorialVideoUrl != null)
+                ListTile(
+                  leading: const Icon(Icons.video_library, color: Colors.white),
+                  title: const Text('Watch Videos', style: TextStyle(color: Colors.white)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showVideoOptions();
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Show report issue dialog
+  void _showReportIssueDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E1E1E),
+          title: const Text('Report an Issue', style: TextStyle(color: Colors.white)),
+          content: const Text(
+            'What issue would you like to report with this song?',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Thank you for your report. We will review it shortly.'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              },
+              child: const Text('Submit'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   // Rate a song
   Future<void> _rateSong(int rating) async {
     try {
@@ -475,9 +563,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                 // Three-dot menu
                 IconButton(
                   icon: const Icon(Icons.more_vert, color: Colors.white, size: 24),
-                  onPressed: () {
-                    // TODO: Implement menu functionality
-                  },
+                  onPressed: _showMoreOptions,
                 ),
               ],
       ),
@@ -928,13 +1014,17 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              InteractiveStarRating(
-                initialRating: _song.userRating ?? 0,
-                onRatingChanged: _rateSong,
-                size: 36,
-                color: Theme.of(context).colorScheme.primary,
-                showLabel: true,
-              ),
+              _isRatingLoading
+                ? CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+                  )
+                : InteractiveStarRating(
+                    initialRating: _song.userRating ?? 0,
+                    onRatingChanged: _rateSong,
+                    size: 36,
+                    color: Theme.of(context).colorScheme.primary,
+                    showLabel: true,
+                  ),
 
               // Thank you message if user has rated
               if (_song.userRating != null) ...[
@@ -994,8 +1084,8 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
   }
 
   Widget _buildScrollButton() {
-    // Light purple color
-    const Color lightPurple = Color(0xFFC19FFF);
+    // Get primary color from theme
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return InkWell(
       onTap: _toggleAutoScroll,
@@ -1008,7 +1098,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
           children: [
             Icon(
               _isAutoScrollEnabled ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              color: _isAutoScrollEnabled ? Colors.redAccent : lightPurple,
+              color: _isAutoScrollEnabled ? Colors.redAccent : primaryColor,
               size: 24,
             ),
             const SizedBox(height: 4),
@@ -1017,7 +1107,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
               child: Text(
                 _isAutoScrollEnabled ? 'Pause' : 'Play',
                 style: TextStyle(
-                  color: _isAutoScrollEnabled ? Colors.redAccent : lightPurple,
+                  color: _isAutoScrollEnabled ? Colors.redAccent : primaryColor,
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                 ),
@@ -1376,7 +1466,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
               _showVideoBottomSheet(videoUrl, title);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFC19FFF), // Light purple
+              backgroundColor: Theme.of(context).colorScheme.primary,
             ),
             child: const Text('Full View'),
           ),
@@ -1426,7 +1516,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
           children: [
             Icon(
               icon,
-              color: isActive ? const Color(0xFFFFC701) : Colors.white70,
+              color: isActive ? Theme.of(context).colorScheme.primary : Colors.white70,
               size: 24,
             ),
             const SizedBox(height: 4),
@@ -1435,7 +1525,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
               child: Text(
                 label,
                 style: TextStyle(
-                  color: isActive ? const Color(0xFFFFC701) : Colors.white70,
+                  color: isActive ? Theme.of(context).colorScheme.primary : Colors.white70,
                   fontSize: 11,
                   fontWeight: isActive ? FontWeight.w500 : FontWeight.normal,
                 ),

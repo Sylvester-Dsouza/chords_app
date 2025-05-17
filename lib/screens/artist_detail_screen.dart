@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../widgets/song_placeholder.dart';
-import '../widgets/animated_bottom_nav_bar.dart';
 import '../models/song.dart';
 import '../models/artist.dart';
 import '../services/song_service.dart';
 import '../services/artist_service.dart';
 import '../services/liked_songs_service.dart';
-import '../providers/navigation_provider.dart';
 
 class ArtistDetailScreen extends StatefulWidget {
   final String artistName;
@@ -22,7 +19,7 @@ class ArtistDetailScreen extends StatefulWidget {
 }
 
 class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
-  int _currentIndex = 2; // Set to 2 for Search tab
+  // Removed _currentIndex as we don't need it anymore
 
   // Services
   final SongService _songService = SongService();
@@ -147,16 +144,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
     }
   }
 
-  void _onItemTapped(int index) {
-    if (index != _currentIndex) {
-      // Update the navigation provider
-      final navigationProvider = Provider.of<NavigationProvider>(context, listen: false);
-      navigationProvider.updateIndex(index);
-
-      // Navigate to the main navigation screen
-      Navigator.pushReplacementNamed(context, '/home');
-    }
-  }
+  // Removed _onItemTapped method as we don't need it anymore
 
   @override
   Widget build(BuildContext context) {
@@ -262,10 +250,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                     ),
                   ],
                 ),
-      bottomNavigationBar: AnimatedBottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: _onItemTapped,
-      ),
+      // Bottom navigation bar removed from inner screens
     );
   }
 

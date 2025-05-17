@@ -133,7 +133,7 @@ class HomeSectionService {
       } else if (shouldRefreshInBackground && sections.isNotEmpty) {
         // If we have cached sections but they're stale, refresh in background
         debugPrint('Refreshing home sections in background...');
-        _refreshHomeSectionsInBackground();
+        refreshHomeSectionsInBackground();
       }
 
       return sections;
@@ -144,8 +144,8 @@ class HomeSectionService {
     }
   }
 
-  // Refresh home sections in background without blocking UI
-  Future<void> _refreshHomeSectionsInBackground() async {
+  // Public method to refresh home sections in background without blocking UI
+  Future<void> refreshHomeSectionsInBackground() async {
     try {
       final response = await _apiService.get('/home-sections/app/content');
 
@@ -162,6 +162,31 @@ class HomeSectionService {
       }
     } catch (e) {
       debugPrint('Background refresh: Error refreshing home sections: $e');
+    }
+  }
+
+  // Get cached home sections without forcing a refresh
+  Future<List<HomeSection>?> getCachedHomeSections({bool checkOnly = false}) async {
+    try {
+      // Get cached sections from cache service
+      final cachedSectionsJson = await _cacheService.getCachedHomeSections();
+      if (cachedSectionsJson != null) {
+        // Convert cached JSON to HomeSection objects
+        final sections = cachedSectionsJson.map((json) => HomeSection.fromJson(json)).toList();
+        debugPrint('Retrieved ${sections.length} home sections from cache');
+        return sections;
+      }
+
+      // If checkOnly is true, don't try to fetch from API
+      if (checkOnly) {
+        return null;
+      }
+
+      // If no cache available and not checkOnly, try to fetch from API
+      return await getHomeSections(forceRefresh: true);
+    } catch (e) {
+      debugPrint('Error getting cached home sections: $e');
+      return null;
     }
   }
 

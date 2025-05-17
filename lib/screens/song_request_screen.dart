@@ -160,9 +160,9 @@ class _SongRequestScreenState extends State<SongRequestScreen> {
               Navigator.pop(context);
               Navigator.pushNamed(context, '/login');
             },
-            child: const Text(
+            child: Text(
               'Login',
-              style: TextStyle(color: Color(0xFFFFC701)),
+              style: TextStyle(color: Theme.of(context).colorScheme.primary),
             ),
           ),
         ],
@@ -314,9 +314,9 @@ class _SongRequestScreenState extends State<SongRequestScreen> {
           // Song request list
           Expanded(
             child: _isLoading
-                ? const Center(
+                ? Center(
                     child: CircularProgressIndicator(
-                      color: Color(0xFFFFC701),
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   )
                 : _songRequests.isEmpty
@@ -331,7 +331,7 @@ class _SongRequestScreenState extends State<SongRequestScreen> {
                       )
                     : RefreshIndicator(
                         onRefresh: _fetchSongRequests,
-                        color: const Color(0xFFFFC701),
+                        color: Theme.of(context).colorScheme.primary,
                         child: ListView.builder(
                           itemCount: _songRequests.length,
                           itemBuilder: (context, index) {
@@ -345,10 +345,10 @@ class _SongRequestScreenState extends State<SongRequestScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddSongRequestBottomSheet,
-        backgroundColor: const Color(0xFFFFC701),
-        child: const Icon(
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        child: Icon(
           Icons.add,
-          color: Colors.black,
+          color: Theme.of(context).colorScheme.onPrimary,
         ),
       ),
       // Bottom navigation bar removed
@@ -424,7 +424,7 @@ class _SongRequestScreenState extends State<SongRequestScreen> {
                 onTap: () => _handleUpvote(request),
                 child: Icon(
                   request.hasUpvoted ? Icons.thumb_up : Icons.thumb_up_outlined,
-                  color: request.hasUpvoted ? const Color(0xFFFFC701) : Colors.grey, // Primary color when upvoted
+                  color: request.hasUpvoted ? Theme.of(context).colorScheme.primary : Colors.grey, // Primary color when upvoted
                   size: 24, // Explicit size
                 ),
               ),
@@ -432,7 +432,7 @@ class _SongRequestScreenState extends State<SongRequestScreen> {
               Text(
                 'Upvote',
                 style: TextStyle(
-                  color: request.hasUpvoted ? const Color(0xFFFFC701) : Colors.grey, // Primary color when upvoted
+                  color: request.hasUpvoted ? Theme.of(context).colorScheme.primary : Colors.grey, // Primary color when upvoted
                   fontSize: 10, // Smaller font size
                 ),
               ),
@@ -659,20 +659,20 @@ class _AddSongRequestFormState extends State<_AddSongRequestForm> {
           ElevatedButton(
             onPressed: _isSubmitting ? null : _submitForm,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFFC701),
-              foregroundColor: Colors.black,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-              disabledBackgroundColor: const Color(0x80FFC701), // FFC701 with 50% opacity
+              disabledBackgroundColor: Theme.of(context).colorScheme.primary.withAlpha(128), // Primary color with 50% opacity
             ),
             child: _isSubmitting
-                ? const SizedBox(
+                ? SizedBox(
                     height: 20,
                     width: 20,
                     child: CircularProgressIndicator(
-                      color: Colors.black,
+                      color: Theme.of(context).colorScheme.onPrimary,
                       strokeWidth: 2,
                     ),
                   )

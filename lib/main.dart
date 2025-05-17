@@ -1,14 +1,10 @@
 // import 'dart:async' - removed unused import
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'utils/page_transitions.dart';
 import 'services/cache_service.dart';
 import 'services/auth_service.dart';
 import 'services/api_service.dart';
-// AdMob service removed to fix crashing issues
-// import 'services/ad_service.dart';
 import 'providers/navigation_provider.dart';
 import 'screens/playlist_detail_screen.dart';
 import 'screens/main_navigation.dart';
@@ -45,15 +41,8 @@ void main() async {
   // This ensures the Flutter binding is initialized before anything else
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize YouTube player iframe
-  try {
-    debugPrint('Initializing YouTube player iframe...');
-    // No static initialization needed for the latest version
-    debugPrint('YouTube player iframe will be initialized when used');
-  } catch (e) {
-    debugPrint('Error initializing YouTube player iframe: $e');
-    // Continue anyway
-  }
+  // YouTube player iframe will be initialized in screens that use it
+  debugPrint('YouTube player iframe will be initialized when needed in specific screens');
 
   // We'll initialize the Flutter Local Notifications plugin in the NotificationService
 

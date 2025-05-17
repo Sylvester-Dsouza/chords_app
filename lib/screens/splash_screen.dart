@@ -4,7 +4,6 @@ import '../utils/preferences_util.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
-import 'dart:math' as math;
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -22,7 +21,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   // Animations
   late Animation<double> _fadeAnimation;
   late Animation<double> _pulseAnimation;
-  late Animation<double> _rotateAnimation;
 
   // Data loading progress
   double _loadingProgress = 0.0;
@@ -63,12 +61,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       vsync: this,
       duration: const Duration(seconds: 10),
     )..repeat();
-    _rotateAnimation = Tween<double>(begin: 0, end: 2 * math.pi).animate(
-      CurvedAnimation(
-        parent: _rotateAnimationController,
-        curve: Curves.linear,
-      ),
-    );
 
     // Start fade animation
     _fadeAnimationController.forward();

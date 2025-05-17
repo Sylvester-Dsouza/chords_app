@@ -15,7 +15,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  int _currentIndex = 4; // Set to 4 for Profile tab
 
   @override
   void initState() {
@@ -25,9 +24,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final navigationProvider = Provider.of<NavigationProvider>(context, listen: false);
       navigationProvider.updateIndex(4); // Profile screen is index 4
-      setState(() {
-        _currentIndex = 4;
-      });
     });
   }
 
@@ -42,7 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return AuthWrapper(
       requireAuth: false, // Allow both logged in and guest users
       child: Scaffold(
-        backgroundColor: const Color(0xFF121212),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: const InnerScreenAppBar(
           title: 'Profile',
           showBackButton: false,

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/notification_service.dart';
-import '../widgets/animated_bottom_nav_bar.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -250,29 +249,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     },
                   ),
                 ),
-      bottomNavigationBar: AnimatedBottomNavBar(
-        currentIndex: 0,
-        onTap: (index) {
-          // Handle navigation based on the index
-          switch (index) {
-            case 0: // Home
-              Navigator.pushReplacementNamed(context, '/home');
-              break;
-            case 1: // My Playlist
-              Navigator.pushReplacementNamed(context, '/playlist');
-              break;
-            case 2: // Search
-              Navigator.pushReplacementNamed(context, '/search');
-              break;
-            case 3: // Resources
-              Navigator.pushReplacementNamed(context, '/resources');
-              break;
-            case 4: // Profile
-              Navigator.pushReplacementNamed(context, '/profile');
-              break;
-          }
-        },
-      ),
+      // Bottom navigation bar removed from inner screens
     );
   }
 }
