@@ -10,10 +10,22 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- Microphone permission for Guitar Tuner -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Camera permission for QR code scanning -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Storage permissions for saving PDFs -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+                     android:maxSdkVersion="29" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+                     tools:ignore="ScopedStorage" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <application
         android:name=".ChordsApplication"
-        android:label="Christian Chords"
+        android:label="Stuthi"
         android:icon="@mipmap/ic_launcher"
+        android:requestLegacyExternalStorage="true"
         tools:replace="android:label">
         <activity
             android:name=".MainActivity"
@@ -35,6 +47,13 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <!-- Deep linking intent filter for stuthi:// scheme -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="stuthi" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

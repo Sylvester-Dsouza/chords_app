@@ -292,7 +292,7 @@ class AuthService {
             }
           }
 
-          // Login with backend using Firebase token with timeout
+          // Login with backend using Firebase token with shorter timeout
           debugPrint('Sending token to backend API with timeout');
           final result = await Future.any([
             _apiService.loginWithFirebase(
@@ -301,7 +301,7 @@ class AuthService {
               name: userCredential.user?.displayName,
               rememberMe: rememberMe,
             ),
-            Future.delayed(const Duration(seconds: 15), () {
+            Future.delayed(const Duration(seconds: 8), () {
               // If API call times out, return a partial success with Firebase user data
               return {
                 'success': true,
@@ -414,8 +414,8 @@ class AuthService {
                     password: password,
                     rememberMe: rememberMe,
                   ),
-                  Future.delayed(const Duration(seconds: 15), () {
-                    throw TimeoutException('Direct backend login timed out after 15 seconds');
+                  Future.delayed(const Duration(seconds: 8), () {
+                    throw TimeoutException('Direct backend login timed out after 8 seconds');
                   }),
                 ]);
                 return result;
@@ -658,7 +658,7 @@ class AuthService {
         };
       }
 
-      // Send token to backend with timeout
+      // Send token to backend with shorter timeout
       debugPrint('Sending token to backend API with timeout');
       final result = await Future.any([
         _apiService.loginWithFirebase(
@@ -667,7 +667,7 @@ class AuthService {
           name: user.displayName,
           rememberMe: rememberMe,
         ),
-        Future.delayed(const Duration(seconds: 15), () {
+        Future.delayed(const Duration(seconds: 8), () {
           // If API call times out, return a partial success with Firebase user data
           return {
             'success': true,

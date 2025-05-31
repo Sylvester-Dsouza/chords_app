@@ -8,6 +8,72 @@ class SongService {
   final ApiService _apiService = ApiService();
   final CacheService _cacheService = CacheService();
 
+  // Get paginated songs for better performance
+  Future<Map<String, dynamic>> getPaginatedSongs({
+    int page = 1,
+    int limit = 20,
+    String? search,
+    String? artistId,
+    String? tags,
+    String? sortBy,
+    String? sortOrder,
+    bool forceRefresh = false,
+  }) async {
+    try {
+      final Map<String, String> queryParameters = {
+        'page': page.toString(),
+        'limit': limit.toString(),
+      };
+
+      if (search != null && search.isNotEmpty) {
+        queryParameters['search'] = search;
+      }
+      if (artistId != null && artistId.isNotEmpty) {
+        queryParameters['artistId'] = artistId;
+      }
+      if (tags != null && tags.isNotEmpty) {
+        queryParameters['tags'] = tags;
+      }
+      if (sortBy != null && sortBy.isNotEmpty) {
+        queryParameters['sortBy'] = sortBy;
+      }
+      if (sortOrder != null && sortOrder.isNotEmpty) {
+        queryParameters['sortOrder'] = sortOrder;
+      }
+
+      debugPrint('Fetching paginated songs with parameters: $queryParameters');
+      final response = await _apiService.get('/songs/paginated', queryParameters: queryParameters);
+
+      if (response.statusCode == 200) {
+        final responseData = response.data as Map<String, dynamic>;
+        final List<dynamic> songsData = responseData['data'] as List<dynamic>;
+        final Map<String, dynamic> pagination = responseData['pagination'] as Map<String, dynamic>;
+
+        final List<Song> songs = [];
+        for (var songJson in songsData) {
+          try {
+            final song = Song.fromJson(songJson);
+            songs.add(song);
+          } catch (e) {
+            debugPrint('Error parsing individual song: $e');
+          }
+        }
+
+        debugPrint('Successfully fetched ${songs.length} songs (page $page of ${pagination['totalPages']})');
+
+        return {
+          'songs': songs,
+          'pagination': pagination,
+        };
+      } else {
+        throw Exception('Failed to load paginated songs: Status ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error getting paginated songs: $e');
+      throw Exception('Failed to load paginated songs: $e');
+    }
+  }
+
   // Get all songs
   Future<List<Song>> getAllSongs({bool forceRefresh = false}) async {
     try {
@@ -100,24 +166,33 @@ class SongService {
     }
 
     try {
-      // If we only have a simple query and no filters, try to use cached songs
-      if (query.isNotEmpty && (filters == null || !filters.isActive)) {
-        // For simple search, we'll use the cached songs if available and filter them locally
-        // This provides instant search results without API calls
-        final cachedSongs = await _cacheService.getCachedSongs();
-        if (cachedSongs != null) {
-          debugPrint('Searching in cached songs with query: $query');
+      // Try to use cached songs for local filtering when possible
+      final cachedSongs = await _cacheService.getCachedSongs();
+      if (cachedSongs != null && cachedSongs.isNotEmpty) {
+        debugPrint('Filtering cached songs locally with query: "$query" and filters: ${filters?.isActive == true ? "active" : "none"}');
+
+        List<Song> filteredSongs = List.from(cachedSongs);
+
+        // Apply search query filter
+        if (query.isNotEmpty) {
           final lowercaseQuery = query.toLowerCase();
-          final filteredSongs = cachedSongs.where((song) {
+          filteredSongs = filteredSongs.where((song) {
             return song.title.toLowerCase().contains(lowercaseQuery) ||
                 song.artist.toLowerCase().contains(lowercaseQuery);
           }).toList();
-          debugPrint('Found ${filteredSongs.length} songs in cache matching query');
-          return filteredSongs;
         }
+
+        // Apply additional filters if provided
+        if (filters != null && filters.isActive) {
+          filteredSongs = _applyFiltersLocally(filteredSongs, filters);
+        }
+
+        debugPrint('Found ${filteredSongs.length} songs after local filtering');
+        return filteredSongs;
       }
 
-      // If we have filters or no cache, use the API
+      // If no cache available, fall back to API filtering
+      debugPrint('No cached songs available, using API for filtering');
       final Map<String, String> queryParameters = {};
 
       // Add search query if provided
@@ -300,6 +375,115 @@ class SongService {
     }
   }
 
+  // Apply filters locally to a list of songs
+  List<Song> _applyFiltersLocally(List<Song> songs, SongSearchFilters filters) {
+    List<Song> filteredSongs = List.from(songs);
+
+    // Apply key filter
+    if (filters.key != null && filters.key!.isNotEmpty) {
+      debugPrint('Applying key filter: ${filters.key}');
+      filteredSongs = filteredSongs.where((song) {
+        final songKey = song.key.trim();
+        final filterKey = filters.key!.trim();
+        final matches = songKey.toLowerCase() == filterKey.toLowerCase();
+        if (!matches) {
+          debugPrint('Song "${song.title}" key "$songKey" does not match filter "$filterKey"');
+        }
+        return matches;
+      }).toList();
+      debugPrint('After key filter: ${filteredSongs.length} songs remain');
+    }
+
+    // Apply difficulty filter
+    if (filters.difficulty != null && filters.difficulty!.isNotEmpty) {
+      debugPrint('Applying difficulty filter: ${filters.difficulty}');
+      filteredSongs = filteredSongs.where((song) {
+        if (song.difficulty == null) return false;
+        final matches = song.difficulty!.toLowerCase() == filters.difficulty!.toLowerCase();
+        if (!matches) {
+          debugPrint('Song "${song.title}" difficulty "${song.difficulty}" does not match filter "${filters.difficulty}"');
+        }
+        return matches;
+      }).toList();
+      debugPrint('After difficulty filter: ${filteredSongs.length} songs remain');
+    }
+
+    // Apply capo filter
+    if (filters.capo != null) {
+      debugPrint('Applying capo filter: ${filters.capo}');
+      filteredSongs = filteredSongs.where((song) {
+        final matches = song.capo == filters.capo;
+        if (!matches) {
+          debugPrint('Song "${song.title}" capo "${song.capo}" does not match filter "${filters.capo}"');
+        }
+        return matches;
+      }).toList();
+      debugPrint('After capo filter: ${filteredSongs.length} songs remain');
+    }
+
+    // Apply time signature filter
+    if (filters.timeSignature != null && filters.timeSignature!.isNotEmpty) {
+      debugPrint('Applying time signature filter: ${filters.timeSignature}');
+      filteredSongs = filteredSongs.where((song) {
+        if (song.timeSignature == null) return false;
+        final matches = song.timeSignature!.toLowerCase() == filters.timeSignature!.toLowerCase();
+        if (!matches) {
+          debugPrint('Song "${song.title}" time signature "${song.timeSignature}" does not match filter "${filters.timeSignature}"');
+        }
+        return matches;
+      }).toList();
+      debugPrint('After time signature filter: ${filteredSongs.length} songs remain');
+    }
+
+    // Apply artist filter
+    if (filters.artistId != null && filters.artistId!.isNotEmpty) {
+      debugPrint('Applying artist ID filter: ${filters.artistId}');
+      filteredSongs = filteredSongs.where((song) {
+        final matches = song.artistId == filters.artistId;
+        if (!matches) {
+          debugPrint('Song "${song.title}" artist ID "${song.artistId}" does not match filter "${filters.artistId}"');
+        }
+        return matches;
+      }).toList();
+      debugPrint('After artist ID filter: ${filteredSongs.length} songs remain');
+    }
+
+    // Apply language filter
+    if (filters.languageId != null && filters.languageId!.isNotEmpty) {
+      debugPrint('Applying language ID filter: ${filters.languageId}');
+      filteredSongs = filteredSongs.where((song) {
+        final matches = song.languageId == filters.languageId;
+        if (!matches) {
+          debugPrint('Song "${song.title}" language ID "${song.languageId}" does not match filter "${filters.languageId}"');
+        }
+        return matches;
+      }).toList();
+      debugPrint('After language ID filter: ${filteredSongs.length} songs remain');
+    }
+
+    // Apply sorting
+    if (filters.sortBy != null && filters.sortBy!.isNotEmpty) {
+      debugPrint('Applying sort: ${filters.sortBy}');
+      switch (filters.sortBy) {
+        case 'alphabetical':
+          filteredSongs.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+          break;
+        case 'newest':
+          // Sort by rating count as a proxy for newest (higher rating count = more recent activity)
+          filteredSongs.sort((a, b) => b.ratingCount.compareTo(a.ratingCount));
+          break;
+        case 'mostViewed':
+          // Sort by average rating as a proxy for most viewed (higher rated songs are likely more viewed)
+          filteredSongs.sort((a, b) => b.averageRating.compareTo(a.averageRating));
+          break;
+        default:
+          debugPrint('Unknown sort option: ${filters.sortBy}');
+      }
+    }
+
+    return filteredSongs;
+  }
+
   // Update a single song in the cache
   Future<void> _updateSongInCache(Song updatedSong) async {
     try {
@@ -352,7 +536,7 @@ class SongService {
     return Song(
       id: id,
       title: 'At the Cross Love Ran Red',
-      artist: 'Worship Paradise',
+      artist: 'Stuthi',
       key: 'Em',
       chords: '''[Intro]
 Em  D|G  |C  |C  |

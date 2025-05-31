@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/inner_screen_app_bar.dart';
+import '../config/theme.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HelpSupportScreen extends StatelessWidget {
@@ -104,8 +105,8 @@ class HelpSupportScreen extends StatelessWidget {
 
               _buildFaqItem(
                 context,
-                question: 'How do I create a playlist?',
-                answer: 'To create a playlist, go to the Playlist tab, tap on the "+" button, enter a name for your playlist, and tap "Create".',
+                question: 'How do I create a setlist?',
+                answer: 'To create a setlist, go to the Setlist tab, tap on the "+" button, enter a name for your setlist, and tap "Create".',
               ),
 
               _buildFaqItem(
@@ -117,7 +118,7 @@ class HelpSupportScreen extends StatelessWidget {
               _buildFaqItem(
                 context,
                 question: 'Can I use the app offline?',
-                answer: 'Yes, once you\'ve viewed a song, it will be cached for offline use. Your playlists and liked songs will also be available offline.',
+                answer: 'Yes, once you\'ve viewed a song, it will be cached for offline use. Your setlists and liked songs will also be available offline.',
               ),
 
               _buildFaqItem(
@@ -252,7 +253,7 @@ class HelpSupportScreen extends StatelessWidget {
           fontWeight: FontWeight.w500,
         ),
       ),
-      iconColor: const Color(0xFFFFC701),
+      iconColor: AppTheme.primaryColor,
       collapsedIconColor: Colors.grey,
       children: [
         Padding(

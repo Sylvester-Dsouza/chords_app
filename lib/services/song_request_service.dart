@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,30 +8,24 @@ import 'api_service.dart';
 class SongRequestService {
   final ApiService _apiService = ApiService();
 
-  // Key for storing upvoted song requests in SharedPreferences
-  static const String _upvotedSongRequestsKey = 'upvoted_song_requests';
 
-  // Get all upvoted song request IDs from local storage
-  Future<List<String>> getUpvotedSongRequests() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final upvotedRequests = prefs.getStringList(_upvotedSongRequestsKey) ?? [];
-      debugPrint('Retrieved ${upvotedRequests.length} upvoted song requests from local storage');
-      return upvotedRequests;
-    } catch (e) {
-      debugPrint('Error getting upvoted song requests: $e');
-      return [];
-    }
-  }
 
-  // Clear all upvoted song requests from local storage (used when logging out)
-  Future<void> clearUpvotedSongRequests() async {
+  // Get current user ID from UserProvider
+  Future<String?> _getCurrentUserId() async {
     try {
+      // Get user data from shared preferences (stored by UserProvider)
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_upvotedSongRequestsKey);
-      debugPrint('Cleared all upvoted song requests from local storage');
+      final userData = prefs.getString('user_data');
+
+      if (userData != null) {
+        final userJson = json.decode(userData);
+        return userJson['id'] as String?;
+      }
+
+      return null;
     } catch (e) {
-      debugPrint('Error clearing upvoted song requests: $e');
+      debugPrint('Error getting current user ID: $e');
+      return null;
     }
   }
 
@@ -38,10 +33,6 @@ class SongRequestService {
   Future<List<SongRequest>> getAllSongRequests() async {
     try {
       debugPrint('Fetching all song requests from API...');
-
-      // Get locally stored upvoted song request IDs
-      final upvotedRequestIds = await getUpvotedSongRequests();
-      debugPrint('Found ${upvotedRequestIds.length} locally stored upvoted song requests');
 
       final response = await _apiService.get('/song-requests');
 
@@ -56,34 +47,11 @@ class SongRequestService {
         }
 
         try {
-          // Parse song requests from API
+          // Parse song requests from API - use the hasUpvoted status directly from the backend
           final List<SongRequest> songRequests = data.map((item) {
-            // Create the song request from JSON
             final songRequest = SongRequest.fromJson(item);
-
-            // Check if this song request is in our local upvoted list
-            // If it is, override the hasUpvoted flag from the server
-            if (upvotedRequestIds.contains(songRequest.id)) {
-              debugPrint('Song request ${songRequest.id} found in local upvoted list');
-
-              // Create a new song request with hasUpvoted set to true
-              return SongRequest(
-                id: songRequest.id,
-                songName: songRequest.songName,
-                artistName: songRequest.artistName,
-                youtubeLink: songRequest.youtubeLink,
-                spotifyLink: songRequest.spotifyLink,
-                notes: songRequest.notes,
-                status: songRequest.status,
-                upvotes: songRequest.upvotes,
-                customerId: songRequest.customerId,
-                createdAt: songRequest.createdAt,
-                updatedAt: songRequest.updatedAt,
-                hasUpvoted: true, // Override with local state
-              );
-            }
-
-            return songRequest; // Use server state for non-upvoted requests
+            debugPrint('Song request ${songRequest.id} - ${songRequest.songName} - hasUpvoted: ${songRequest.hasUpvoted}');
+            return songRequest;
           }).toList();
 
           debugPrint('Successfully parsed ${songRequests.length} song requests');
@@ -173,7 +141,24 @@ class SongRequestService {
 
       if (response.statusCode == 201) {
         debugPrint('Song request created successfully');
-        return SongRequest.fromJson(response.data);
+        final createdRequest = SongRequest.fromJson(response.data);
+
+        // Since the user created this request, they should have it "upvoted" by default
+        // Return a modified version with hasUpvoted set to true
+        return SongRequest(
+          id: createdRequest.id,
+          songName: createdRequest.songName,
+          artistName: createdRequest.artistName,
+          youtubeLink: createdRequest.youtubeLink,
+          spotifyLink: createdRequest.spotifyLink,
+          notes: createdRequest.notes,
+          status: createdRequest.status,
+          upvotes: createdRequest.upvotes,
+          customerId: createdRequest.customerId,
+          createdAt: createdRequest.createdAt,
+          updatedAt: createdRequest.updatedAt,
+          hasUpvoted: true, // Creator should have this as upvoted
+        );
       } else {
         debugPrint('Failed to create song request: ${response.statusCode}');
         throw Exception('Failed to create song request: Status ${response.statusCode}');
@@ -189,6 +174,27 @@ class SongRequestService {
     try {
       debugPrint('Upvoting song request: $songRequestId');
 
+      // Get current user ID to prevent self-upvoting
+      final currentUserId = await _getCurrentUserId();
+
+      // Check if this is the user's own request (additional safety check)
+      if (currentUserId != null) {
+        try {
+          final allRequests = await getAllSongRequests();
+          final targetRequest = allRequests.firstWhere(
+            (request) => request.id == songRequestId,
+            orElse: () => throw Exception('Request not found'),
+          );
+
+          if (targetRequest.customerId == currentUserId) {
+            debugPrint('User attempted to upvote their own request - preventing action');
+            return false; // Don't allow users to upvote their own requests
+          }
+        } catch (e) {
+          debugPrint('Could not verify request ownership, proceeding with upvote: $e');
+        }
+      }
+
       // Send an empty body with the POST request
       final response = await _apiService.post(
         '/song-requests/$songRequestId/upvote',
@@ -200,17 +206,6 @@ class SongRequestService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         debugPrint('Song request upvoted successfully');
-
-        // Save upvoted song request to local storage
-        final prefs = await SharedPreferences.getInstance();
-        final upvotedRequests = prefs.getStringList(_upvotedSongRequestsKey) ?? [];
-
-        if (!upvotedRequests.contains(songRequestId)) {
-          upvotedRequests.add(songRequestId);
-          await prefs.setStringList(_upvotedSongRequestsKey, upvotedRequests);
-          debugPrint('Saved upvoted song request to local storage: $songRequestId');
-        }
-
         return true;
       } else {
         debugPrint('Failed to upvote song request: ${response.statusCode}');
@@ -221,17 +216,6 @@ class SongRequestService {
       // Check if it's already upvoted
       if (e.toString().contains('400') || e.toString().contains('already upvoted')) {
         debugPrint('Request may have already been upvoted');
-
-        // Save upvoted song request to local storage even if it's already upvoted on the server
-        final prefs = await SharedPreferences.getInstance();
-        final upvotedRequests = prefs.getStringList(_upvotedSongRequestsKey) ?? [];
-
-        if (!upvotedRequests.contains(songRequestId)) {
-          upvotedRequests.add(songRequestId);
-          await prefs.setStringList(_upvotedSongRequestsKey, upvotedRequests);
-          debugPrint('Saved already upvoted song request to local storage: $songRequestId');
-        }
-
         return true; // Return true to update UI
       }
       // Rethrow the error so we can handle it in the UI
@@ -252,17 +236,6 @@ class SongRequestService {
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         debugPrint('Upvote removed successfully');
-
-        // Remove upvoted song request from local storage
-        final prefs = await SharedPreferences.getInstance();
-        final upvotedRequests = prefs.getStringList(_upvotedSongRequestsKey) ?? [];
-
-        if (upvotedRequests.contains(songRequestId)) {
-          upvotedRequests.remove(songRequestId);
-          await prefs.setStringList(_upvotedSongRequestsKey, upvotedRequests);
-          debugPrint('Removed upvoted song request from local storage: $songRequestId');
-        }
-
         return true;
       } else {
         debugPrint('Failed to remove upvote: ${response.statusCode}');
@@ -273,17 +246,6 @@ class SongRequestService {
       // Check if it's a 400 error (not upvoted)
       if (e.toString().contains('400') || e.toString().contains('not upvoted')) {
         debugPrint('Request may not have been upvoted');
-
-        // Remove upvoted song request from local storage even if it's not upvoted on the server
-        final prefs = await SharedPreferences.getInstance();
-        final upvotedRequests = prefs.getStringList(_upvotedSongRequestsKey) ?? [];
-
-        if (upvotedRequests.contains(songRequestId)) {
-          upvotedRequests.remove(songRequestId);
-          await prefs.setStringList(_upvotedSongRequestsKey, upvotedRequests);
-          debugPrint('Removed not upvoted song request from local storage: $songRequestId');
-        }
-
         return true; // Return true to update UI
       }
       // Rethrow the error so we can handle it in the UI

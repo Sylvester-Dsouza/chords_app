@@ -19,7 +19,7 @@ class NavigationProvider extends ChangeNotifier {
     switch (route) {
       case '/home':
         return 0;
-      case '/playlist':
+      case '/setlist':
         return 1;
       case '/search':
         return 2;
@@ -38,7 +38,7 @@ class NavigationProvider extends ChangeNotifier {
       case 0:
         return '/home';
       case 1:
-        return '/playlist';
+        return '/setlist';
       case 2:
         return '/search';
       case 3:

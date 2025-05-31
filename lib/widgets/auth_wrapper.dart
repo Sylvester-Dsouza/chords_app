@@ -7,7 +7,7 @@ import '../providers/user_provider.dart';
 class AuthWrapper extends StatelessWidget {
   final Widget child;
   final bool requireAuth;
-  
+
   const AuthWrapper({
     super.key,
     required this.child,
@@ -17,14 +17,14 @@ class AuthWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
-    
+
     // If authentication is required but user is not logged in, redirect to login
     if (requireAuth && !userProvider.isLoggedIn) {
       // Use a post-frame callback to avoid build-time navigation
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.of(context).pushReplacementNamed('/login');
       });
-      
+
       // Return an empty container while redirecting
       return const Scaffold(
         body: Center(
@@ -32,19 +32,18 @@ class AuthWrapper extends StatelessWidget {
         ),
       );
     }
-    
-    // Use WillPopScope to handle back button navigation
-    return WillPopScope(
-      onWillPop: () async {
+
+    // Use PopScope to handle back button navigation
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
         // If this is a protected screen and user is not logged in,
-        // prevent going back and redirect to login
-        if (requireAuth && !userProvider.isLoggedIn) {
-          Navigator.of(context).pushReplacementNamed('/login');
-          return false;
+        // redirect to login when back is pressed
+        if (requireAuth && !userProvider.isLoggedIn && didPop) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.of(context).pushReplacementNamed('/login');
+          });
         }
-        
-        // Allow normal back button behavior
-        return true;
       },
       child: child,
     );

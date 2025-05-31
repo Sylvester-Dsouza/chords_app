@@ -7,7 +7,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../services/api_service.dart';
 import '../services/liked_songs_service.dart';
 import '../services/optimized_cache_service.dart';
-import '../services/song_request_service.dart';
+
 import '../services/collection_service.dart';
 
 class UserProvider extends ChangeNotifier {
@@ -16,7 +16,7 @@ class UserProvider extends ChangeNotifier {
   final LikedSongsService _likedSongsService = LikedSongsService();
   final OptimizedCacheService _cacheService = OptimizedCacheService();
   final DefaultCacheManager _imageCacheManager = DefaultCacheManager();
-  final SongRequestService _songRequestService = SongRequestService();
+
   final CollectionService _collectionService = CollectionService();
 
   bool _isLoggedIn = false;
@@ -145,13 +145,11 @@ class UserProvider extends ChangeNotifier {
         debugPrint('Warning: User data was not saved correctly');
       }
 
-      // Sync liked songs with the server after login
-      try {
-        await _likedSongsService.syncAfterLogin();
-      } catch (syncError) {
+      // Sync liked songs with the server after login (non-blocking)
+      _likedSongsService.syncAfterLogin().catchError((syncError) {
         debugPrint('Error syncing liked songs after login: $syncError');
         // Continue even if sync fails
-      }
+      });
     } catch (e) {
       debugPrint('Error saving user data: $e');
     }
@@ -410,17 +408,8 @@ class UserProvider extends ChangeNotifier {
       })
     );
 
-    // 5. Clear upvoted song requests data
-    cleanupTasks.add(
-      Future(() async {
-        try {
-          await _songRequestService.clearUpvotedSongRequests();
-          debugPrint('Successfully cleared upvoted song requests data');
-        } catch (e) {
-          debugPrint('Error clearing upvoted song requests data: $e');
-        }
-      })
-    );
+    // 5. Song request upvote state is now managed by the backend database
+    // No need to clear local storage for upvotes
 
     // 6. Clear all data caches
     cleanupTasks.add(

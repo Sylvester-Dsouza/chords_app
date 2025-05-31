@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/navigation_provider.dart';
+import '../providers/app_data_provider.dart';
+import '../providers/screen_state_provider.dart';
 
-import '../widgets/inner_screen_app_bar.dart';
 import '../widgets/song_placeholder.dart';
+import '../widgets/skeleton_loader.dart';
 import '../widgets/search_filter_dialog.dart';
 import '../widgets/animated_search_bar.dart';
+import '../widgets/search_suggestions_widget.dart';
+import '../widgets/voice_search_dialog.dart';
 import '../models/song.dart';
 import '../models/artist.dart';
 import '../models/collection.dart';
@@ -15,6 +19,8 @@ import '../services/artist_service.dart';
 import '../services/collection_service.dart';
 import '../services/liked_songs_service.dart';
 import '../services/liked_songs_notifier.dart';
+import '../services/search_history_service.dart';
+import '../services/voice_search_service.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -26,6 +32,7 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
+  late ScrollController _scrollController;
 
   String _screenTitle = 'Song Chords & Lyrics';
   String _searchHint = 'Search for Songs...';
@@ -36,6 +43,8 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   final CollectionService _collectionService = CollectionService();
   final LikedSongsService _likedSongsService = LikedSongsService();
   final LikedSongsNotifier _likedSongsNotifier = LikedSongsNotifier();
+  final SearchHistoryService _searchHistoryService = SearchHistoryService();
+  final VoiceSearchService _voiceSearchService = VoiceSearchService();
 
   // Data
   List<Song> _songs = [];
@@ -60,11 +69,24 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   bool _isArtistFilterActive = false;
   bool _isCollectionFilterActive = false;
 
+  // Track if we've attempted to load data
+  bool _hasAttemptedLoad = false;
+
+  // Search suggestions and voice search
+  bool _showSuggestions = false;
+  bool _isVoiceSearchAvailable = false;
+  FocusNode? _searchFocusNode;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_handleTabSelection);
+    _searchFocusNode = FocusNode();
+    _searchFocusNode!.addListener(_handleSearchFocusChange);
+
+    // Initialize scroll controller
+    _scrollController = ScrollController();
 
     // Register as an observer for app lifecycle events
     WidgetsBinding.instance.addObserver(this);
@@ -72,19 +94,24 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     // Listen for liked songs changes
     _likedSongsNotifier.addListener(_handleLikedSongsChanged);
 
-    // Sync with navigation provider
+    // Sync with navigation provider and screen state
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final navigationProvider = Provider.of<NavigationProvider>(context, listen: false);
+      final screenStateProvider = Provider.of<ScreenStateProvider>(context, listen: false);
+
       navigationProvider.updateIndex(2); // Search screen is index 2
+      screenStateProvider.navigateToScreen(ScreenType.search);
+      screenStateProvider.markScreenInitialized(ScreenType.search);
     });
 
-    // Load initial data
-    _fetchSongs();
-    _fetchArtists();
-    _fetchCollections();
+    // Load data instantly from global provider cache
+    _loadDataInstantly();
 
     // Check liked status of songs
     _updateLikedStatus();
+
+    // Initialize search services
+    _initializeSearchServices();
   }
 
   // Handle liked songs changes
@@ -104,6 +131,20 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         return _isCollectionFilterActive;
       default:
         return false;
+    }
+  }
+
+  // Get current search type based on tab
+  SearchType _getCurrentSearchType() {
+    switch (_tabController.index) {
+      case 0:
+        return SearchType.songs;
+      case 1:
+        return SearchType.artists;
+      case 2:
+        return SearchType.collections;
+      default:
+        return SearchType.songs;
     }
   }
 
@@ -156,16 +197,72 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     }
   }
 
-  // Fetch songs
-  Future<void> _fetchSongs() async {
-    if (mounted) {
-      setState(() {
-        _isLoadingSongs = true;
-      });
-    }
+  // Load data instantly from global provider cache (no loading states)
+  void _loadDataInstantly() {
+    final appDataProvider = Provider.of<AppDataProvider>(context, listen: false);
 
+    // Get cached data immediately without loading states
+    final cachedSongs = appDataProvider.songs;
+    final cachedArtists = appDataProvider.artists;
+    final cachedCollections = appDataProvider.collections;
+
+    // Set data immediately if available
+    if (cachedSongs.isNotEmpty || cachedArtists.isNotEmpty || cachedCollections.isNotEmpty) {
+      setState(() {
+        _songs = cachedSongs;
+        _artists = cachedArtists;
+        _collections = cachedCollections;
+        _isLoadingSongs = false;
+        _isLoadingArtists = false;
+        _isLoadingCollections = false;
+        _hasAttemptedLoad = true; // Mark that we've loaded data
+      });
+
+      debugPrint('📱 Search: Loaded cached data instantly - ${cachedSongs.length} songs, ${cachedArtists.length} artists, ${cachedCollections.length} collections');
+
+      // Update liked status for songs
+      _updateLikedStatus();
+    } else {
+      // If no cached data, fall back to loading with background refresh
+      debugPrint('📱 Search: No cached data, loading in background...');
+      setState(() {
+        _hasAttemptedLoad = true; // Mark that we've attempted to load
+      });
+      _loadInitialData();
+    }
+  }
+
+  // Load initial data using global provider (fallback for when no cache exists)
+  Future<void> _loadInitialData() async {
+    final screenStateProvider = Provider.of<ScreenStateProvider>(context, listen: false);
+
+    // Check if we need to refresh data
+    final needsRefresh = screenStateProvider.needsDataRefresh(ScreenType.search);
+
+    // Load songs, artists, and collections concurrently
+    await Future.wait([
+      _fetchSongs(forceRefresh: needsRefresh),
+      _fetchArtists(forceRefresh: needsRefresh),
+      _fetchCollections(forceRefresh: needsRefresh),
+    ]);
+
+    // Mark data as refreshed
+    screenStateProvider.markDataRefreshed(ScreenType.search);
+  }
+
+  // Fetch songs using global provider
+  Future<void> _fetchSongs({bool forceRefresh = false}) async {
     try {
-      final songs = await _songService.getAllSongs();
+      final appDataProvider = Provider.of<AppDataProvider>(context, listen: false);
+
+      if (mounted && appDataProvider.songsState == DataState.loading) {
+        setState(() {
+          _isLoadingSongs = true;
+        });
+      }
+
+      // Get songs from global provider (uses smart caching)
+      final songs = await appDataProvider.getSongs(forceRefresh: forceRefresh);
 
       // Get liked songs to update status
       final likedSongs = await _likedSongsService.getLikedSongs();
@@ -180,9 +277,10 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           _songs = songs;
           _isLoadingSongs = false;
         });
+        debugPrint('📱 Search: Loaded ${songs.length} songs from global provider');
       }
     } catch (e) {
-      debugPrint('Error fetching songs: $e');
+      debugPrint('❌ Search: Error fetching songs: $e');
       if (mounted) {
         setState(() {
           _songs = [];
@@ -200,24 +298,29 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     }
   }
 
-  // Fetch artists
-  Future<void> _fetchArtists() async {
-    if (mounted) {
-      setState(() {
-        _isLoadingArtists = true;
-      });
-    }
-
+  // Fetch artists using global provider
+  Future<void> _fetchArtists({bool forceRefresh = false}) async {
     try {
-      final artists = await _artistService.getAllArtists();
+      final appDataProvider = Provider.of<AppDataProvider>(context, listen: false);
+
+      if (mounted && appDataProvider.artistsState == DataState.loading) {
+        setState(() {
+          _isLoadingArtists = true;
+        });
+      }
+
+      // Get artists from global provider (uses smart caching)
+      final artists = await appDataProvider.getArtists(forceRefresh: forceRefresh);
+
       if (mounted) {
         setState(() {
           _artists = artists;
           _isLoadingArtists = false;
         });
+        debugPrint('📱 Search: Loaded ${artists.length} artists from global provider');
       }
     } catch (e) {
-      debugPrint('Error fetching artists: $e');
+      debugPrint('❌ Search: Error fetching artists: $e');
       if (mounted) {
         setState(() {
           _artists = [];
@@ -235,24 +338,29 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     }
   }
 
-  // Fetch collections
-  Future<void> _fetchCollections() async {
-    if (mounted) {
-      setState(() {
-        _isLoadingCollections = true;
-      });
-    }
-
+  // Fetch collections using global provider
+  Future<void> _fetchCollections({bool forceRefresh = false}) async {
     try {
-      final collections = await _collectionService.getAllCollections();
+      final appDataProvider = Provider.of<AppDataProvider>(context, listen: false);
+
+      if (mounted && appDataProvider.collectionsState == DataState.loading) {
+        setState(() {
+          _isLoadingCollections = true;
+        });
+      }
+
+      // Get collections from global provider (uses smart caching)
+      final collections = await appDataProvider.getCollections(forceRefresh: forceRefresh);
+
       if (mounted) {
         setState(() {
           _collections = collections;
           _isLoadingCollections = false;
         });
+        debugPrint('📱 Search: Loaded ${collections.length} collections from global provider');
       }
     } catch (e) {
-      debugPrint('Error fetching collections: $e');
+      debugPrint('❌ Search: Error fetching collections: $e');
       if (mounted) {
         setState(() {
           _collections = [];
@@ -305,6 +413,11 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
 
   // Handle search based on current tab
   Future<void> _handleSearch(String query) async {
+    // Add to search history if query is not empty
+    if (query.trim().isNotEmpty) {
+      _addToSearchHistory(query);
+    }
+
     switch (_tabController.index) {
       case 0:
         await _searchSongs(query);
@@ -320,6 +433,9 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
 
   // Show filter dialog
   void _showFilterDialog() {
+    // Get original unfiltered data from AppDataProvider
+    final appDataProvider = Provider.of<AppDataProvider>(context, listen: false);
+
     showDialog(
       context: context,
       builder: (context) => SearchFilterDialog(
@@ -327,6 +443,10 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         songFilters: _songFilters,
         artistFilters: _artistFilters,
         collectionFilters: _collectionFilters,
+        // Pass original unfiltered data for dynamic filtering
+        availableSongs: appDataProvider.songs,
+        availableArtists: appDataProvider.artists,
+        availableCollections: appDataProvider.collections,
         onSongFiltersApplied: (filters) {
           setState(() {
             _songFilters = filters;
@@ -477,11 +597,193 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
     }
   }
 
+  // Initialize search services
+  Future<void> _initializeSearchServices() async {
+    try {
+      // Initialize search history service
+      await _searchHistoryService.initialize();
+
+      // Initialize voice search service
+      final isVoiceAvailable = await _voiceSearchService.initialize();
+
+      if (mounted) {
+        setState(() {
+          _isVoiceSearchAvailable = isVoiceAvailable;
+        });
+      }
+
+      debugPrint('📱 Search: Services initialized - Voice: $isVoiceAvailable');
+    } catch (e) {
+      debugPrint('❌ Search: Error initializing services: $e');
+    }
+  }
+
+  // Handle voice search with visual feedback
+  Future<void> _handleVoiceSearch() async {
+    if (!_isVoiceSearchAvailable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Voice search is not available on this device'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Show voice search dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return ListenableBuilder(
+            listenable: _voiceSearchService,
+            builder: (context, child) {
+              return VoiceSearchDialog(
+                isListening: _voiceSearchService.isListening,
+                recognizedText: _voiceSearchService.lastWords,
+                confidence: _voiceSearchService.confidence,
+                onCancel: () {
+                  _voiceSearchService.cancel();
+                  Navigator.of(context).pop();
+                },
+                onRetry: () {
+                  _startVoiceListening();
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
+
+    // Start listening
+    _startVoiceListening();
+  }
+
+  // Start voice listening with proper error handling
+  Future<void> _startVoiceListening() async {
+    try {
+      await _voiceSearchService.startListening(
+        onResult: (result) {
+          if (result.isNotEmpty && mounted) {
+            // Close the dialog
+            Navigator.of(context).pop();
+
+            // Update search with the result
+            _searchController.text = result;
+            setState(() {
+              _searchQuery = result;
+              _showSuggestions = false;
+            });
+            _handleSearch(result);
+            _addToSearchHistory(result);
+
+            // Show success feedback
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Voice search: "$result"'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        },
+        timeout: const Duration(seconds: 15),
+      );
+    } catch (e) {
+      debugPrint('Error with voice search: $e');
+      if (mounted) {
+        // Close dialog if open
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Voice search failed: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  // Add search query to history
+  void _addToSearchHistory(String query) {
+    if (query.trim().isEmpty) return;
+
+    SearchType searchType;
+    switch (_tabController.index) {
+      case 0:
+        searchType = SearchType.songs;
+        break;
+      case 1:
+        searchType = SearchType.artists;
+        break;
+      case 2:
+        searchType = SearchType.collections;
+        break;
+      default:
+        searchType = SearchType.songs;
+    }
+
+    _searchHistoryService.addToHistory(query, searchType);
+  }
+
+  // Handle search focus changes
+  void _handleSearchFocusChange() {
+    setState(() {
+      _showSuggestions = _searchFocusNode?.hasFocus ?? false;
+    });
+  }
+
+  // Handle suggestion tap
+  void _handleSuggestionTap(String suggestion) {
+    _searchController.text = suggestion;
+    setState(() {
+      _searchQuery = suggestion;
+      _showSuggestions = false;
+    });
+    _searchFocusNode?.unfocus();
+    _handleSearch(suggestion);
+    _addToSearchHistory(suggestion);
+  }
+
+  // Handle history item removal
+  void _handleHistoryItemRemove(SearchHistoryItem item) {
+    _searchHistoryService.removeFromHistory(item);
+  }
+
+  // Handle clear history
+  void _handleClearHistory() {
+    SearchType searchType;
+    switch (_tabController.index) {
+      case 0:
+        searchType = SearchType.songs;
+        break;
+      case 1:
+        searchType = SearchType.artists;
+        break;
+      case 2:
+        searchType = SearchType.collections;
+        break;
+      default:
+        searchType = SearchType.songs;
+    }
+
+    _searchHistoryService.clearHistory(type: searchType);
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
     _tabController.dispose();
+    _searchFocusNode?.dispose();
+    _scrollController.dispose();
     _likedSongsNotifier.removeListener(_handleLikedSongsChanged);
+    _voiceSearchService.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -498,98 +800,156 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      appBar: InnerScreenAppBar(
-        title: _screenTitle,
-        centerTitle: true,
-        showBackButton: false,
-      ),
-      body: Column(
-        children: [
-          // Fixed header with search bar and tabs
-          Container(
-            color: const Color(0xFF121212), // Solid background color
-            child: Column(
-              children: [
-                // Animated Search Bar
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-                  child: AnimatedSearchBar(
-                    controller: _searchController,
-                    hintText: _searchHint,
-                    isFilterActive: _getFilterActiveForCurrentTab(),
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value;
-                      });
-                      _handleSearch(value);
-                    },
-                    onFilterPressed: _showFilterDialog,
-                    primaryColor: const Color(0xFFC19FFF), // Light purple/lavender
-                  ),
-                ),
+    return Consumer<AppDataProvider>(
+      builder: (context, appDataProvider, child) {
+        // Auto-update data when global provider has new data
+        // Use addPostFrameCallback to avoid calling setState during build
+        if (!_hasAttemptedLoad && (appDataProvider.songs.isNotEmpty || appDataProvider.artists.isNotEmpty || appDataProvider.collections.isNotEmpty)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _loadDataInstantly();
+            }
+          });
+        }
 
-                // Tabs
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 0.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        return Scaffold(
+          backgroundColor: const Color(0xFF121212),
+          body: Stack(
+            children: [
+              // Main content with custom scroll view
+              CustomScrollView(
+                controller: _scrollController,
+                slivers: [
+                  // Animated app bar
+                  SliverAppBar(
+                    backgroundColor: const Color(0xFF121212),
+                    elevation: 0,
+                    floating: true,
+                    snap: true,
+                    pinned: false,
+                    automaticallyImplyLeading: false,
+                    expandedHeight: 60,
+                    flexibleSpace: FlexibleSpaceBar(
+                      centerTitle: true,
+                      title: Text(
+                        _screenTitle,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Tab content
+                  SliverFillRemaining(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildSongsTab(),
+                        _buildArtistsTab(),
+                        _buildCollectionsTab(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              // Sticky search bar and tabs
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  color: const Color(0xFF121212),
+                  padding: EdgeInsets.only(
+                    top: MediaQuery.of(context).padding.top,
+                  ),
+                  child: Column(
                     children: [
-                      Expanded(
-                        child: Center(
-                          child: _buildTabItem('Songs', 0),
+                      // Enhanced Search Bar with Suggestions
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+                        child: SearchSuggestionsOverlay(
+                          showSuggestions: _showSuggestions && _searchHistoryService.isLoaded,
+                          query: _searchQuery,
+                          searchType: _getCurrentSearchType(),
+                          searchHistoryService: _searchHistoryService,
+                          onSuggestionTap: _handleSuggestionTap,
+                          onHistoryItemRemove: _handleHistoryItemRemove,
+                          onClearHistory: _handleClearHistory,
+                          child: AnimatedSearchBar(
+                            controller: _searchController,
+                            hintText: _searchHint,
+                            isFilterActive: _getFilterActiveForCurrentTab(),
+                            showVoiceSearch: _isVoiceSearchAvailable,
+                            showSuggestions: _showSuggestions,
+                            onChanged: (value) {
+                              setState(() {
+                                _searchQuery = value;
+                              });
+                              _handleSearch(value);
+                            },
+                            onFilterPressed: _showFilterDialog,
+                            onVoicePressed: _handleVoiceSearch,
+                            onFocusChanged: _handleSearchFocusChange,
+                            primaryColor: const Color(0xFFC19FFF),
+                          ),
                         ),
                       ),
-                      Expanded(
-                        child: Center(
-                          child: _buildTabItem('Artists', 1),
+
+                      // Compact Tabs with reduced spacing
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16.0, 4.0, 16.0, 0.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Expanded(
+                              child: Center(
+                                child: _buildCompactTabItem('Songs', 0),
+                              ),
+                            ),
+                            Expanded(
+                              child: Center(
+                                child: _buildCompactTabItem('Artists', 1),
+                              ),
+                            ),
+                            Expanded(
+                              child: Center(
+                                child: _buildCompactTabItem('Collections', 2),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      Expanded(
-                        child: Center(
-                          child: _buildTabItem('Collections', 2),
+
+                      // Compact Divider
+                      Container(
+                        margin: const EdgeInsets.only(top: 2.0),
+                        height: 1,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.transparent,
+                              Color(0xFF333333),
+                              Colors.transparent,
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-
-                // Divider
-                Container(
-                  margin: const EdgeInsets.only(top: 1.0),
-                  height: 1,
-                  color: const Color(0xFF333333),
-                ),
-
-                // Add some spacing
-                const SizedBox(height: 8),
-              ],
-            ),
+              ),
+            ],
           ),
-
-          // Tab Content
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // Songs Tab
-                _buildSongsTab(),
-
-                // Artists Tab
-                _buildArtistsTab(),
-
-                // Collections Tab
-                _buildCollectionsTab(),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildTabItem(String title, int index) {
+  Widget _buildCompactTabItem(String title, int index) {
     bool isSelected = _tabController.index == index;
 
     return GestureDetector(
@@ -598,99 +958,144 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           _tabController.animateTo(index);
         });
       },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 8.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Tab text with compact styling
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              style: TextStyle(
+                color: isSelected
+                    ? Colors.white
+                    : Colors.grey[500],
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                letterSpacing: 0.2,
+                height: 1.1,
+              ),
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+              ),
+            ),
+
+            const SizedBox(height: 4),
+
+            // Compact animated underline
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              height: 2,
+              width: isSelected ? title.length * 6.0 : 0,
+              decoration: BoxDecoration(
+                color: isSelected ? const Color(0xFFC19FFF) : Colors.transparent,
+                borderRadius: BorderRadius.circular(1),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSongsTab() {
+    // Calculate the actual sticky header height more precisely
+    final stickyHeaderHeight = MediaQuery.of(context).padding.top + 50; // Ultra-compact
+
+    return Padding(
+      padding: EdgeInsets.only(top: stickyHeaderHeight),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              color: isSelected ? Colors.white : Colors.grey[600],
-              fontSize: 16,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          // Search result text with zero top padding
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 4.0),
+            child: Text(
+              _getSearchResultText(0),
+              style: TextStyle(color: Colors.grey[400], fontSize: 14),
             ),
-            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 6),
-          Container(
-            height: 3,
-            width: title.length * 6.0, // Slightly narrower for better appearance
-            decoration: BoxDecoration(
-              color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
-              borderRadius: BorderRadius.circular(1.5),
-            ),
+
+          // Songs list
+          Expanded(
+            child: _isLoadingSongs
+              ? ListView.builder(
+                  itemCount: 8, // Show 8 skeleton items
+                  itemBuilder: (context, index) => const SongListItemSkeleton(),
+                )
+              : _songs.isEmpty
+                ? Center(
+                    child: Text(
+                      _hasAttemptedLoad ? 'No songs found' : 'Loading songs...',
+                      style: TextStyle(color: Colors.grey[400])
+                    )
+                  )
+                : ListView.builder(
+                    itemCount: _songs.length,
+                    itemBuilder: (context, index) {
+                      final song = _songs[index];
+                      return _buildSongItem(song);
+                    },
+                  ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSongsTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Search result text
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            _getSearchResultText(0),
-            style: TextStyle(color: Colors.grey[400], fontSize: 14),
-          ),
-        ),
-
-        // Songs list
-        Expanded(
-          child: _isLoadingSongs
-            ? Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary))
-            : _songs.isEmpty
-              ? Center(child: Text('No songs found', style: TextStyle(color: Colors.grey[400])))
-              : ListView.builder(
-                  itemCount: _songs.length,
-                  itemBuilder: (context, index) {
-                    final song = _songs[index];
-                    return _buildSongItem(song);
-                  },
-                ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildArtistsTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Search result text
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            _getSearchResultText(1),
-            style: TextStyle(color: Colors.grey[400], fontSize: 14),
+    // Calculate the actual sticky header height more precisely
+    final stickyHeaderHeight = MediaQuery.of(context).padding.top + 50; // Ultra-compact
+
+    return Padding(
+      padding: EdgeInsets.only(top: stickyHeaderHeight),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Search result text with zero top padding
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 4.0),
+            child: Text(
+              _getSearchResultText(1),
+              style: TextStyle(color: Colors.grey[400], fontSize: 14),
+            ),
           ),
-        ),
 
-        // Artists list
-        Expanded(
-          child: _isLoadingArtists
-            ? Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary))
-            : _artists.isEmpty
-              ? Center(child: Text('No artists found', style: TextStyle(color: Colors.grey[400])))
-              : ListView.builder(
-                  itemCount: _artists.length,
-                  itemBuilder: (context, index) {
-                    final artist = _artists[index];
-                    // Debug the song count
-                    debugPrint('Artist: ${artist.name}, Song Count: ${artist.songCount}');
+          // Artists list
+          Expanded(
+            child: _isLoadingArtists
+              ? ListView.builder(
+                  itemCount: 6, // Show 6 skeleton items
+                  itemBuilder: (context, index) => const SongListItemSkeleton(),
+                )
+              : _artists.isEmpty
+                ? Center(
+                    child: Text(
+                      _hasAttemptedLoad ? 'No artists found' : 'Loading artists...',
+                      style: TextStyle(color: Colors.grey[400])
+                    )
+                  )
+                : ListView.builder(
+                    itemCount: _artists.length,
+                    itemBuilder: (context, index) {
+                      final artist = _artists[index];
+                      // Debug the song count
+                      debugPrint('Artist: ${artist.name}, Song Count: ${artist.songCount}');
 
-                    // Format the song count text appropriately
-                    String songCountText = artist.songCount == 1
-                        ? '1 Song'
-                        : '${artist.songCount} Songs';
+                      // Format the song count text appropriately
+                      String songCountText = artist.songCount == 1
+                          ? '1 Song'
+                          : '${artist.songCount} Songs';
 
-                    return _buildArtistItem(artist.name, songCountText);
-                  },
-                ),
-        ),
-      ],
+                      return _buildArtistItem(artist.name, songCountText);
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -749,42 +1154,60 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   }
 
   Widget _buildCollectionsTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Search result text
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            _getSearchResultText(2),
-            style: TextStyle(color: Colors.grey[400], fontSize: 14),
-          ),
-        ),
+    // Calculate the actual sticky header height more precisely
+    final stickyHeaderHeight = MediaQuery.of(context).padding.top + 50; // Ultra-compact
 
-        // Collections grid
-        Expanded(
-          child: _isLoadingCollections
-            ? Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary))
-            : _collections.isEmpty
-              ? Center(child: Text('No collections found', style: TextStyle(color: Colors.grey[400])))
-              : ListView.builder(
+    return Padding(
+      padding: EdgeInsets.only(top: stickyHeaderHeight),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Search result text with zero top padding
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 4.0),
+            child: Text(
+              _getSearchResultText(2),
+              style: TextStyle(color: Colors.grey[400], fontSize: 14),
+            ),
+          ),
+
+          // Collections grid
+          Expanded(
+            child: _isLoadingCollections
+              ? ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  itemCount: _collections.length,
-                  itemBuilder: (context, index) {
-                    final collection = _collections[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: _buildCollectionCard(
-                        collection.title,
-                        '${collection.songCount} Songs',
-                        collection.color,
-                        collection.likeCount
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ],
+                  itemCount: 4, // Show 4 skeleton items
+                  itemBuilder: (context, index) => Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: const SongListItemSkeleton(),
+                  ),
+                )
+              : _collections.isEmpty
+                ? Center(
+                    child: Text(
+                      _hasAttemptedLoad ? 'No collections found' : 'Loading collections...',
+                      style: TextStyle(color: Colors.grey[400])
+                    )
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    itemCount: _collections.length,
+                    itemBuilder: (context, index) {
+                      final collection = _collections[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: _buildCollectionCard(
+                          collection.title,
+                          '${collection.songCount} Songs',
+                          collection.color,
+                          collection.likeCount
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 

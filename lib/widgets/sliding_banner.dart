@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class SlidingBanner extends StatefulWidget {
   final List<BannerItem> items;
@@ -127,17 +128,55 @@ class BannerItem extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(5),
           color: Colors.grey[200], // Fallback color if image fails to load
-          image: imagePath != null
-              ? DecorationImage(
-                  image: AssetImage(imagePath!),
-                  fit: BoxFit.cover, // Ensures image covers the full area
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(5),
+          child: imagePath != null
+              ? Image.asset(
+                  imagePath!,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
                 )
               : imageUrl != null
-                ? DecorationImage(
-                    image: NetworkImage(imageUrl!),
+                ? CachedNetworkImage(
+                    imageUrl: imageUrl!,
                     fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                    // Cache configuration for banner images
+                    cacheKey: 'banner_${imageUrl!.hashCode}',
+                    fadeInDuration: const Duration(milliseconds: 300),
+                    placeholder: (context, url) => Container(
+                      color: Colors.grey[300],
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.grey),
+                        ),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      color: Colors.grey[300],
+                      child: const Center(
+                        child: Icon(
+                          Icons.image_not_supported,
+                          color: Colors.grey,
+                          size: 32,
+                        ),
+                      ),
+                    ),
                   )
-                : null,
+                : Container(
+                    color: Colors.grey[300],
+                    child: const Center(
+                      child: Icon(
+                        Icons.image,
+                        color: Colors.grey,
+                        size: 32,
+                      ),
+                    ),
+                  ),
         ),
       ),
     );

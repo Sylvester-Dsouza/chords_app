@@ -9,7 +9,7 @@ class ApiService {
   // For Android emulator, use 10.0.2.2 instead of localhost
   // For physical devices, use your computer's IP address
   // Fixed IP address for development
-  static const String _devIpAddress = '192.168.26.155';
+  static const String _devIpAddress = '192.168.1.3';
 
   static String get baseUrl {
     if (kIsWeb) {
@@ -18,13 +18,9 @@ class ApiService {
       // Release mode - use production server
       return 'https://chords-api-jl8n.onrender.com';
     } else if (Platform.isAndroid && !kIsWeb) {
-      // For Android emulator, use 10.0.2.2 which maps to host's localhost
-      if (const bool.fromEnvironment('dart.vm.android-emulator')) {
-        return 'http://10.0.2.2:3001';
-      } else {
-        // For physical Android devices, use the actual IP address
-        return 'http://$_devIpAddress:3001';
-      }
+      // For Android emulator and devices, use the actual IP address
+      // This works for both emulator and physical devices
+      return 'http://$_devIpAddress:3001';
     } else {
       // For all other platforms (iOS, desktop)
       return 'http://$_devIpAddress:3001';
@@ -62,8 +58,9 @@ class ApiService {
 
   ApiService() {
     _dio.options.baseUrl = baseUrl;
-    _dio.options.connectTimeout = const Duration(seconds: 15); // Increased timeout
-    _dio.options.receiveTimeout = const Duration(seconds: 15); // Increased timeout
+    _dio.options.connectTimeout = const Duration(seconds: 15); // Increased timeout for better reliability
+    _dio.options.receiveTimeout = const Duration(seconds: 15); // Increased timeout for better reliability
+    _dio.options.sendTimeout = const Duration(seconds: 15); // Added send timeout for better reliability
 
     // Check if we need to use the /api prefix for all endpoints
     _checkApiPrefix();

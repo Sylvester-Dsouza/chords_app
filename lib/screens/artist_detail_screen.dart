@@ -5,6 +5,9 @@ import '../models/artist.dart';
 import '../services/song_service.dart';
 import '../services/artist_service.dart';
 import '../services/liked_songs_service.dart';
+import '../widgets/memory_efficient_image.dart';
+import '../widgets/skeleton_loader.dart';
+import '../config/theme.dart';
 
 class ArtistDetailScreen extends StatefulWidget {
   final String artistName;
@@ -37,6 +40,13 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
   void initState() {
     super.initState();
     _loadArtistData();
+  }
+
+  @override
+  void dispose() {
+    // Clean up any resources if needed
+    // Note: Services are stateless and don't need disposal
+    super.dispose();
   }
 
   // Load artist data and songs
@@ -144,6 +154,75 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
     }
   }
 
+  // Build loading skeleton
+  Widget _buildLoadingSkeleton() {
+    return Column(
+      children: [
+        // Artist header skeleton
+        SizedBox(
+          height: 200,
+          width: double.infinity,
+          child: ShimmerEffect(
+            baseColor: Colors.grey[800]!,
+            highlightColor: Colors.grey[600]!,
+            child: Container(
+              color: Colors.grey[800],
+            ),
+          ),
+        ),
+
+        // Artist info skeleton
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: ShimmerEffect(
+            baseColor: Colors.grey[800]!,
+            highlightColor: Colors.grey[600]!,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Artist name skeleton
+                Container(
+                  width: 200,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[700],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Song count skeleton
+                Container(
+                  width: 120,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[700],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Divider
+        const Divider(
+          color: Color(0xFF333333),
+          thickness: 1,
+          height: 1,
+        ),
+
+        // Songs list skeleton
+        Expanded(
+          child: ListView.builder(
+            padding: EdgeInsets.zero,
+            itemCount: 8, // Show 8 skeleton items
+            itemBuilder: (context, index) => const SongListItemSkeleton(),
+          ),
+        ),
+      ],
+    );
+  }
+
   // Removed _onItemTapped method as we don't need it anymore
 
   @override
@@ -171,11 +250,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
         ),
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
-              ),
-            )
+          ? _buildLoadingSkeleton()
           : _hasError
               ? Center(
                   child: Column(
@@ -200,7 +275,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                       const SizedBox(height: 16),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFFC701),
+                          backgroundColor: AppTheme.primaryColor,
                           foregroundColor: Colors.black,
                         ),
                         onPressed: _loadArtistData,
@@ -255,37 +330,58 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
   }
 
   Widget _buildArtistHeader() {
-    return Container(
+    return SizedBox(
       height: 250,
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.grey[800], // Fallback color
-        image: _artist?.imageUrl != null
-            ? DecorationImage(
-                image: NetworkImage(_artist!.imageUrl!),
-                fit: BoxFit.cover,
-                onError: (exception, stackTrace) {
-                  debugPrint('Error loading artist image: $exception');
-                },
-              )
-            : null,
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.transparent,
-              Colors.black.withAlpha(180),
-              Colors.black,
-            ],
+      child: Stack(
+        children: [
+          // Background image or fallback
+          _artist?.imageUrl != null
+              ? MemoryEfficientImage(
+                  imageUrl: _artist!.imageUrl!,
+                  width: 800, // Use reasonable fixed size instead of infinity
+                  height: 250,
+                  fit: BoxFit.cover,
+                  backgroundColor: Colors.grey[800]!,
+                  errorWidget: Container(
+                    color: Colors.grey[800],
+                    child: Center(
+                      child: Icon(
+                        Icons.person,
+                        color: Colors.white,
+                        size: 64,
+                      ),
+                    ),
+                  ),
+                )
+              : Container(
+                  color: Colors.grey[800],
+                  child: Center(
+                    child: Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 64,
+                    ),
+                  ),
+                ),
+          // Gradient overlay
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withAlpha(180),
+                  Colors.black,
+                ],
+              ),
+            ),
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.only(left: 16.0, bottom: 16.0),
-          child: Align(
-            alignment: Alignment.bottomLeft,
+          // Artist name
+          Positioned(
+            left: 16.0,
+            bottom: 16.0,
             child: Text(
               _artist?.name ?? widget.artistName,
               style: const TextStyle(
@@ -295,7 +391,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -308,19 +404,41 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
           // Artist avatar and song count
           Row(
             children: [
-              Container(
+              SizedBox(
                 width: 40,
                 height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.grey[800],
-                  image: _artist?.imageUrl != null
-                      ? DecorationImage(
-                          image: NetworkImage(_artist!.imageUrl!),
+                child: _artist?.imageUrl != null
+                    ? ClipOval(
+                        child: MemoryEfficientImage(
+                          imageUrl: _artist!.imageUrl!,
+                          width: 40,
+                          height: 40,
                           fit: BoxFit.cover,
-                        )
-                      : null,
-                ),
+                          backgroundColor: Colors.grey[800]!,
+                          errorWidget: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.grey[800],
+                            ),
+                            child: Icon(
+                              Icons.person,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.grey[800],
+                        ),
+                        child: Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
               ),
               const SizedBox(width: 12),
               Column(
@@ -413,28 +531,33 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
         ),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        leading: const SongPlaceholder(size: 48),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+        leading: const SongPlaceholder(size: 40),
         title: Text(
           title,
           style: const TextStyle(
-            color: Color(0xFFFFC701),
-            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(
           artist,
           style: const TextStyle(
             color: Colors.grey,
-            fontSize: 12,
+            fontSize: 13,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             // Song Key
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+              padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
               decoration: BoxDecoration(
                 color: const Color(0xFF333333),
                 borderRadius: BorderRadius.circular(4.0),
@@ -443,16 +566,23 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                 key,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 12,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 8),
             // Like Button
             IconButton(
               icon: Icon(
                 isLiked ? Icons.favorite : Icons.favorite_border,
-                color: isLiked ? Colors.red : Colors.white,
+                color: isLiked ? Colors.red : Colors.grey[400],
+                size: 20,
+              ),
+              padding: const EdgeInsets.all(8),
+              constraints: const BoxConstraints(
+                minWidth: 32,
+                minHeight: 32,
               ),
               onPressed: () {
                 if (song != null) {

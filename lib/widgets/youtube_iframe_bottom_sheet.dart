@@ -211,7 +211,7 @@ class _YouTubeIframeBottomSheetState extends State<YouTubeIframeBottomSheet> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC19FFF)),
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                           SizedBox(height: 16),
                           Text(

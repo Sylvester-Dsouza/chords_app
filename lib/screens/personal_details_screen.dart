@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/inner_screen_app_bar.dart';
 import '../providers/user_provider.dart';
 import '../utils/toast_util.dart';
+import '../config/theme.dart';
 import 'package:provider/provider.dart';
 
 class PersonalDetailsScreen extends StatefulWidget {
@@ -13,25 +14,25 @@ class PersonalDetailsScreen extends StatefulWidget {
 
 class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
   final _formKey = GlobalKey<FormState>();
-  
+
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
   late TextEditingController _locationController;
-  
+
   bool _isEditing = false;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize controllers
     _nameController = TextEditingController();
     _emailController = TextEditingController();
     _phoneController = TextEditingController();
     _locationController = TextEditingController();
-    
+
     // Load user data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUserData();
@@ -50,7 +51,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
   void _loadUserData() {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final userData = userProvider.userData;
-    
+
     if (userData != null) {
       _nameController.text = userData['name'] ?? '';
       _emailController.text = userData['email'] ?? '';
@@ -64,10 +65,10 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
       setState(() {
         _isLoading = true;
       });
-      
+
       try {
         final userProvider = Provider.of<UserProvider>(context, listen: false);
-        
+
         // Create updated user data
         final updatedData = {
           'name': _nameController.text,
@@ -75,18 +76,18 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
           'phone': _phoneController.text,
           'location': _locationController.text,
         };
-        
+
         // Simulate API call
         await Future.delayed(const Duration(seconds: 1));
-        
+
         // Update user data in provider
         userProvider.updateUserData(updatedData);
-        
+
         if (!mounted) return;
-        
+
         // Show success message
         ToastUtil.showSuccess(context, 'Profile updated successfully');
-        
+
         // Exit editing mode
         setState(() {
           _isEditing = false;
@@ -94,10 +95,10 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
         });
       } catch (e) {
         if (!mounted) return;
-        
+
         // Show error message
         ToastUtil.showError(context, 'Failed to update profile. Please try again.');
-        
+
         setState(() {
           _isLoading = false;
         });
@@ -109,7 +110,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
     final bool isLoggedIn = userProvider.isLoggedIn;
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       appBar: InnerScreenAppBar(
@@ -128,15 +129,15 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
               ]
             : null,
       ),
-      body: isLoggedIn 
-        ? _buildPersonalDetailsContent() 
+      body: isLoggedIn
+        ? _buildPersonalDetailsContent()
         : _buildLoginPrompt(),
       bottomNavigationBar: isLoggedIn && _isEditing
         ? _buildSaveButton()
         : null,
     );
   }
-  
+
   Widget _buildLoginPrompt() {
     return Center(
       child: Padding(
@@ -146,7 +147,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
           children: [
             const Icon(
               Icons.lock,
-              color: Color(0xFFFFC701),
+              color: AppTheme.primaryColor,
               size: 64,
             ),
             const SizedBox(height: 24),
@@ -175,7 +176,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                   Navigator.pushReplacementNamed(context, '/login');
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFC701),
+                  backgroundColor: AppTheme.primaryColor,
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -196,7 +197,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
       ),
     );
   }
-  
+
   Widget _buildPersonalDetailsContent() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -216,7 +217,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                       shape: BoxShape.circle,
                       color: Colors.grey[800],
                       border: Border.all(
-                        color: const Color(0xFFFFC701),
+                        color: AppTheme.primaryColor,
                         width: 2,
                       ),
                     ),
@@ -235,7 +236,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                         height: 40,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: const Color(0xFFFFC701),
+                          color: AppTheme.primaryColor,
                           border: Border.all(
                             color: const Color(0xFF121212),
                             width: 2,
@@ -252,7 +253,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
               ),
             ),
             const SizedBox(height: 32),
-            
+
             // Edit Button
             if (!_isEditing)
               Center(
@@ -274,9 +275,9 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                   ),
                 ),
               ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Name
             _buildTextField(
               controller: _nameController,
@@ -290,9 +291,9 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                 return null;
               },
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Email
             _buildTextField(
               controller: _emailController,
@@ -301,9 +302,9 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
               enabled: false, // Email cannot be edited
               validator: null,
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Phone
             _buildTextField(
               controller: _phoneController,
@@ -319,9 +320,9 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                 return null;
               },
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Location
             _buildTextField(
               controller: _locationController,
@@ -330,9 +331,9 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
               enabled: _isEditing,
               validator: null,
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Account Information
             if (!_isEditing) ...[
               const Text(
@@ -344,19 +345,19 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               _buildInfoItem(
                 icon: Icons.calendar_today,
                 label: 'Member Since',
                 value: 'January 2023',
               ),
-              
+
               _buildInfoItem(
                 icon: Icons.access_time,
                 label: 'Last Login',
                 value: 'Today, 10:30 AM',
               ),
-              
+
               _buildInfoItem(
                 icon: Icons.verified_user,
                 label: 'Account Status',
@@ -364,14 +365,14 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                 valueColor: Colors.green,
               ),
             ],
-            
+
             const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
-  
+
   Widget _buildSaveButton() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -390,7 +391,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
         child: ElevatedButton(
           onPressed: _isLoading ? null : _saveUserData,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFFC701),
+            backgroundColor: AppTheme.primaryColor,
             foregroundColor: Colors.black,
             disabledBackgroundColor: Colors.grey,
             shape: RoundedRectangleBorder(
@@ -412,7 +413,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
       ),
     );
   }
-  
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -459,7 +460,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
       ],
     );
   }
-  
+
   Widget _buildInfoItem({
     required IconData icon,
     required String label,

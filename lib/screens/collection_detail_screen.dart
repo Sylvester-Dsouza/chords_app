@@ -5,6 +5,9 @@ import '../models/collection.dart';
 import '../models/song.dart';
 import '../services/collection_service.dart';
 import '../services/liked_songs_service.dart';
+import '../widgets/memory_efficient_image.dart';
+import '../widgets/skeleton_loader.dart';
+import '../config/theme.dart';
 
 class CollectionDetailScreen extends StatefulWidget {
   final String collectionName;
@@ -65,6 +68,13 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     if (_collection != null) {
       _refreshLikeStatus();
     }
+  }
+
+  @override
+  void dispose() {
+    // Clean up any resources if needed
+    // Note: Services are stateless and don't need disposal
+    super.dispose();
   }
 
   // Load collection data and songs
@@ -370,6 +380,84 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
     }
   }
 
+  // Build loading skeleton
+  Widget _buildLoadingSkeleton() {
+    return Column(
+      children: [
+        // Collection header skeleton
+        SizedBox(
+          height: 200,
+          width: double.infinity,
+          child: ShimmerEffect(
+            baseColor: Colors.grey[800]!,
+            highlightColor: Colors.grey[600]!,
+            child: Container(
+              color: Colors.grey[800],
+            ),
+          ),
+        ),
+
+        // Collection info skeleton
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: ShimmerEffect(
+            baseColor: Colors.grey[800]!,
+            highlightColor: Colors.grey[600]!,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Collection name skeleton
+                Container(
+                  width: 250,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[700],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Description skeleton
+                Container(
+                  width: double.infinity,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[700],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: 200,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[700],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Divider
+        const Divider(
+          color: Color(0xFF333333),
+          thickness: 1,
+          height: 1,
+        ),
+
+        // Songs list skeleton
+        Expanded(
+          child: ListView.builder(
+            padding: EdgeInsets.zero,
+            itemCount: 8, // Show 8 skeleton items
+            itemBuilder: (context, index) => const SongListItemSkeleton(),
+          ),
+        ),
+      ],
+    );
+  }
+
   // Removed _onItemTapped method as we don't need it anymore
 
   @override
@@ -401,11 +489,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         title: null,
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
-              ),
-            )
+          ? _buildLoadingSkeleton()
           : _hasError
               ? Center(
                   child: Column(
@@ -430,7 +514,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                       const SizedBox(height: 16),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFFC701),
+                          backgroundColor: AppTheme.primaryColor,
                           foregroundColor: Colors.black,
                         ),
                         onPressed: _loadCollectionData,
@@ -485,90 +569,104 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   }
 
   Widget _buildCollectionHeader() {
-    return Container(
+    return SizedBox(
       height: 200,
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: _collection?.color ?? Colors.grey[800], // Use collection color or fallback
-        image: _collection?.imageUrl != null
-            ? DecorationImage(
-                image: NetworkImage(_collection!.imageUrl!),
-                fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(
-                  Colors.black.withAlpha(77), // 0.3 * 255 = 77
-                  BlendMode.darken,
-                ),
-                onError: (exception, stackTrace) {
-                  debugPrint('Error loading collection image: $exception');
-                },
-              )
-            : null,
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.transparent,
-              Colors.black.withAlpha(179), // 0.7 * 255 = 179
-            ],
-          ),
-        ),
-        child: Stack(
-          children: [
-            // Collection name removed from image to make image more visible
-
-            // Removed "MUSIC" text
-
-            // Song count
-            Positioned(
-              bottom: 10,
-              left: 16,
-              child: Text(
-                "${_songs.length} ${_songs.length == 1 ? 'Song' : 'Songs'}",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-
-            // Likes count and like button
-            Positioned(
-              bottom: 10,
-              right: 16,
-              child: Row(
-                children: [
-                  Text(
-                    "${_collection?.likeCount ?? 0}",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Wrap in a Material widget for better touch feedback
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: _toggleCollectionLike,
-                      borderRadius: BorderRadius.circular(24),
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Icon(
-                          _collection?.isLiked == true ? Icons.favorite : Icons.favorite_border,
-                          color: _collection?.isLiked == true ? Colors.red : Colors.white,
-                          size: 28, // Increased size
-                        ),
+      child: Stack(
+        children: [
+          // Background image or color
+          _collection?.imageUrl != null
+              ? MemoryEfficientImage(
+                  imageUrl: _collection!.imageUrl!,
+                  width: 800, // Use reasonable fixed size instead of infinity
+                  height: 200,
+                  fit: BoxFit.cover,
+                  backgroundColor: _collection?.color ?? Colors.grey[800]!,
+                  errorWidget: Container(
+                    color: _collection?.color ?? Colors.grey[800],
+                    child: Center(
+                      child: Icon(
+                        Icons.collections_bookmark,
+                        color: Colors.white,
+                        size: 64,
                       ),
                     ),
                   ),
+                )
+              : Container(
+                  color: _collection?.color ?? Colors.grey[800],
+                  child: Center(
+                    child: Icon(
+                      Icons.collections_bookmark,
+                      color: Colors.white,
+                      size: 64,
+                    ),
+                  ),
+                ),
+          // Gradient overlay
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withAlpha(179), // 0.7 * 255 = 179
                 ],
               ),
             ),
-          ],
-        ),
+            child: Stack(
+              children: [
+                // Song count
+                Positioned(
+                  bottom: 10,
+                  left: 16,
+                  child: Text(
+                    "${_songs.length} ${_songs.length == 1 ? 'Song' : 'Songs'}",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+
+                // Likes count and like button
+                Positioned(
+                  bottom: 10,
+                  right: 16,
+                  child: Row(
+                    children: [
+                      Text(
+                        "${_collection?.likeCount ?? 0}",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Wrap in a Material widget for better touch feedback
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _toggleCollectionLike,
+                          borderRadius: BorderRadius.circular(24),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Icon(
+                              _collection?.isLiked == true ? Icons.favorite : Icons.favorite_border,
+                              color: _collection?.isLiked == true ? Colors.red : Colors.white,
+                              size: 28, // Increased size
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -620,7 +718,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         title: Text(
           title,
           style: const TextStyle(
-            color: Color(0xFFFFC701),
+            color: AppTheme.primaryColor,
             fontWeight: FontWeight.bold,
           ),
         ),

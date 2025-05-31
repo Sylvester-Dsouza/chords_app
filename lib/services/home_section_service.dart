@@ -5,11 +5,13 @@ import 'package:chords_app/models/artist.dart';
 import 'package:chords_app/services/api_service.dart';
 import 'package:chords_app/services/cache_service.dart';
 
+// ignore_for_file: constant_identifier_names
 enum SectionType {
   COLLECTIONS,
   SONGS,
   ARTISTS,
-  BANNER
+  BANNER,
+  SONG_LIST
 }
 
 class HomeSection {
@@ -43,6 +45,9 @@ class HomeSection {
       case 'BANNER':
         type = SectionType.BANNER;
         break;
+      case 'SONG_LIST':
+        type = SectionType.SONG_LIST;
+        break;
       default:
         type = SectionType.COLLECTIONS;
     }
@@ -52,7 +57,8 @@ class HomeSection {
     if (json['items'] != null) {
       if (type == SectionType.COLLECTIONS) {
         items = (json['items'] as List).map((item) => Collection.fromJson(item)).toList();
-      } else if (type == SectionType.SONGS) {
+      } else if (type == SectionType.SONGS || type == SectionType.SONG_LIST) {
+        // Both SONGS and SONG_LIST contain Song objects, just displayed differently
         items = (json['items'] as List).map((item) => Song.fromJson(item)).toList();
       } else if (type == SectionType.ARTISTS) {
         items = (json['items'] as List).map((item) => Artist.fromJson(item)).toList();
@@ -203,7 +209,8 @@ class HomeSectionService {
         // Parse the items based on the section type
         if (type == SectionType.COLLECTIONS) {
           items = itemsJson.map((item) => Collection.fromJson(item)).toList();
-        } else if (type == SectionType.SONGS) {
+        } else if (type == SectionType.SONGS || type == SectionType.SONG_LIST) {
+          // Both SONGS and SONG_LIST contain Song objects, just displayed differently
           items = itemsJson.map((item) => Song.fromJson(item)).toList();
         } else if (type == SectionType.ARTISTS) {
           items = itemsJson.map((item) => Artist.fromJson(item)).toList();

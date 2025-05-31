@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/theme.dart';
 
 /// A widget that optimizes rendering of sections in the app by only rebuilding
 /// when its data changes, not when the parent rebuilds.
@@ -45,7 +46,7 @@ class OptimizedSection extends StatelessWidget {
               child: const Text(
                 'See more',
                 style: TextStyle(
-                  color: Color(0xFFFFC701),
+                  color: AppTheme.primaryColor,
                   fontSize: 14,
                 ),
               ),

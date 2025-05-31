@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/navigation_provider.dart';
 import '../widgets/animated_bottom_nav_bar.dart';
+import '../config/theme.dart';
 import 'home_screen.dart';
-import 'playlist_screen.dart';
+import 'setlist_screen.dart';
 import 'search_screen.dart';
 import 'resources_screen.dart';
 import 'profile_screen.dart';
@@ -19,7 +20,7 @@ class _MainNavigationState extends State<MainNavigation> {
   // Create a list of all screens
   final List<Widget> _screens = [
     const HomeScreenNew(),
-    const PlaylistScreen(),
+    const SetlistScreen(),
     const SearchScreen(),
     const ResourcesScreen(),
     const ProfileScreen(),
@@ -69,7 +70,7 @@ class _MainNavigationState extends State<MainNavigation> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('No', style: TextStyle(color: Color(0xFFFFC701))),
+              child: const Text('No', style: TextStyle(color: AppTheme.primaryColor)),
             ),
             TextButton(
               onPressed: () {
@@ -77,7 +78,7 @@ class _MainNavigationState extends State<MainNavigation> {
                 // This will exit the app safely
                 Navigator.of(context).popUntil((route) => route.isFirst);
               },
-              child: const Text('Yes', style: TextStyle(color: Color(0xFFFFC701))),
+              child: const Text('Yes', style: TextStyle(color: AppTheme.primaryColor)),
             ),
           ],
         ),

@@ -38,7 +38,7 @@ class AboutUsScreen extends StatelessWidget {
 
               // App name and tagline
               const Text(
-                'Worship Paradise',
+                'Stuthi',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 28,
@@ -60,7 +60,7 @@ class AboutUsScreen extends StatelessWidget {
 
               // App description
               const Text(
-                'Worship Paradise is a platform dedicated to providing high-quality chord sheets and lyrics for Christian worship songs. Our mission is to help worship teams and individual musicians access the resources they need to lead worship effectively.',
+                'Stuthi is a platform dedicated to providing high-quality chord sheets and lyrics for Christian worship songs. Our mission is to help worship teams and individual musicians access the resources they need to lead worship effectively.',
                 style: TextStyle(
                   color: Color(0xB3FFFFFF), // White with 70% opacity
                   fontSize: 16,
@@ -95,7 +95,7 @@ class AboutUsScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               // Contributors list
-              ...contributors.map((contributor) => _buildContributorCard(contributor)),
+              ...contributors.map((contributor) => _buildContributorCard(context, contributor)),
 
               const SizedBox(height: 24),
 
@@ -113,7 +113,7 @@ class AboutUsScreen extends StatelessWidget {
 
               // Copyright info
               const Text(
-                '© 2023 Worship Paradise. All rights reserved.',
+                '© 2024 Stuthi. All rights reserved.',
                 style: TextStyle(
                   color: Color(0x80FFFFFF), // White with 50% opacity
                   fontSize: 12,
@@ -130,7 +130,7 @@ class AboutUsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContributorCard(Map<String, String> contributor) {
+  Widget _buildContributorCard(BuildContext context, Map<String, String> contributor) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -162,9 +162,9 @@ class AboutUsScreen extends StatelessWidget {
             fontSize: 14,
           ),
         ),
-        trailing: const Icon(
+        trailing: Icon(
           Icons.link,
-          color: Color(0xFFFFC701),
+          color: Theme.of(context).colorScheme.primary,
           size: 24,
         ),
       ),

@@ -101,4 +101,19 @@ class LikedSongsNotifier extends ChangeNotifier {
       });
     }
   }
+
+  @override
+  void dispose() {
+    // Clear any pending notifications
+    _pendingNotifications.clear();
+
+    // Reset state
+    _notificationScheduled = false;
+    _notificationCount = 0;
+    _lastSongId = null;
+    _lastNotificationTime = null;
+    _notificationCountResetTime = null;
+
+    super.dispose();
+  }
 }

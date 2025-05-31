@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/theme.dart';
 
 class ChordDiagram extends StatelessWidget {
   final String chordName;
@@ -46,7 +47,7 @@ class ChordDiagram extends StatelessWidget {
                     width: 8,
                     height: 8,
                     decoration: const BoxDecoration(
-                      color: Color(0xFFFFC701),
+                      color: AppTheme.primaryColor,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -54,7 +55,7 @@ class ChordDiagram extends StatelessWidget {
                     width: 8,
                     height: 8,
                     decoration: const BoxDecoration(
-                      color: Color(0xFFFFC701),
+                      color: AppTheme.primaryColor,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -79,7 +80,7 @@ class ChordDiagram extends StatelessWidget {
                     width: 8,
                     height: 8,
                     decoration: const BoxDecoration(
-                      color: Color(0xFFFFC701),
+                      color: AppTheme.primaryColor,
                       shape: BoxShape.circle,
                     ),
                   ),

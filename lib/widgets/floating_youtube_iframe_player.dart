@@ -302,7 +302,7 @@ class _FloatingYoutubeIframePlayerState extends State<FloatingYoutubeIframePlaye
                 ),
                 child: const Center(
                   child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC19FFF)),
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                   ),
                 ),
               ),

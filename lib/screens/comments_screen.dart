@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/comment.dart';
 import '../models/song.dart';
 import '../services/comment_service.dart';
+import '../widgets/skeleton_loader.dart';
+import '../config/theme.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class CommentsScreen extends StatefulWidget {
@@ -249,6 +251,104 @@ class _CommentsScreenState extends State<CommentsScreen> {
     }
   }
 
+  // Build comments skeleton loading
+  Widget _buildCommentsSkeleton() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: 6, // Show 6 skeleton comments
+      itemBuilder: (context, index) => Padding(
+        padding: const EdgeInsets.only(bottom: 16.0),
+        child: ShimmerEffect(
+          baseColor: Colors.grey[800]!,
+          highlightColor: Colors.grey[600]!,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Avatar skeleton
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.grey[700],
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Comment content skeleton
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Username skeleton
+                    Container(
+                      width: 120,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[700],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Comment text skeleton
+                    Container(
+                      width: double.infinity,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[700],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      width: 200,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[700],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Time and actions skeleton
+                    Row(
+                      children: [
+                        Container(
+                          width: 60,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[700],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Container(
+                          width: 40,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[700],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Container(
+                          width: 30,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[700],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -267,11 +367,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
           // Comments list
           Expanded(
             child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
-                    ),
-                  )
+                ? _buildCommentsSkeleton()
                 : _comments.isEmpty
                     ? const Center(
                         child: Text(
@@ -349,7 +445,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
                 Container(
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Color(0xFFFFC701),
+                    color: AppTheme.primaryColor,
                   ),
                   child: IconButton(
                     icon: const Icon(Icons.send, color: Colors.black),

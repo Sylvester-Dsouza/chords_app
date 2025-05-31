@@ -5,7 +5,11 @@ class AnimatedSearchBar extends StatefulWidget {
   final String hintText;
   final Function(String) onChanged;
   final VoidCallback onFilterPressed;
+  final VoidCallback? onVoicePressed;
+  final VoidCallback? onFocusChanged;
   final bool isFilterActive;
+  final bool showVoiceSearch;
+  final bool showSuggestions;
   final Color primaryColor;
   final Color backgroundColor;
   final Color textColor;
@@ -14,19 +18,23 @@ class AnimatedSearchBar extends StatefulWidget {
   final Color activeFilterColor;
 
   const AnimatedSearchBar({
-    Key? key,
+    super.key,
     required this.controller,
     required this.hintText,
     required this.onChanged,
     required this.onFilterPressed,
+    this.onVoicePressed,
+    this.onFocusChanged,
     this.isFilterActive = false,
+    this.showVoiceSearch = false,
+    this.showSuggestions = false,
     this.primaryColor = const Color(0xFFC19FFF),
     this.backgroundColor = const Color(0xFF1E1E1E),
     this.textColor = Colors.white,
     this.hintColor = Colors.grey,
     this.iconColor = Colors.grey,
     this.activeFilterColor = const Color(0xFFC19FFF),
-  }) : super(key: key);
+  });
 
   @override
   State<AnimatedSearchBar> createState() => _AnimatedSearchBarState();
@@ -75,6 +83,9 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar> with SingleTicker
     } else {
       _animationController.reverse();
     }
+
+    // Notify parent about focus change
+    widget.onFocusChanged?.call();
   }
 
   @override
@@ -149,6 +160,27 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar> with SingleTicker
                     ),
                   ),
                 ),
+
+                // Voice Search Button (only shown when enabled and no text)
+                if (widget.showVoiceSearch && widget.controller.text.isEmpty && widget.onVoicePressed != null)
+                  AnimatedBuilder(
+                    animation: _animationController,
+                    builder: (context, child) {
+                      return ScaleTransition(
+                        scale: _scaleAnimation,
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.mic,
+                            color: _isFocused ? widget.primaryColor : widget.iconColor,
+                            size: 20,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: widget.onVoicePressed,
+                        ),
+                      );
+                    },
+                  ),
 
                 // Clear Button (only shown when text is entered)
                 if (widget.controller.text.isNotEmpty)

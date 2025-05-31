@@ -17,15 +17,15 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
 
   // Support platform links
   final Map<String, String> _supportLinks = {
-    'Ko-fi': 'https://ko-fi.com/worshipparadise',
-    'Patreon': 'https://www.patreon.com/worshipparadise',
-    'Buy Me a Coffee': 'https://www.buymeacoffee.com/worshipparadise',
-    'GitHub Sponsors': 'https://github.com/sponsors/worshipparadise',
+    'Ko-fi': 'https://ko-fi.com/stuti',
+    'Patreon': 'https://www.patreon.com/stuti',
+    'Buy Me a Coffee': 'https://www.buymeacoffee.com/stuti',
+    'GitHub Sponsors': 'https://github.com/sponsors/stuti',
   };
 
   // Bank details
   final Map<String, String> _bankDetails = {
-    'Account Name': 'Worship Paradise',
+    'Account Name': 'Stuthi',
     'Account Number': '1234567890',
     'Bank Name': 'Example Bank',
     'IFSC Code': 'EXMP0001234',
@@ -33,8 +33,8 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
   };
 
   // UPI details
-  final String _upiId = 'worshipparadise@upi';
-  final String _upiQrData = 'upi://pay?pa=worshipparadise@upi&pn=Worship%20Paradise&am=&cu=INR';
+  final String _upiId = 'stuti@upi';
+  final String _upiQrData = 'upi://pay?pa=stuti@upi&pn=Stuthi&am=&cu=INR';
 
   @override
   void initState() {
@@ -56,7 +56,7 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
         backgroundColor: const Color(0xFF121212),
         elevation: 0,
         title: const Text(
-          'Support Worship Paradise',
+          'Support Stuthi',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         leading: IconButton(
@@ -147,7 +147,7 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
 
           const SizedBox(height: 24),
           const Text(
-            'Note: Please include "Worship Paradise Support" in the transfer description so we can identify your contribution.',
+            'Note: Please include "Stuthi Support" in the transfer description so we can identify your contribution.',
             style: TextStyle(color: Colors.white70, fontSize: 13, fontStyle: FontStyle.italic),
           ),
         ],
@@ -235,7 +235,7 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
             child: TextButton.icon(
               icon: const Icon(Icons.open_in_new),
               label: const Text('Open in UPI App'),
-              onPressed: () => _launchUrl('upi://pay?pa=$_upiId&pn=Worship%20Paradise&am=&cu=INR'),
+              onPressed: () => _launchUrl('upi://pay?pa=$_upiId&pn=Stuthi&am=&cu=INR'),
               style: TextButton.styleFrom(
                 foregroundColor: Theme.of(context).colorScheme.primary,
               ),
@@ -432,8 +432,8 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
 
   void _shareApp() {
     Share.share(
-      'Check out Worship Paradise - a free app for worship song chords! Download it here: https://play.google.com/store/apps/details?id=com.worshipparadise.chords',
-      subject: 'Worship Paradise - Free Worship Song Chords App',
+      'Check out Stuthi - a free app for worship song chords! Download it here: https://stuthi.com/download',
+      subject: 'Stuthi - Free Worship Song Chords App',
     );
   }
 }

@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../utils/toast_util.dart';
 import '../providers/user_provider.dart';
+import '../providers/app_data_provider.dart';
 import '../utils/page_transitions.dart';
+import '../config/theme.dart';
 import 'register_screen.dart';
 import '../screens/main_navigation.dart';
 
@@ -112,6 +114,15 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
             ).setUserData(result['data']);
           }
 
+          // Initialize app data after successful login (non-blocking)
+          if (mounted) {
+            Provider.of<AppDataProvider>(context, listen: false)
+                .initializeAfterLogin()
+                .catchError((e) {
+              debugPrint('Error initializing app data after login: $e');
+            });
+          }
+
           // Navigate to home screen
           _safeNavigate('/home');
         } else {
@@ -186,6 +197,15 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
             context,
             listen: false,
           ).setUserData(result['data']);
+        }
+
+        // Initialize app data after successful login (non-blocking)
+        if (mounted) {
+          Provider.of<AppDataProvider>(context, listen: false)
+              .initializeAfterLogin()
+              .catchError((e) {
+            debugPrint('Error initializing app data after login: $e');
+          });
         }
 
         // Navigate to home screen
@@ -276,7 +296,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                     onPressed: () => SystemNavigator.pop(),
                     child: const Text(
                       'Yes',
-                      style: TextStyle(color: Color(0xFFFFC701)),
+                      style: TextStyle(color: AppTheme.primaryColor),
                     ),
                   ),
                 ],

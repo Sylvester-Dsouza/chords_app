@@ -37,50 +37,17 @@ class _SongRequestScreenState extends State<SongRequestScreen> {
     });
 
     try {
-      // Store the current upvote states before fetching
-      Map<String, bool> currentUpvoteStates = {};
-      for (var request in _songRequests) {
-        currentUpvoteStates[request.id] = request.hasUpvoted;
-      }
-
       final requests = await _songRequestService.getAllSongRequests();
 
       // Debug the hasUpvoted property for each request
+      debugPrint('📋 Loaded ${requests.length} song requests from API:');
       for (var request in requests) {
-        debugPrint('Song request ${request.id} - ${request.songName} - hasUpvoted: ${request.hasUpvoted}');
-
-        // If we have a local upvote state for this request, use it instead of the server state
-        if (currentUpvoteStates.containsKey(request.id)) {
-          bool localUpvoteState = currentUpvoteStates[request.id]!;
-          if (localUpvoteState != request.hasUpvoted) {
-            debugPrint('Using local upvote state for ${request.id}: $localUpvoteState (server: ${request.hasUpvoted})');
-          }
-        }
+        debugPrint('  🎵 ${request.songName} by ${request.artistName ?? "Unknown"} - hasUpvoted: ${request.hasUpvoted} (${request.upvotes} votes)');
       }
 
       setState(() {
-        // Update the list but preserve local upvote states
-        _songRequests = requests.map((request) {
-          // If we have a local upvote state for this request, use it
-          if (currentUpvoteStates.containsKey(request.id)) {
-            return SongRequest(
-              id: request.id,
-              songName: request.songName,
-              artistName: request.artistName,
-              youtubeLink: request.youtubeLink,
-              spotifyLink: request.spotifyLink,
-              notes: request.notes,
-              status: request.status,
-              upvotes: request.upvotes,
-              customerId: request.customerId,
-              createdAt: request.createdAt,
-              updatedAt: request.updatedAt,
-              hasUpvoted: currentUpvoteStates[request.id]!, // Use local state
-            );
-          }
-          return request; // Use server state
-        }).toList();
-
+        // Use the server state directly - it already includes the correct hasUpvoted status from the database
+        _songRequests = requests;
         _isLoading = false;
       });
     } catch (e) {
@@ -357,83 +324,80 @@ class _SongRequestScreenState extends State<SongRequestScreen> {
 
   Widget _buildSongRequestItem(SongRequest request) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2), // Further reduced from 4 to 2
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6), // Slightly smaller radius
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), // Further reduced padding
+        dense: true, // Makes ListTile more compact
         title: Text(
           request.songName,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
-            fontSize: 16,
+            fontSize: 14, // Further reduced from 15
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text(
-              request.artistName ?? 'Unknown Artist',
-              style: const TextStyle(
-                color: Color(0xB3FFFFFF), // White with 70% opacity
-                fontSize: 14,
-              ),
-            ),
-          ],
+        subtitle: Text(
+          request.artistName ?? 'Unknown Artist',
+          style: const TextStyle(
+            color: Color(0xB3FFFFFF), // White with 70% opacity
+            fontSize: 12, // Further reduced from 13
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         leading: Container(
-          width: 60,
-          height: 60,
+          width: 42, // Further reduced from 50
+          height: 42, // Further reduced from 50
           decoration: BoxDecoration(
             color: const Color(0xFF333333),
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(3),
           ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  request.upvotes.toString(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                request.upvotes.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14, // Further reduced from 16
                 ),
-                const Text(
-                  'Votes',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
+              ),
+              const Text(
+                'Votes',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 8, // Further reduced from 10
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
         trailing: SizedBox(
-          width: 56, // Fixed width to prevent overflow
+          width: 44, // Further reduced from 50
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               GestureDetector(
                 onTap: () => _handleUpvote(request),
                 child: Icon(
                   request.hasUpvoted ? Icons.thumb_up : Icons.thumb_up_outlined,
-                  color: request.hasUpvoted ? Theme.of(context).colorScheme.primary : Colors.grey, // Primary color when upvoted
-                  size: 24, // Explicit size
+                  color: request.hasUpvoted ? Theme.of(context).colorScheme.primary : Colors.grey,
+                  size: 20, // Further reduced from 22
                 ),
               ),
-              const SizedBox(height: 2), // Add a small gap
               Text(
                 'Upvote',
                 style: TextStyle(
-                  color: request.hasUpvoted ? Theme.of(context).colorScheme.primary : Colors.grey, // Primary color when upvoted
-                  fontSize: 10, // Smaller font size
+                  color: request.hasUpvoted ? Theme.of(context).colorScheme.primary : Colors.grey,
+                  fontSize: 8, // Further reduced from 9
                 ),
               ),
             ],

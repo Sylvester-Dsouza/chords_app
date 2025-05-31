@@ -27,6 +27,7 @@ class CacheService {
   static const String _keyTopArtists = 'cache_top_artists';
   static const String _keyNewSongs = 'cache_new_songs';
   static const String _keyHomeSections = 'cache_home_sections';
+  static const String _keyBannerImages = 'cache_banner_images';
 
   // Factory constructor
   factory CacheService() {
@@ -62,6 +63,7 @@ class CacheService {
     await prefs.remove(_keyTopArtists);
     await prefs.remove(_keyNewSongs);
     await prefs.remove(_keyHomeSections);
+    await prefs.remove(_keyBannerImages);
 
     debugPrint('All cached data cleared');
   }
@@ -775,6 +777,104 @@ class CacheService {
     } catch (e) {
       debugPrint('Error checking if cache is stale: $e');
       // If there's an error, assume cache is stale to force a refresh
+      return true;
+    }
+  }
+
+  /// Cache banner image metadata (URLs and timestamps)
+  Future<void> cacheBannerImages(List<String> imageUrls) async {
+    try {
+      final cacheData = {
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+        'data': imageUrls,
+      };
+
+      // Save to memory cache
+      _memoryCache[_keyBannerImages] = cacheData;
+
+      // Save to persistent storage
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyBannerImages, json.encode(cacheData));
+
+      debugPrint('Cached ${imageUrls.length} banner image URLs');
+    } catch (e) {
+      debugPrint('Error caching banner images: $e');
+    }
+  }
+
+  /// Get cached banner image URLs
+  Future<List<String>?> getCachedBannerImages() async {
+    try {
+      // First check memory cache
+      if (_memoryCache.containsKey(_keyBannerImages)) {
+        final cacheMap = _memoryCache[_keyBannerImages] as Map<String, dynamic>;
+        final timestamp = cacheMap['timestamp'] as int;
+        final expirationTime = timestamp + (_defaultExpirationMinutes * 60 * 1000);
+
+        // Check if memory cache is still valid
+        if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
+          final imageUrls = (cacheMap['data'] as List).cast<String>();
+          debugPrint('Retrieved ${imageUrls.length} banner image URLs from memory cache');
+          return imageUrls;
+        }
+      }
+
+      // If not in memory or expired, check persistent storage
+      final prefs = await SharedPreferences.getInstance();
+      final cachedData = prefs.getString(_keyBannerImages);
+
+      if (cachedData != null) {
+        final cacheMap = json.decode(cachedData) as Map<String, dynamic>;
+        final timestamp = cacheMap['timestamp'] as int;
+        final expirationTime = timestamp + (_defaultExpirationMinutes * 60 * 1000);
+
+        // Check if persistent cache is still valid
+        if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
+          final imageUrls = (cacheMap['data'] as List).cast<String>();
+
+          // Update memory cache
+          _memoryCache[_keyBannerImages] = cacheMap;
+
+          debugPrint('Retrieved ${imageUrls.length} banner image URLs from persistent cache');
+          return imageUrls;
+        }
+      }
+
+      // No valid cache found
+      return null;
+    } catch (e) {
+      debugPrint('Error getting cached banner images: $e');
+      return null;
+    }
+  }
+
+  /// Check if banner images have changed by comparing URLs
+  Future<bool> haveBannerImagesChanged(List<String> newImageUrls) async {
+    try {
+      final cachedUrls = await getCachedBannerImages();
+
+      if (cachedUrls == null) {
+        // No cache exists, so images have "changed"
+        return true;
+      }
+
+      // Compare the lists
+      if (cachedUrls.length != newImageUrls.length) {
+        return true;
+      }
+
+      // Check if all URLs match
+      for (int i = 0; i < cachedUrls.length; i++) {
+        if (cachedUrls[i] != newImageUrls[i]) {
+          return true;
+        }
+      }
+
+      // All URLs match
+      return false;
+    } catch (e) {
+      debugPrint('Error checking if banner images changed: $e');
+      // If there's an error, assume they've changed to force a refresh
       return true;
     }
   }

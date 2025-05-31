@@ -2,17 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
-// AdMob imports removed to fix crashing issues
-// import '../widgets/banner_ad_widget.dart';
-// import '../services/ad_service.dart';
 import '../providers/navigation_provider.dart';
+import '../providers/app_data_provider.dart';
+import '../providers/screen_state_provider.dart';
 import '../widgets/app_drawer.dart';
 import '../providers/user_provider.dart';
 import '../models/collection.dart';
 import '../models/song.dart';
 import '../models/artist.dart';
 import '../widgets/sliding_banner.dart';
+import '../widgets/memory_efficient_image.dart';
+import '../widgets/skeleton_loader.dart';
 import '../services/notification_service.dart';
+import '../services/cache_service.dart';
 import '../services/home_section_service.dart';
 import './list_screen.dart';
 
@@ -26,7 +28,6 @@ class HomeScreenNew extends StatefulWidget {
 class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserver {
 
   // Services
-  final HomeSectionService _homeSectionService = HomeSectionService();
   // AdService removed to fix crashing issues
   // final AdService _adService = AdService();
 
@@ -53,46 +54,61 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
     // Register this object as an observer for app lifecycle changes
     WidgetsBinding.instance.addObserver(this);
 
+    // Listen to AppDataProvider changes for automatic updates
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appDataProvider = Provider.of<AppDataProvider>(context, listen: false);
+      appDataProvider.addListener(_onAppDataProviderChanged);
+    });
+
     // Check login state after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkLoginState();
 
-      // Sync with navigation provider
+      // Sync with navigation provider and screen state
       final navigationProvider = Provider.of<NavigationProvider>(context, listen: false);
+      final screenStateProvider = Provider.of<ScreenStateProvider>(context, listen: false);
+
       navigationProvider.updateIndex(0); // Home screen is index 0
+      screenStateProvider.navigateToScreen(ScreenType.home);
+      screenStateProvider.markScreenInitialized(ScreenType.home);
 
-      // Only clear image cache on first load, not on every navigation
-      if (!_dataInitiallyLoaded) {
-        _clearImageCache();
-      }
+      // Check if we already have data from AppDataProvider
+      final appDataProvider = Provider.of<AppDataProvider>(context, listen: false);
 
-      // Check if app was recently opened (within last 5 seconds)
-      // This helps identify app startup vs normal navigation
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final lastOpenTime = _getLastOpenTime();
-      final timeSinceLastOpen = now - lastOpenTime;
+      if (appDataProvider.homeSections.isNotEmpty && appDataProvider.homeState == DataState.loaded) {
+        // Use existing data from AppDataProvider
+        debugPrint('Home: Using existing data from AppDataProvider (${appDataProvider.homeSections.length} sections)');
+        setState(() {
+          _homeSections = appDataProvider.homeSections;
+          _isLoadingHomeSections = false;
+          _dataInitiallyLoaded = true;
+          _lastRefreshTime = DateTime.now().millisecondsSinceEpoch;
+        });
 
-      if (timeSinceLastOpen > 5000 && !_dataInitiallyLoaded) { // More than 5 seconds since last open and data not loaded
-        debugPrint('App was reopened after ${timeSinceLastOpen}ms, refreshing data...');
-        // Force refresh on app reopen only if data hasn't been loaded yet
-        _fetchHomeSections(forceRefresh: true);
+        // Check if background refresh is needed
+        _checkForBackgroundRefresh();
       } else if (!_dataInitiallyLoaded) {
-        debugPrint('Normal navigation to home screen, using cached data if available');
+        // Only load data if we don't have it yet
+        debugPrint('Home: No existing data, loading from cache/API...');
+
+        // Clear image cache only on first load
+        _clearImageCache();
+
+        // Initialize app data if needed
+        if (appDataProvider.homeState == DataState.loading && appDataProvider.homeSections.isEmpty) {
+          debugPrint('Home: App data not initialized, initializing now...');
+          appDataProvider.initializeAfterLogin().catchError((e) {
+            debugPrint('Error initializing app data from home screen: $e');
+          });
+        }
+
+        // Load home sections
         _fetchHomeSections();
       } else {
-        debugPrint('Data already loaded, skipping refresh');
-        // If data is already loaded, just check if we need a background refresh
+        debugPrint('Home: Data already loaded, skipping refresh');
         _checkForBackgroundRefresh();
       }
-
-      // Save current time as last open time
-      _saveLastOpenTime(now);
     });
-
-    // Load dynamic home sections only if not already loaded
-    if (!_dataInitiallyLoaded) {
-      _fetchHomeSections();
-    }
 
     // Load notification count
     _fetchUnreadNotificationCount();
@@ -102,7 +118,38 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
   void dispose() {
     // Unregister this object as an observer when the widget is disposed
     WidgetsBinding.instance.removeObserver(this);
+
+    // Remove listener from AppDataProvider
+    try {
+      final appDataProvider = Provider.of<AppDataProvider>(context, listen: false);
+      appDataProvider.removeListener(_onAppDataProviderChanged);
+    } catch (e) {
+      debugPrint('Error removing AppDataProvider listener: $e');
+    }
+
     super.dispose();
+  }
+
+  // Listen to AppDataProvider changes and update home sections automatically
+  void _onAppDataProviderChanged() {
+    if (!mounted) return;
+
+    final appDataProvider = Provider.of<AppDataProvider>(context, listen: false);
+
+    // Only update if we have new data and it's different from current data
+    if (appDataProvider.homeSections.isNotEmpty &&
+        appDataProvider.homeState == DataState.loaded &&
+        (_homeSections.length != appDataProvider.homeSections.length ||
+         _hasContentChanged(_homeSections, appDataProvider.homeSections))) {
+
+      debugPrint('📱 Home: AppDataProvider updated, refreshing UI with new data');
+      setState(() {
+        _homeSections = appDataProvider.homeSections;
+        _isLoadingHomeSections = false;
+        _dataInitiallyLoaded = true;
+        _lastRefreshTime = DateTime.now().millisecondsSinceEpoch;
+      });
+    }
   }
 
   // Check if we need to refresh data in the background
@@ -112,40 +159,19 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
 
     // Only refresh in background if it's been more than the minimum interval
     if (timeSinceLastRefresh > _minRefreshInterval) {
-      debugPrint('Background refresh check: Last refresh was ${timeSinceLastRefresh}ms ago, refreshing in background');
-      _homeSectionService.refreshHomeSectionsInBackground().then((_) {
-        // After background refresh completes, check if we have new data
-        _checkForNewData();
-      });
+      debugPrint('Background refresh check: Last refresh was ${timeSinceLastRefresh}ms ago, triggering background refresh via AppDataProvider');
+
+      // Use AppDataProvider for background refresh instead of direct service call
+      final appDataProvider = Provider.of<AppDataProvider>(context, listen: false);
+      appDataProvider.getHomeSections(forceRefresh: false); // This will trigger background refresh if needed
+
       _lastRefreshTime = now;
     } else {
       debugPrint('Background refresh check: Last refresh was ${timeSinceLastRefresh}ms ago, skipping refresh');
     }
   }
 
-  // Check if there's new data available after a background refresh
-  Future<void> _checkForNewData() async {
-    if (!mounted) return;
 
-    try {
-      final cachedSections = await _homeSectionService.getCachedHomeSections(checkOnly: true);
-      if (cachedSections != null && cachedSections.isNotEmpty && mounted) {
-        // Only update UI if the data has actually changed
-        if (_homeSections.length != cachedSections.length ||
-            _homeSections.isEmpty ||
-            _hasContentChanged(_homeSections, cachedSections)) {
-          setState(() {
-            _homeSections = cachedSections;
-            debugPrint('Updated home sections with new data from background refresh');
-          });
-        } else {
-          debugPrint('No changes detected in background refresh data');
-        }
-      }
-    } catch (e) {
-      debugPrint('Error checking for new data: $e');
-    }
-  }
 
   // Helper method to check if content has changed
   bool _hasContentChanged(List<HomeSection> oldSections, List<HomeSection> newSections) {
@@ -168,22 +194,11 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
     switch (state) {
       case AppLifecycleState.resumed:
         // App is in the foreground and visible to the user
-        debugPrint('App resumed - checking if refresh needed');
+        debugPrint('App resumed - checking if background refresh needed');
 
-        // Only refresh if it's been more than the minimum interval since last refresh
-        final now = DateTime.now().millisecondsSinceEpoch;
-        final timeSinceLastRefresh = now - _lastRefreshTime;
-
-        if (timeSinceLastRefresh > _minRefreshInterval) {
-          debugPrint('Last refresh was ${timeSinceLastRefresh}ms ago, refreshing in background');
-          // Instead of forcing a refresh that blocks the UI, refresh in background
-          _homeSectionService.refreshHomeSectionsInBackground().then((_) {
-            // After background refresh completes, check if we have new data
-            _checkForNewData();
-          });
-          _lastRefreshTime = now;
-        } else {
-          debugPrint('Last refresh was ${timeSinceLastRefresh}ms ago, skipping refresh');
+        // Only trigger background refresh if data is stale and we're on home screen
+        if (_dataInitiallyLoaded) {
+          _checkForBackgroundRefresh();
         }
         break;
       case AppLifecycleState.inactive:
@@ -194,12 +209,12 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
         break;
       case AppLifecycleState.paused:
         // App is in the background
-        debugPrint('App paused - saving state');
-        // Save any important state here, but don't clear caches
+        debugPrint('App paused - no action needed');
+        // Don't clear caches or trigger refreshes
         break;
       case AppLifecycleState.detached:
         // App is detached (terminated)
-        debugPrint('App detached - saving state before exit');
+        debugPrint('App detached - no action needed');
         // Don't clear cache on detach, as we want to keep data for next launch
         break;
       default:
@@ -218,6 +233,17 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       debugPrint('Cleared live images from cache');
     } catch (e) {
       debugPrint('Error clearing image cache: $e');
+    }
+  }
+
+  // Cache banner image URLs for future comparison
+  Future<void> _cacheBannerImages(List<String> imageUrls) async {
+    try {
+      final cacheService = CacheService();
+      await cacheService.cacheBannerImages(imageUrls);
+      debugPrint('🖼️ Cached ${imageUrls.length} banner image URLs');
+    } catch (e) {
+      debugPrint('Error caching banner images: $e');
     }
   }
 
@@ -249,46 +275,29 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
 
 
 
-  // Get the last time the app was opened from shared preferences
-  int _getLastOpenTime() {
-    try {
-      // Use shared preferences to get the last open time
-      // For simplicity, we're using a static variable here
-      // In a real app, you would use SharedPreferences
-      return _HomeScreenNewState._lastOpenTime;
-    } catch (e) {
-      debugPrint('Error getting last open time: $e');
-      return 0; // Default to 0 if not found
-    }
-  }
 
-  // Save the current time as the last open time
-  void _saveLastOpenTime(int timestamp) {
-    try {
-      // Use shared preferences to save the last open time
-      // For simplicity, we're using a static variable here
-      // In a real app, you would use SharedPreferences
-      _HomeScreenNewState._lastOpenTime = timestamp;
-    } catch (e) {
-      debugPrint('Error saving last open time: $e');
-    }
-  }
 
-  // Static variable to store last open time
-  // In a real app, you would use SharedPreferences instead
-  static int _lastOpenTime = 0;
-
-  // Fetch dynamic home sections
+  // Fetch dynamic home sections using global data provider
   Future<void> _fetchHomeSections({bool forceRefresh = false}) async {
     try {
-      // Only show loading indicator if data isn't already loaded
-      if (!_dataInitiallyLoaded) {
+      final appDataProvider = Provider.of<AppDataProvider>(context, listen: false);
+      final screenStateProvider = Provider.of<ScreenStateProvider>(context, listen: false);
+
+      // Check if we already have fresh data and don't need to refresh
+      if (!forceRefresh && _dataInitiallyLoaded && _homeSections.isNotEmpty) {
+        debugPrint('📱 Home: Data already loaded and fresh, skipping fetch');
+        return;
+      }
+
+      // Only show loading indicator if we don't have any data yet
+      if (_homeSections.isEmpty) {
         setState(() {
           _isLoadingHomeSections = true;
         });
       }
 
-      final sections = await _homeSectionService.getHomeSections(forceRefresh: forceRefresh);
+      // Get sections from global provider (uses smart caching)
+      final sections = await appDataProvider.getHomeSections(forceRefresh: forceRefresh);
 
       if (mounted) {
         setState(() {
@@ -298,10 +307,13 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
           _lastRefreshTime = DateTime.now().millisecondsSinceEpoch; // Update last refresh time
         });
 
-        debugPrint('Fetched ${sections.length} dynamic home sections');
+        // Mark data as refreshed in screen state provider
+        screenStateProvider.markDataRefreshed(ScreenType.home);
+
+        debugPrint('📱 Home: Loaded ${sections.length} sections from global provider');
       }
     } catch (e) {
-      debugPrint('Error fetching home sections: $e');
+      debugPrint('❌ Home: Error fetching sections: $e');
       if (mounted) {
         setState(() {
           _isLoadingHomeSections = false;
@@ -310,6 +322,8 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       }
     }
   }
+
+
 
   Future<void> _checkLoginState() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
@@ -336,12 +350,9 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
     }
   }
 
-  // Helper method to create a color with opacity without using withOpacity
+  // Helper method to create a color with opacity using the new API
   Color _getColorWithOpacity(Color color, double opacity) {
-    // For now, we'll use withOpacity but suppress the warning
-    // This is a temporary solution until we can properly implement it
-    // ignore: deprecated_member_use
-    return color.withOpacity(opacity);
+    return color.withValues(alpha: opacity);
   }
 
   // Navigate to the appropriate list screen based on the section title and type
@@ -369,6 +380,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
           listType = ListType.collections;
           break;
         case SectionType.SONGS:
+        case SectionType.SONG_LIST:
           listType = ListType.songs;
           break;
         case SectionType.ARTISTS:
@@ -418,9 +430,14 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
               ),
         ),
         title: const Text(
-          'Stuthi Christian Chords & Lyrics',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          'Stuthi Chords & Lyrics',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
         ),
+        centerTitle: true,
         actions: [
           Stack(
             children: [
@@ -499,6 +516,8 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
                       ],
                   ],
 
+
+
             // Support Us section
             _buildSupportUsSection(),
 
@@ -546,8 +565,12 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
                     _navigateToSeeMore(title, sectionType: sectionType);
                   },
                   child: Text(
-                    'See more',
-                    style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 14),
+                    'See all',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -580,18 +603,12 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
 
 
   Widget _buildLoadingIndicator() {
-    return Container(
-      constraints: const BoxConstraints(
-        minHeight: 120, // Minimum height to match horizontal scroll section
-        maxHeight: 170, // Maximum height to match horizontal scroll section
-      ),
-      height: 140, // Default height to match horizontal scroll section
-      margin: const EdgeInsets.only(bottom: 16.0), // Reduced bottom margin
-      child: Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
-        ),
-      ),
+    return Column(
+      children: [
+        HomeSectionSkeleton(type: SectionType.COLLECTIONS),
+        HomeSectionSkeleton(type: SectionType.SONGS),
+        HomeSectionSkeleton(type: SectionType.ARTISTS),
+      ],
     );
   }
 
@@ -622,9 +639,9 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       Colors.purple,
       Colors.pink,
       Colors.teal,
-      Colors.amber,
       Colors.indigo,
       Colors.cyan,
+      Colors.deepPurple,
     ];
 
     // Return a random color from the list
@@ -657,54 +674,24 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
               // No gradient overlay to keep image clear
             ),
             child: collection?.imageUrl != null
-              ? ClipRRect(
+              ? MemoryEfficientImage(
+                  imageUrl: collection!.imageUrl!,
+                  width: 400, // Use reasonable fixed size instead of infinity
+                  height: 225, // 16:9 aspect ratio (400 * 9/16 = 225)
+                  fit: BoxFit.cover,
                   borderRadius: BorderRadius.circular(8.0),
-                  child: CachedNetworkImage(
-                    imageUrl: collection!.imageUrl!,
-                    fit: BoxFit.cover,
-                    // Use these settings for better image loading
-                    fadeInDuration: const Duration(milliseconds: 300),
-                    // Add a cache key with timestamp to force refresh
-                    cacheKey: '${collection.imageUrl}_${DateTime.now().day}',
-                    placeholder: (context, url) => Center(
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
-                        strokeWidth: 2,
-                      ),
+                  placeholder: Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+                      strokeWidth: 2,
                     ),
-                    errorWidget: (context, url, error) {
-                      debugPrint('Error loading collection image: ${collection.title} - $url');
-                      debugPrint('Error details: $error');
-
-                      // Try to refresh the image by adding a timestamp to the URL
-                      final timestamp = DateTime.now().millisecondsSinceEpoch;
-                      final refreshedUrl = '$url?t=$timestamp';
-
-                      // Return a new CachedNetworkImage with the refreshed URL
-                      return CachedNetworkImage(
-                        imageUrl: refreshedUrl,
-                        fit: BoxFit.cover,
-                        fadeInDuration: const Duration(milliseconds: 300),
-                        // Force network request with a unique cache key
-                        cacheKey: '${refreshedUrl}_retry_$timestamp',
-                        placeholder: (context, url) => const Center(
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
-                            strokeWidth: 2,
-                          ),
-                        ),
-                        errorWidget: (context, url, error) {
-                          // If still failing, show fallback icon
-                          return Center(
-                            child: Icon(
-                              Icons.collections_bookmark,
-                              color: Colors.white,
-                              size: 40,
-                            ),
-                          );
-                        },
-                      );
-                    },
+                  ),
+                  errorWidget: Center(
+                    child: Icon(
+                      Icons.collections_bookmark,
+                      color: Colors.white,
+                      size: 40,
+                    ),
                   ),
                 )
               : Center(
@@ -774,43 +761,22 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
                         ) : null,
                       ),
                       child: song?.imageUrl != null
-                        ? ClipRRect(
+                        ? MemoryEfficientImage(
+                            imageUrl: song!.imageUrl!,
+                            width: imageSize,
+                            height: imageSize,
+                            fit: BoxFit.cover,
                             borderRadius: BorderRadius.circular(8.0),
-                            child: CachedNetworkImage(
-                              imageUrl: song!.imageUrl!,
-                              fit: BoxFit.cover,
-                              fadeInDuration: const Duration(milliseconds: 300),
-                              cacheKey: '${song.imageUrl}_${DateTime.now().day}',
-                              placeholder: (context, url) => Center(
-                                child: CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
-                                  strokeWidth: 2,
-                                ),
+                            placeholder: Center(
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+                                strokeWidth: 2,
                               ),
-                              errorWidget: (context, url, error) {
-                                debugPrint('Error loading song image: ${song.title} - $url');
-                                final timestamp = DateTime.now().millisecondsSinceEpoch;
-                                final refreshedUrl = '$url?t=$timestamp';
-                                return CachedNetworkImage(
-                                  imageUrl: refreshedUrl,
-                                  fit: BoxFit.cover,
-                                  fadeInDuration: const Duration(milliseconds: 300),
-                                  cacheKey: '${refreshedUrl}_retry_$timestamp',
-                                  placeholder: (context, url) => Center(
-                                    child: CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
-                                      strokeWidth: 2,
-                                    ),
-                                  ),
-                                  errorWidget: (context, url, error) {
-                                    return Icon(
-                                      Icons.music_note,
-                                      color: Colors.white,
-                                      size: 40,
-                                    );
-                                  },
-                                );
-                              },
+                            ),
+                            errorWidget: Icon(
+                              Icons.music_note,
+                              color: Colors.white,
+                              size: 40,
                             ),
                           )
                         : Center(
@@ -895,45 +861,22 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
                     ),
                     child: artist?.imageUrl != null
                         ? ClipOval(
-                            child: CachedNetworkImage(
+                            child: MemoryEfficientImage(
                               imageUrl: artist!.imageUrl!,
-                              fit: BoxFit.cover,
                               width: imageSize,
                               height: imageSize,
-                              fadeInDuration: const Duration(milliseconds: 300),
-                              cacheKey: '${artist.imageUrl}_${DateTime.now().day}',
-                              placeholder: (context, url) => const Center(
+                              fit: BoxFit.cover,
+                              placeholder: Center(
                                 child: CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                   strokeWidth: 2,
                                 ),
                               ),
-                              errorWidget: (context, url, error) {
-                                debugPrint('Error loading artist image: ${artist.name} - $url');
-                                final timestamp = DateTime.now().millisecondsSinceEpoch;
-                                final refreshedUrl = '$url?t=$timestamp';
-                                return CachedNetworkImage(
-                                  imageUrl: refreshedUrl,
-                                  fit: BoxFit.cover,
-                                  width: imageSize,
-                                  height: imageSize,
-                                  fadeInDuration: const Duration(milliseconds: 300),
-                                  cacheKey: '${refreshedUrl}_retry_$timestamp',
-                                  placeholder: (context, url) => const Center(
-                                    child: CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
-                                      strokeWidth: 2,
-                                    ),
-                                  ),
-                                  errorWidget: (context, url, error) {
-                                    return Icon(
-                                      Icons.person,
-                                      color: Colors.white,
-                                      size: imageSize * 0.5,
-                                    );
-                                  },
-                                );
-                              },
+                              errorWidget: Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: imageSize * 0.5,
+                              ),
                             ),
                           )
                         : Icon(
@@ -971,6 +914,9 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
     if (section.items.isEmpty) {
       return _buildEmptyState('No banner items available');
     }
+
+    // Extract image URLs for caching
+    List<String> imageUrls = [];
 
     // Create banner items from the section items
     List<BannerItem> bannerItems = [];
@@ -1025,6 +971,9 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
 
       // If we have an image URL, create a banner item
       if (imageUrl != null) {
+        // Add to image URLs list for caching
+        imageUrls.add(imageUrl);
+
         bannerItems.add(
           BannerItem(
             imageUrl: imageUrl,
@@ -1035,6 +984,9 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
         );
       }
     }
+
+    // Cache banner image URLs for future comparison
+    _cacheBannerImages(imageUrls);
 
     // If we couldn't create any banner items, show a placeholder
     if (bannerItems.isEmpty) {
@@ -1116,7 +1068,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
 
               // Description
               const Text(
-                'Worship Paradise is and will always be free for everyone. If you find value in our app, consider supporting us to help with server costs and new features.',
+                'Stuthi is and will always be free for everyone. If you find value in our app, consider supporting us to help with server costs and new features.',
                 style: TextStyle(
                   color: Colors.white70,
                   fontSize: 14,
@@ -1166,7 +1118,12 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) => Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: EdgeInsets.only(
+          left: 24.0,
+          right: 24.0,
+          top: 24.0,
+          bottom: 24.0 + MediaQuery.of(context).padding.bottom, // Add safe area bottom padding
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1221,9 +1178,9 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
   // Launch app store for rating
   void _launchAppStore() {
     // For Android
-    const playStoreUrl = 'market://details?id=com.worshipparadise.chords';
+    const playStoreUrl = 'market://details?id=com.stuti.chords';
     // For iOS
-    const appStoreUrl = 'https://apps.apple.com/app/worship-paradise/id123456789';
+    const appStoreUrl = 'https://apps.apple.com/app/stuti/id123456789';
 
     try {
       if (Theme.of(context).platform == TargetPlatform.android) {
@@ -1235,7 +1192,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       debugPrint('Could not launch store: $e');
       // Fallback to web URL if app store doesn't open
       launchUrl(
-        Uri.parse('https://worshipparadise.com/app'),
+        Uri.parse('https://stuti.com/app'),
         mode: LaunchMode.externalApplication,
       );
     }
@@ -1245,7 +1202,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
   void _shareApp() {
     // Use URL launcher to open a share intent
     final url = Uri.parse(
-      'https://play.google.com/store/apps/details?id=com.worshipparadise.chords'
+      'https://play.google.com/store/apps/details?id=com.stuti.chords'
     );
     launchUrl(url, mode: LaunchMode.externalApplication);
   }
@@ -1279,6 +1236,12 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       onTap: onTap,
     );
   }
+
+
+
+
+
+
 
   // Build section content based on section type
   Widget _buildSectionContent(HomeSection section) {
@@ -1325,6 +1288,187 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       case SectionType.BANNER:
         // Banner sections are now handled by _buildBannerSection
         return _buildEmptyState('Banner section (should not be shown here)');
+
+      case SectionType.SONG_LIST:
+        debugPrint('Building SONG_LIST section: ${section.title} with ${section.items.length} items');
+
+        // Convert items to Song objects manually to ensure proper conversion
+        List<Song> songs = [];
+        for (var item in section.items) {
+          try {
+            if (item is Song) {
+              songs.add(item);
+            } else if (item is Map<String, dynamic>) {
+              songs.add(Song.fromJson(item));
+            } else {
+              debugPrint('Unknown item type: ${item.runtimeType}');
+            }
+          } catch (e) {
+            debugPrint('Error converting item to Song: $e');
+          }
+        }
+
+        debugPrint('Converted ${songs.length} items to Song objects');
+
+        return songs.isEmpty
+          ? _buildEmptyState('No songs available')
+          : _buildSongListSection(songs);
     }
+  }
+
+  // Build a compact song list section
+  Widget _buildSongListSection(List<Song> songs) {
+    debugPrint('Building song list section with ${songs.length} songs');
+    if (songs.isEmpty) {
+      return _buildEmptyState('No songs available');
+    }
+
+    if (songs.isNotEmpty) {
+      debugPrint('First song: ${songs.first.title} by ${songs.first.artist}');
+    }
+
+    // Ensure we have valid songs with required fields
+    final validSongs = songs.where((song) =>
+      song.id.isNotEmpty &&
+      song.title.isNotEmpty
+    ).toList();
+
+    debugPrint('Found ${validSongs.length} valid songs out of ${songs.length}');
+
+    if (validSongs.isEmpty) {
+      return _buildEmptyState('No valid songs available');
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: ListView.builder(
+        physics: const NeverScrollableScrollPhysics(),
+        shrinkWrap: true,
+        itemCount: validSongs.length > 8 ? 8 : validSongs.length, // Limit to 8 songs for a compact view
+        itemBuilder: (context, index) {
+          final song = validSongs[index];
+          debugPrint('Building song item $index: ${song.title}');
+          return _buildCompactSongItem(song);
+        },
+      ),
+    );
+  }
+
+  // Build a compact song item for the list layout
+  Widget _buildCompactSongItem(Song song) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: () {
+            Navigator.pushNamed(
+              context,
+              '/song_detail',
+              arguments: song,
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              children: [
+                // Song thumbnail
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: _getColorWithOpacity(_getRandomColor(), 0.2),
+                    borderRadius: BorderRadius.circular(6.0),
+                  ),
+                  child: song.imageUrl != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(6.0),
+                        child: CachedNetworkImage(
+                          imageUrl: song.imageUrl!,
+                          fit: BoxFit.cover,
+                          fadeInDuration: const Duration(milliseconds: 300),
+                          placeholder: (context, url) => Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+                                strokeWidth: 2,
+                              ),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => const Icon(
+                            Icons.music_note,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                      )
+                    : const Center(
+                        child: Icon(
+                          Icons.music_note,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                ),
+
+                const SizedBox(width: 16),
+
+                // Song info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Song title
+                      Text(
+                        song.title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 15,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      // Artist name only
+                      Text(
+                        song.artist,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 13,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Song key
+                if (song.key.isNotEmpty)
+                  Text(
+                    song.key,
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        // Add a subtle separator that starts from the song title
+        Padding(
+          padding: const EdgeInsets.only(left: 66.0, right: 16.0),
+          child: Container(
+            height: 0.5,
+            color: _getColorWithOpacity(Colors.grey, 0.15),
+          ),
+        ),
+      ],
+    );
   }
 }

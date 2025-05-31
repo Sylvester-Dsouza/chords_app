@@ -28,7 +28,7 @@ class OptimizedListItem extends StatelessWidget {
     return OptimizedListItem(
       title: song.title,
       subtitle: song.artist,
-      color: Colors.blue.withOpacity(0.3), // Default color
+      color: Colors.blue.withValues(alpha: 0.3), // Default color
       imageUrl: song.imageUrl,
       onTap: onTap,
     );
@@ -38,7 +38,7 @@ class OptimizedListItem extends StatelessWidget {
   factory OptimizedListItem.fromArtist(Artist artist, {required VoidCallback onTap}) {
     return OptimizedListItem(
       title: artist.name,
-      color: Colors.purple.withOpacity(0.3), // Default color
+      color: Colors.purple.withValues(alpha: 0.3), // Default color
       imageUrl: artist.imageUrl,
       onTap: onTap,
     );
@@ -59,7 +59,7 @@ class OptimizedListItem extends StatelessWidget {
     if (isLoading) {
       return _buildLoadingItem();
     }
-    
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -101,7 +101,7 @@ class OptimizedListItem extends StatelessWidget {
                     : null,
               ),
             ),
-            
+
             // Title and subtitle
             Padding(
               padding: const EdgeInsets.all(8.0),
@@ -162,7 +162,7 @@ class OptimizedListItem extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // Shimmer effect for text
           Padding(
             padding: const EdgeInsets.all(8.0),

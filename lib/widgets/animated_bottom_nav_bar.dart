@@ -83,7 +83,7 @@ class _AnimatedBottomNavBarState extends State<AnimatedBottomNavBar> with Single
         unselectedLabelStyle: const TextStyle(fontSize: 12),
         items: [
           _buildNavItem(Icons.home_filled, 'Home', 0),
-          _buildNavItem(Icons.queue_music, 'My Playlist', 1),
+          _buildNavItem(Icons.queue_music, 'My Setlist', 1),
           _buildNavItem(Icons.search, 'Search', 2),
           _buildNavItem(Icons.article_outlined, 'Resources', 3),
           _buildNavItem(Icons.person, 'Profile', 4),

@@ -162,3 +162,31 @@ class AppTheme {
     fontWeight: FontWeight.w500,
   );
 }
+
+/// Logo assets helper class
+class AppLogos {
+  // Logo asset paths
+  static const String logoDark = 'assets/images/stuthi logo dark.png';
+  static const String logoLight = 'assets/images/stuthi logo light.png';
+  static const String logoPurple = 'assets/images/stuthi logo purple.png';
+
+  /// Get the appropriate logo based on theme and context
+  static String getLogoForTheme({bool isDarkTheme = true}) {
+    return isDarkTheme ? logoLight : logoDark;
+  }
+
+  /// Get logo for splash screen (always use the purple/branded version)
+  static String getSplashLogo() {
+    return logoPurple;
+  }
+
+  /// Get logo for app bar (use light version for dark theme)
+  static String getAppBarLogo() {
+    return logoLight;
+  }
+
+  /// Get logo for drawer (use light version for dark theme)
+  static String getDrawerLogo() {
+    return logoLight;
+  }
+}

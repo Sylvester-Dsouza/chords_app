@@ -6,7 +6,10 @@ import 'services/cache_service.dart';
 import 'services/auth_service.dart';
 import 'services/api_service.dart';
 import 'providers/navigation_provider.dart';
-import 'screens/playlist_detail_screen.dart';
+import 'providers/app_data_provider.dart';
+import 'providers/screen_state_provider.dart';
+import 'screens/setlist_detail_screen.dart';
+import 'screens/setlist_presentation_screen.dart';
 import 'screens/main_navigation.dart';
 import 'screens/artist_detail_screen.dart';
 import 'screens/collection_detail_screen.dart';
@@ -25,11 +28,11 @@ import 'screens/privacy_policy_screen.dart';
 import 'screens/personal_details_screen.dart';
 import 'screens/rate_app_screen.dart';
 import 'screens/support_screen.dart';
-import 'screens/remove_ads_screen.dart';
 import 'screens/liked_collections_screen.dart';
-// Premium content screen removed to fix crashing issues
-// import 'screens/premium_content_screen.dart';
+import 'screens/join_setlist_screen.dart';
+import 'screens/qr_scanner_screen.dart';
 import 'services/notification_service.dart';
+import 'services/deep_link_service.dart';
 import 'config/firebase_config.dart';
 import 'config/theme.dart';
 import 'providers/user_provider.dart';
@@ -78,6 +81,14 @@ void main() async {
   await CacheService().initialize();
   debugPrint('Cache service initialized');
 
+  // Initialize permission service (but don't request permissions at startup)
+  try {
+    debugPrint('Permission service available for use');
+  } catch (e) {
+    debugPrint('Error with permission service: $e');
+    // Continue anyway to allow the app to start
+  }
+
   // AdMob initialization removed to fix crashing issues
   debugPrint('AdMob has been completely removed from the app');
 
@@ -85,12 +96,22 @@ void main() async {
   final userProvider = UserProvider();
   await userProvider.initialize();
 
+  // Initialize global data provider (but don't load data yet)
+  final appDataProvider = AppDataProvider();
+  // Remove heavy data loading during app startup - defer until after login
+  // await appDataProvider.initializeAppData();
+
+  // Initialize screen state provider
+  final screenStateProvider = ScreenStateProvider();
+
   // Run the app with the splash screen as initial route
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: userProvider),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
+        ChangeNotifierProvider.value(value: appDataProvider),
+        ChangeNotifierProvider.value(value: screenStateProvider),
       ],
       child: const MyApp(),
     ),
@@ -100,14 +121,36 @@ void main() async {
 // Create a global navigator key
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final DeepLinkService _deepLinkService = DeepLinkService();
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize deep link service after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _deepLinkService.initialize(context);
+    });
+  }
+
+  @override
+  void dispose() {
+    _deepLinkService.dispose();
+    super.dispose();
+  }
 
   // Helper method to get the page widget for a named route
   Widget? _getPageForRouteName(String? routeName, Object? arguments) {
     switch (routeName) {
       case '/home':
-      case '/playlist':
+      case '/setlist':
       case '/search':
       case '/resources':
       case '/profile':
@@ -155,7 +198,7 @@ class MyApp extends StatelessWidget {
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
           '/forgot-password': (context) => const ForgotPasswordScreen(),
-          '/playlist': (context) => const MainNavigation(),
+          '/setlist': (context) => const MainNavigation(),
           '/search': (context) => const MainNavigation(),
           '/resources': (context) => const MainNavigation(),
           '/profile': (context) => const MainNavigation(),
@@ -166,12 +209,20 @@ class MyApp extends StatelessWidget {
         },
         onGenerateRoute: (settings) {
           // Import our custom page transitions
-          if (settings.name == '/playlist_detail') {
+          if (settings.name == '/setlist_detail') {
             final args = settings.arguments as Map<String, dynamic>;
             return FadeSlidePageRoute(
-              page: PlaylistDetailScreen(
-                playlistId: args['playlistId'] ?? '',
-                playlistName: args['playlistName'],
+              page: SetlistDetailScreen(
+                setlistId: args['setlistId'] ?? '',
+                setlistName: args['setlistName'],
+              ),
+            );
+          } else if (settings.name == '/setlist_presentation') {
+            final args = settings.arguments as Map<String, dynamic>;
+            return FadeSlidePageRoute(
+              page: SetlistPresentationScreen(
+                setlistName: args['setlistName'] ?? 'Setlist',
+                songs: List<Map<String, dynamic>>.from(args['songs'] ?? []),
               ),
             );
           } else if (settings.name == '/artist_detail') {
@@ -210,13 +261,20 @@ class MyApp extends StatelessWidget {
             return FadeSlidePageRoute(
               page: const SupportScreen(),
             );
-          } else if (settings.name == '/remove-ads') {
-            return FadeSlidePageRoute(
-              page: const RemoveAdsScreen(),
-            );
           } else if (settings.name == '/liked-collections') {
             return FadeSlidePageRoute(
               page: const LikedCollectionsScreen(),
+            );
+          } else if (settings.name == '/join-setlist') {
+            final args = settings.arguments as Map<String, dynamic>?;
+            return FadeSlidePageRoute(
+              page: JoinSetlistScreen(
+                shareCode: args?['shareCode'],
+              ),
+            );
+          } else if (settings.name == '/qr-scanner') {
+            return FadeSlidePageRoute(
+              page: const QRScannerScreen(),
             );
           // Premium content screen removed to fix crashing issues
           // } else if (settings.name == '/premium-content') {

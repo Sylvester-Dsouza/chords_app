@@ -208,8 +208,17 @@ class ChordFormatter extends StatelessWidget {
 
   // Transpose a chord by the given number of semitones
   String _transposeChord(String chord) {
-    // Define the standard notes in western music
+    // Define the standard notes in western music (using sharps)
     const List<String> notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+    // Map flat notes to their sharp equivalents
+    const Map<String, String> flatToSharp = {
+      'Db': 'C#',
+      'Eb': 'D#',
+      'Gb': 'F#',
+      'Ab': 'G#',
+      'Bb': 'A#',
+    };
 
     // Extract the root note and the chord type
     final match = RegExp(r'^([A-G][#b]?)(.*)$').firstMatch(chord);
@@ -220,19 +229,17 @@ class ChordFormatter extends StatelessWidget {
 
     // Find the index of the root note
     int noteIndex = notes.indexOf(rootNote);
-    if (noteIndex == -1) {
-      // Try to convert flat to sharp for processing
-      if (rootNote.endsWith('b')) {
-        final flatNote = rootNote[0];
-        final flatIndex = "ABCDEFG".indexOf(flatNote);
-        if (flatIndex > 0) {
-          final sharpEquivalent = "${"ABCDEFG"[flatIndex - 1]}#";
-          noteIndex = notes.indexOf(sharpEquivalent);
-        }
-      }
 
-      if (noteIndex == -1) return chord; // Still not found
+    // If not found, try to convert flat to sharp
+    if (noteIndex == -1 && rootNote.endsWith('b')) {
+      final sharpEquivalent = flatToSharp[rootNote];
+      if (sharpEquivalent != null) {
+        noteIndex = notes.indexOf(sharpEquivalent);
+      }
     }
+
+    // If still not found, return original chord
+    if (noteIndex == -1) return chord;
 
     // Calculate the new index after transposition
     final newIndex = (noteIndex + transposeValue + 12) % 12;

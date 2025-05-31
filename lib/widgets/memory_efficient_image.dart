@@ -93,7 +93,7 @@ class MemoryEfficientImage extends StatelessWidget {
       height: 24,
       child: CircularProgressIndicator(
         strokeWidth: 2,
-        valueColor: AlwaysStoppedAnimation<Color>(Colors.grey[400]!),
+        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
       ),
     ),
   );
@@ -109,10 +109,15 @@ class MemoryEfficientImage extends StatelessWidget {
   // Calculate appropriate memory cache size based on device pixel ratio
   int? _calculateMemCacheSize(double? size) {
     if (size == null) return null;
-    
+
+    // Handle infinity values
+    if (size.isInfinite || size.isNaN) {
+      return 800; // Use a reasonable default size
+    }
+
     // Get device pixel ratio (default to 2.0 if not available)
-    final pixelRatio = WidgetsBinding.instance.window.devicePixelRatio;
-    
+    final pixelRatio = WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
+
     // Calculate size based on pixel ratio, with a maximum of 1000 pixels
     return (size * pixelRatio).round().clamp(0, 1000);
   }

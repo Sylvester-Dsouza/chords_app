@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:crypto/crypto.dart';
+import 'dart:convert';
 import '../widgets/inner_screen_app_bar.dart';
 import '../widgets/auth_wrapper.dart';
 import '../providers/user_provider.dart';
@@ -25,6 +28,75 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final navigationProvider = Provider.of<NavigationProvider>(context, listen: false);
       navigationProvider.updateIndex(4); // Profile screen is index 4
     });
+  }
+
+  // Generate a Christian-themed avatar URL from email
+  String _generateChristianAvatarUrl(String email) {
+    final emailBytes = utf8.encode(email.toLowerCase().trim());
+    final hash = md5.convert(emailBytes).toString();
+
+    // Use the hash to select from a list of Christian-themed avatars
+    final hashInt = int.parse(hash.substring(0, 8), radix: 16);
+    final avatarIndex = hashInt % _christianAvatars.length;
+
+    return _christianAvatars[avatarIndex];
+  }
+
+  // List of Christian-themed playful avatar URLs using different styles
+  static const List<String> _christianAvatars = [
+    // Using fun-emoji style with Christian-themed seeds
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=angel&backgroundColor=f0f0f0',
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=cross&backgroundColor=f0f0f0',
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=dove&backgroundColor=f0f0f0',
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=heart&backgroundColor=f0f0f0',
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=light&backgroundColor=f0f0f0',
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=peace&backgroundColor=f0f0f0',
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=hope&backgroundColor=f0f0f0',
+    'https://api.dicebear.com/7.x/fun-emoji/svg?seed=faith&backgroundColor=f0f0f0',
+    // Using adventurer style with Christian names
+    'https://api.dicebear.com/7.x/adventurer/svg?seed=grace&backgroundColor=f0f0f0',
+    'https://api.dicebear.com/7.x/adventurer/svg?seed=joy&backgroundColor=f0f0f0',
+    'https://api.dicebear.com/7.x/adventurer/svg?seed=love&backgroundColor=f0f0f0',
+    'https://api.dicebear.com/7.x/adventurer/svg?seed=blessed&backgroundColor=f0f0f0',
+    // Using personas style with Christian themes
+    'https://api.dicebear.com/7.x/personas/svg?seed=worship&backgroundColor=f0f0f0',
+    'https://api.dicebear.com/7.x/personas/svg?seed=praise&backgroundColor=f0f0f0',
+    'https://api.dicebear.com/7.x/personas/svg?seed=prayer&backgroundColor=f0f0f0',
+    'https://api.dicebear.com/7.x/personas/svg?seed=miracle&backgroundColor=f0f0f0',
+    // Using initials style with Christian symbols
+    'https://api.dicebear.com/7.x/initials/svg?seed=✝&backgroundColor=c19fff&textColor=ffffff',
+    'https://api.dicebear.com/7.x/initials/svg?seed=♥&backgroundColor=9575cd&textColor=ffffff',
+    'https://api.dicebear.com/7.x/initials/svg?seed=☮&backgroundColor=c19fff&textColor=ffffff',
+    'https://api.dicebear.com/7.x/initials/svg?seed=✨&backgroundColor=9575cd&textColor=ffffff',
+  ];
+
+  // Get profile picture URL based on login method
+  String? _getProfilePictureUrl(Map<String, dynamic>? userData) {
+    if (userData == null) return null;
+
+    // Check if user has a profile picture URL in their data
+    if (userData['profilePicture'] != null && userData['profilePicture'].toString().isNotEmpty) {
+      return userData['profilePicture'];
+    }
+
+    // Check auth provider
+    final authProvider = userData['authProvider']?.toString().toUpperCase();
+
+    if (authProvider == 'GOOGLE') {
+      // For Google users, try to get photo from Firebase
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser?.photoURL != null) {
+        return firebaseUser!.photoURL;
+      }
+    }
+
+    // For email users or fallback, generate Christian-themed avatar
+    final email = userData['email']?.toString();
+    if (email != null && email.isNotEmpty) {
+      return _generateChristianAvatarUrl(email);
+    }
+
+    return null;
   }
 
 
@@ -61,6 +133,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileHeader(bool isLoggedIn, Map<String, dynamic>? userData) {
+    final profilePictureUrl = isLoggedIn ? _getProfilePictureUrl(userData) : null;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: Row(
@@ -77,11 +151,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 width: 2,
               ),
             ),
-            child: const Icon(
-              Icons.person,
-              color: Colors.white,
-              size: 42,
-            ),
+            child: profilePictureUrl != null
+                ? ClipOval(
+                    child: Image.network(
+                      profilePictureUrl,
+                      width: 85,
+                      height: 85,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        // Fallback to default icon if image fails to load
+                        return const Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: 42,
+                        );
+                      },
+                    ),
+                  )
+                : const Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 42,
+                  ),
           ),
           const SizedBox(width: 20),
 

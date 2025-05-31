@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/inner_screen_app_bar.dart';
 import '../utils/toast_util.dart';
+import '../config/theme.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class RateAppScreen extends StatefulWidget {
@@ -113,7 +114,7 @@ class _RateAppScreenState extends State<RateAppScreen> {
             },
             child: const Text(
               'Rate Now',
-              style: TextStyle(color: Color(0xFFFFC701)),
+              style: TextStyle(color: AppTheme.primaryColor),
             ),
           ),
         ],
@@ -152,7 +153,7 @@ class _RateAppScreenState extends State<RateAppScreen> {
               ),
               child: const Icon(
                 Icons.music_note,
-                color: Color(0xFFFFC701),
+                color: AppTheme.primaryColor,
                 size: 60,
               ),
             ),
@@ -198,7 +199,7 @@ class _RateAppScreenState extends State<RateAppScreen> {
                 return IconButton(
                   icon: Icon(
                     index < _rating ? Icons.star : Icons.star_border,
-                    color: const Color(0xFFFFC701),
+                    color: AppTheme.primaryColor,
                     size: 40,
                   ),
                   onPressed: () {
@@ -239,7 +240,7 @@ class _RateAppScreenState extends State<RateAppScreen> {
               child: ElevatedButton(
                 onPressed: _isSubmitting ? null : _submitFeedback,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFC701),
+                  backgroundColor: AppTheme.primaryColor,
                   foregroundColor: Colors.black,
                   disabledBackgroundColor: Colors.grey,
                   shape: RoundedRectangleBorder(
@@ -267,12 +268,12 @@ class _RateAppScreenState extends State<RateAppScreen> {
               onPressed: _launchAppStore,
               icon: const Icon(
                 Icons.star,
-                color: Color(0xFFFFC701),
+                color: AppTheme.primaryColor,
               ),
               label: const Text(
                 'Rate on App Store',
                 style: TextStyle(
-                  color: Color(0xFFFFC701),
+                  color: AppTheme.primaryColor,
                   fontSize: 16,
                 ),
               ),

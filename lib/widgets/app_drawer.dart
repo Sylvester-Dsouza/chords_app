@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../utils/page_transitions.dart';
 import '../config/theme.dart';
-import '../screens/playlist_screen.dart';
+import '../screens/setlist_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/resources_screen.dart';
 import '../screens/search_screen.dart';
@@ -11,9 +11,6 @@ import '../screens/song_request_screen.dart';
 import '../screens/about_us_screen.dart';
 import '../screens/notification_screen.dart';
 import '../screens/login_screen.dart';
-import '../screens/remove_ads_screen.dart';
-// Premium content screen removed to fix crashing issues
-// import '../screens/premium_content_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -93,17 +90,6 @@ class AppDrawer extends StatelessWidget {
                       routeName: '/support',
                     ),
 
-                    const SizedBox(height: 16),
-
-                    // Premium Section
-                    _buildSectionHeader(context, 'Premium'),
-                    _buildMenuItem(
-                      context,
-                      Icons.block_outlined,
-                      'Remove Ads',
-                      routeName: '/remove-ads',
-                    ),
-
                     // Add some bottom padding to ensure there's enough space
                     const SizedBox(height: 20),
                   ],
@@ -129,53 +115,31 @@ class AppDrawer extends StatelessWidget {
           // Logo and app name
           Row(
             children: [
-              // App icon with gradient
-              Container(
-                width: 44,
+              // Stuthi logo
+              Image.asset(
+                AppLogos.getDrawerLogo(),
                 height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppTheme.primaryColor,
-                      AppTheme.primaryColor.withAlpha(179), // 0.7 * 255 = 179
-                    ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.primaryColor.withAlpha(77), // 0.3 * 255 = 77
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.music_note,
-                  color: AppTheme.backgroundColor,
-                  size: 24,
-                ),
+                fit: BoxFit.contain,
               ),
               const SizedBox(width: 12),
-              // App name
+              // App name and description
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Worship',
+                    'Stuthi',
                     style: TextStyle(
                       color: AppTheme.primaryColor,
-                      fontSize: 18,
+                      fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
-                    'Paradise',
+                    'Christian Chords & Lyrics',
                     style: TextStyle(
-                      color: AppTheme.primaryColor,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      color: AppTheme.subtitleColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ],
@@ -349,9 +313,6 @@ class AppDrawer extends StatelessWidget {
             case 'Support Us':
               _navigateWithTransition(context, '/support');
               break;
-            case 'Remove Ads':
-              _navigateWithTransition(context, '/remove-ads');
-              break;
             case 'Logout':
               _showLogoutConfirmationDialog(context);
               break;
@@ -427,8 +388,8 @@ class AppDrawer extends StatelessWidget {
     Widget? page;
 
     switch (routeName) {
-      case '/playlist':
-        page = const PlaylistScreen();
+      case '/setlist':
+        page = const SetlistScreen();
         break;
       case '/profile':
         page = const ProfileScreen();
@@ -447,9 +408,6 @@ class AppDrawer extends StatelessWidget {
         break;
       case '/notifications':
         page = const NotificationScreen();
-        break;
-      case '/remove-ads':
-        page = const RemoveAdsScreen();
         break;
       // Premium content removed to fix crashing issues
       // case '/premium-content':

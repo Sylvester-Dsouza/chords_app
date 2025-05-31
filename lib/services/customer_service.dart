@@ -72,107 +72,7 @@ class CustomerService {
     }
   }
 
-  // Check if ads are removed for the customer
-  Future<bool> hasAdsRemoved() async {
-    try {
-      // Check if user is authenticated
-      if (!await _isAuthenticated()) {
-        debugPrint('User is not authenticated when checking ads status');
-        return false;
-      }
 
-      // Get the customer ID
-      final customerId = await _getCustomerId();
-      if (customerId == null) {
-        debugPrint('No customer ID found when checking ads status');
-        return false;
-      }
-
-      // Set a timeout for the API request
-      final completer = Completer<bool>();
-
-      // Start the API request
-      _apiService.get('/ads/$customerId/status').then((response) {
-        // If we get a 200 response with true, ads are removed
-        if (response.statusCode == 200) {
-          completer.complete(response.data == true);
-        } else {
-          debugPrint('Failed to check ads status: ${response.statusCode}');
-          completer.complete(false);
-        }
-      }).catchError((e) {
-        debugPrint('Error checking ads status: $e');
-        completer.complete(false);
-      });
-
-      // Set a timeout to prevent blocking the UI
-      Timer(const Duration(seconds: 5), () {
-        if (!completer.isCompleted) {
-          debugPrint('Ads status check timed out');
-          completer.complete(false);
-        }
-      });
-
-      return await completer.future;
-    } catch (e) {
-      debugPrint('Error checking ads status: $e');
-      return false;
-    }
-  }
-
-  // Remove ads for the customer
-  Future<bool> removeAds() async {
-    try {
-      // Check if user is authenticated
-      if (!await _isAuthenticated()) {
-        debugPrint('User is not authenticated when removing ads');
-        return false;
-      }
-
-      // Get the customer ID
-      final customerId = await _getCustomerId();
-      if (customerId == null) {
-        debugPrint('No customer ID found when removing ads');
-        return false;
-      }
-
-      // Make the API request to remove ads
-      final response = await _apiService.post('/ads/$customerId/remove');
-
-      // If we get a 200 response, ads were successfully removed
-      return response.statusCode == 200;
-    } catch (e) {
-      debugPrint('Error removing ads: $e');
-      return false;
-    }
-  }
-
-  // Restore ads for the customer (for testing purposes)
-  Future<bool> restoreAds() async {
-    try {
-      // Check if user is authenticated
-      if (!await _isAuthenticated()) {
-        debugPrint('User is not authenticated when restoring ads');
-        return false;
-      }
-
-      // Get the customer ID
-      final customerId = await _getCustomerId();
-      if (customerId == null) {
-        debugPrint('No customer ID found when restoring ads');
-        return false;
-      }
-
-      // Make the API request to restore ads
-      final response = await _apiService.post('/ads/$customerId/restore');
-
-      // If we get a 200 response, ads were successfully restored
-      return response.statusCode == 200;
-    } catch (e) {
-      debugPrint('Error restoring ads: $e');
-      return false;
-    }
-  }
 
   // Get subscription plans
   Future<List<Map<String, dynamic>>> getSubscriptionPlans() async {
@@ -244,8 +144,6 @@ class CustomerService {
 
       // If we get a 201 response, subscription was successfully created
       if (response.statusCode == 201) {
-        // Also remove ads for the customer
-        await removeAds();
         return true;
       }
 

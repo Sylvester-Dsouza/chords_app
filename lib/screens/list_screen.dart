@@ -7,8 +7,6 @@ import '../services/artist_service.dart';
 import '../services/collection_service.dart';
 import '../services/home_section_service.dart';
 import '../widgets/song_placeholder.dart';
-// AdMob service removed to fix crashing issues
-// import '../services/ad_service.dart';
 
 enum ListType {
   songs,
@@ -41,8 +39,6 @@ class _ListScreenState extends State<ListScreen> {
   final ArtistService _artistService = ArtistService();
   final CollectionService _collectionService = CollectionService();
   final HomeSectionService _homeSectionService = HomeSectionService();
-  // AdService removed to fix crashing issues
-  // final AdService _adService = AdService();
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -56,6 +52,13 @@ class _ListScreenState extends State<ListScreen> {
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    // Clean up any resources if needed
+    // Note: Services are stateless and don't need disposal
+    super.dispose();
   }
 
   Future<void> _loadData() async {

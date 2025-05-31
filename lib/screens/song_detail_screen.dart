@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/song.dart';
-import '../widgets/playlist_bottom_sheet.dart';
+import '../widgets/setlist_bottom_sheet.dart';
 import '../widgets/chord_formatter.dart';
 import '../services/song_service.dart';
 import '../services/liked_songs_service.dart';
 import '../services/comment_service.dart';
 import '../services/rating_service.dart';
+import '../services/pdf_service.dart';
+import '../services/analytics_service.dart';
 import '../widgets/chord_diagram_bottom_sheet.dart';
 // Import the new YouTube iFrame players
 import '../widgets/youtube_iframe_bottom_sheet.dart';
@@ -14,6 +16,10 @@ import '../widgets/floating_youtube_iframe_player.dart';
 import '../widgets/star_rating.dart';
 import '../config/theme.dart';
 import './comments_screen.dart';
+import '../utils/chord_extractor.dart';
+import './song_presentation_screen.dart';
+import './practice_mode_screen.dart';
+import '../widgets/enhanced_song_share_dialog.dart';
 
 
 class SongDetailScreen extends StatefulWidget {
@@ -31,7 +37,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
   bool _isLiked = false;
   bool _showChords = true;
   double _fontSize = 14.0; // Reduced default font size from 16.0 to 14.0
-  final int _transposeValue = 0;
+  int _transposeValue = 0; // Made mutable for transpose functionality
   bool _isAutoScrollEnabled = false;
   double _autoScrollSpeed = 1.0;
   bool _isLoading = true;
@@ -48,10 +54,16 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
   final LikedSongsService _likedSongsService = LikedSongsService();
   final CommentService _commentService = CommentService();
   final RatingService _ratingService = RatingService();
+  final PdfService _pdfService = PdfService();
+  final AnalyticsService _analyticsService = AnalyticsService();
 
   // Scroll controller for auto-scroll
   final ScrollController _scrollController = ScrollController();
   Timer? _autoScrollTimer;
+  bool _userIsScrolling = false;
+  double _lastAutoScrollPosition = 0.0;
+  Timer? _userScrollTimer;
+  bool _autoScrollPaused = false;
 
   // Song data
   late Song _song;
@@ -59,6 +71,9 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Add scroll listener to detect manual scrolling
+    _scrollController.addListener(_onScrollChanged);
 
     if (widget.song != null) {
       // Use the song passed from the previous screen
@@ -68,6 +83,9 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
       _checkIfSongIsLiked();
       _fetchCommentCount();
       _fetchRatingInfo(); // Add this to fetch rating info even when song is passed
+
+      // Track song view
+      _trackSongView();
     } else {
       // Fetch song data from the API
       _fetchSongData();
@@ -77,6 +95,18 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
   // Check if the song is liked from the API
   Future<void> _checkIfSongIsLiked() async {
     try {
+      // Add null safety checks
+      if (_song.id.isEmpty) {
+        debugPrint('Cannot check liked status: song ID is empty');
+        if (mounted) {
+          setState(() {
+            _isLiked = false;
+            _song.isLiked = false;
+          });
+        }
+        return;
+      }
+
       // Use the updated LikedSongsService which checks both local storage and server
       final isLiked = await _likedSongsService.isSongLiked(_song.id);
       if (mounted) {
@@ -88,7 +118,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
       }
     } catch (e) {
       debugPrint('Error checking if song is liked: $e');
-      // If there's an error, we'll use the value from the song object
+      // If there's an error, we'll use the value from the song object or set a safe default
       if (mounted) {
         setState(() {
           _isLiked = _song.isLiked;
@@ -166,6 +196,9 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
       await _checkIfSongIsLiked();
       await _fetchCommentCount();
       await _fetchRatingInfo();
+
+      // Track song view
+      _trackSongView();
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -187,9 +220,71 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
     }
   }
 
+  // Track song view for analytics
+  void _trackSongView() {
+    if (_song.id.isNotEmpty) {
+      _analyticsService.trackSongView(_song.id, source: 'song_detail_screen');
+    }
+  }
+
+  // Handle scroll changes to detect manual scrolling
+  void _onScrollChanged() {
+    if (_isAutoScrollEnabled && _scrollController.hasClients) {
+      final currentPosition = _scrollController.offset;
+
+      // Check if the user manually scrolled (position changed significantly from auto-scroll)
+      if ((currentPosition - _lastAutoScrollPosition).abs() > 2.0) {
+        if (!_userIsScrolling) {
+          _userIsScrolling = true;
+          _autoScrollPaused = true;
+          setState(() {}); // Update UI to show paused state
+
+          // Show a brief notification that auto-scroll is paused
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Auto-scroll paused - will resume in 2 seconds'),
+              duration: const Duration(milliseconds: 1500),
+              backgroundColor: Colors.orange.withValues(alpha: 0.8),
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
+            ),
+          );
+
+          // Pause auto-scroll temporarily when user scrolls manually
+          _pauseAutoScrollTemporarily();
+        }
+
+        // Reset the timer each time user scrolls
+        _resetUserScrollTimer();
+      }
+    }
+  }
+
+  // Reset the user scroll timer
+  void _resetUserScrollTimer() {
+    _userScrollTimer?.cancel();
+    _userScrollTimer = Timer(const Duration(seconds: 2), () {
+      // User stopped scrolling, resume auto-scroll
+      _userIsScrolling = false;
+      _autoScrollPaused = false;
+      setState(() {}); // Update UI
+
+      if (_isAutoScrollEnabled) {
+        _startAutoScroll();
+      }
+    });
+  }
+
+  // Temporarily pause auto-scroll when user scrolls manually
+  void _pauseAutoScrollTemporarily() {
+    _stopAutoScroll();
+  }
+
   @override
   void dispose() {
     _stopAutoScroll();
+    _userScrollTimer?.cancel();
+    _scrollController.removeListener(_onScrollChanged);
     _scrollController.dispose();
     super.dispose();
   }
@@ -263,16 +358,166 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
     });
   }
 
+  // Transpose up by one semitone
+  void _transposeUp() {
+    setState(() {
+      _transposeValue = (_transposeValue + 1).clamp(-11, 11);
+    });
+  }
+
+  // Transpose down by one semitone
+  void _transposeDown() {
+    setState(() {
+      _transposeValue = (_transposeValue - 1).clamp(-11, 11);
+    });
+  }
+
+  // Reset transpose to original key
+  void _resetTranspose() {
+    setState(() {
+      _transposeValue = 0;
+    });
+  }
+
+  // Get the current key after transposition
+  String _getCurrentKey() {
+    if (_transposeValue == 0) return _song.key;
+
+    const List<String> notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+    // Map flat notes to their sharp equivalents
+    const Map<String, String> flatToSharp = {
+      'Db': 'C#',
+      'Eb': 'D#',
+      'Gb': 'F#',
+      'Ab': 'G#',
+      'Bb': 'A#',
+    };
+
+    // Find the original key index
+    int keyIndex = notes.indexOf(_song.key);
+
+    // If not found, try to convert flat to sharp
+    if (keyIndex == -1 && _song.key.endsWith('b')) {
+      final sharpEquivalent = flatToSharp[_song.key];
+      if (sharpEquivalent != null) {
+        keyIndex = notes.indexOf(sharpEquivalent);
+      }
+    }
+
+    if (keyIndex == -1) return _song.key; // Return original if not found
+
+    // Calculate new key
+    final newIndex = (keyIndex + _transposeValue + 12) % 12;
+    return notes[newIndex];
+  }
+
   void _showChordDiagram(String chordName) {
     // Clean up the chord name (remove any brackets)
     final cleanChordName = chordName.replaceAll(RegExp(r'[\[\]]'), '');
 
-    // Show the bottom sheet
+    // Show the bottom sheet with proper responsive handling
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => ChordDiagramBottomSheet(chordName: cleanChordName),
+      enableDrag: true,
+      isDismissible: true,
+      useSafeArea: true, // Ensures safe area handling
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom, // Handle keyboard if needed
+        ),
+        child: ChordDiagramBottomSheet(chordName: cleanChordName),
+      ),
+    );
+  }
+
+  // Open presentation mode
+  void _openPresentationMode() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SongPresentationScreen(song: _song),
+      ),
+    );
+  }
+
+  // Open practice mode
+  void _openPracticeMode() {
+    // Convert Song object to Map for practice mode
+    Map<String, dynamic> songData = {
+      'id': _song.id,
+      'title': _song.title,
+      'artist': _song.artist,
+      'key': _song.key,
+      'chordSheet': _song.chords ?? '',
+      'tempo': _song.tempo ?? 120,
+      'timeSignature': _song.timeSignature ?? '4/4',
+      'capo': _song.capo,
+    };
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PracticeModeScreen(songData: songData),
+      ),
+    );
+  }
+
+  // Build floating action button
+  Widget _buildFloatingActionButton() {
+    return FloatingActionButton(
+      onPressed: _showPracticeAndPresentOptions,
+      backgroundColor: Theme.of(context).colorScheme.primary,
+      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+      child: const Icon(Icons.play_arrow),
+    );
+  }
+
+  // Show practice and present options
+  void _showPracticeAndPresentOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 0.0,
+            right: 0.0,
+            top: 20.0,
+            bottom: 20.0 + MediaQuery.of(context).padding.bottom, // Add safe area bottom padding
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Practice option
+              ListTile(
+                leading: const Icon(Icons.piano, color: Colors.white),
+                title: const Text('Practice Mode', style: TextStyle(color: Colors.white)),
+                subtitle: const Text('Practice with metronome and auto-scroll', style: TextStyle(color: Colors.white70)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openPracticeMode();
+                },
+              ),
+              // Present option
+              ListTile(
+                leading: const Icon(Icons.present_to_all, color: Colors.white),
+                title: const Text('Present Mode', style: TextStyle(color: Colors.white)),
+                subtitle: const Text('Display for congregation or audience', style: TextStyle(color: Colors.white70)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openPresentationMode();
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -299,15 +544,24 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
 
   // Start auto-scroll
   void _startAutoScroll() {
+    _userIsScrolling = false; // Reset user scrolling flag
+
     _autoScrollTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
-      if (_scrollController.hasClients) {
+      if (_scrollController.hasClients && !_userIsScrolling) {
         final double maxScroll = _scrollController.position.maxScrollExtent;
         final double currentScroll = _scrollController.offset;
         final double delta = 0.5 * _autoScrollSpeed;
 
         if (currentScroll < maxScroll) {
-          _scrollController.jumpTo(currentScroll + delta);
+          // Use animateTo for smoother scrolling that can be interrupted
+          _scrollController.animateTo(
+            currentScroll + delta,
+            duration: const Duration(milliseconds: 50),
+            curve: Curves.linear,
+          );
+          _lastAutoScrollPosition = currentScroll + delta;
         } else {
+          // Reached the end, stop auto-scroll
           _stopAutoScroll();
           setState(() {
             _isAutoScrollEnabled = false;
@@ -323,8 +577,8 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
     _autoScrollTimer = null;
   }
 
-  // Show add to playlist bottom sheet
-  void _showAddToPlaylistSheet() {
+  // Show add to setlist bottom sheet
+  void _showAddToSetlistSheet() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -332,7 +586,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) => PlaylistBottomSheet(song: _song),
+      builder: (context) => SetlistBottomSheet(song: _song),
     );
   }
 
@@ -346,7 +600,12 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
       ),
       builder: (context) {
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20.0),
+          padding: EdgeInsets.only(
+            left: 0.0,
+            right: 0.0,
+            top: 20.0,
+            bottom: 20.0 + MediaQuery.of(context).padding.bottom, // Add safe area bottom padding
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -355,11 +614,11 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                 title: const Text('Share Song', style: TextStyle(color: Colors.white)),
                 onTap: () {
                   Navigator.pop(context);
-                  // Share song implementation
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Share functionality will be implemented soon'),
-                      backgroundColor: Colors.grey,
+                  // Show enhanced song share dialog
+                  showDialog(
+                    context: context,
+                    builder: (context) => EnhancedSongShareDialog(
+                      song: _song,
                     ),
                   );
                 },
@@ -555,10 +814,15 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                       ),
                   ],
                 ),
-                // Add to playlist button
+                // Add to setlist button
                 IconButton(
                   icon: const Icon(Icons.playlist_add, color: Colors.white, size: 24),
-                  onPressed: _showAddToPlaylistSheet,
+                  onPressed: _showAddToSetlistSheet,
+                ),
+                // Print button
+                IconButton(
+                  icon: const Icon(Icons.print, color: Colors.white, size: 24),
+                  onPressed: _printChordSheet,
                 ),
                 // Three-dot menu
                 IconButton(
@@ -586,6 +850,11 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
             ),
         ],
       ),
+      floatingActionButton: _isLoading ? null : Container(
+        margin: const EdgeInsets.only(bottom: 80), // Move FAB up by 80 pixels
+        child: _buildFloatingActionButton(),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
@@ -705,151 +974,147 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
           _song.title,
           style: AppTheme.songTitleStyle,
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
 
         // Artist name
         Text(
           _song.artist,
           style: AppTheme.artistNameStyle,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
 
-        // Rating information
+        // Rating information (more compact)
         if (_song.ratingCount > 0) ...[
           Row(
             children: [
               StarRating(
                 rating: _song.averageRating,
-                size: 16,
-                color: Theme.of(context).colorScheme.primary,
+                size: 14,
+                color: const Color(0xFFFFD700),
                 showRating: true,
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 6),
               Text(
-                '(${_song.ratingCount} ${_song.ratingCount == 1 ? 'rating' : 'ratings'})',
+                '(${_song.ratingCount})',
                 style: const TextStyle(
                   color: Colors.white54,
-                  fontSize: 12,
+                  fontSize: 11,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
         ],
 
-        // Song details in a grid layout
+        // Compact song details in a minimal layout
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12.0),
-          child: Wrap(
-            spacing: 8.0,
-            runSpacing: 8.0,
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: _buildCompactSongDetails(),
+        ),
+
+
+      ],
+    );
+  }
+
+  // Extract unique chords from the chord sheet
+  List<String> _extractUniqueChords() {
+    if (_song.chords == null || _song.chords!.isEmpty) {
+      return [];
+    }
+
+    // Use the ChordExtractor utility to extract and sort chords
+    return ChordExtractor.extractChords(_song.chords!);
+  }
+
+  // Build chord summary section
+  Widget _buildChordSummary() {
+    final uniqueChords = _extractUniqueChords();
+
+    if (uniqueChords.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section title
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: Row(
             children: [
-              // Key pill
-              _buildDetailPill(
-                icon: Icons.music_note,
-                label: 'Key',
-                value: _song.key,
+              Icon(
+                Icons.music_note,
+                color: Theme.of(context).colorScheme.primary,
+                size: 18,
               ),
-
-              // Capo pill (if available)
-              if (_song.capo != null && _song.capo! > 0)
-                _buildDetailPill(
-                  icon: Icons.tune,
-                  label: 'Capo',
-                  value: _song.capo.toString(),
+              const SizedBox(width: 8),
+              Text(
+                'Chords Used (${uniqueChords.length})',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: AppTheme.primaryFontFamily,
                 ),
-
-              // Time signature pill (if available)
-              if (_song.timeSignature != null && _song.timeSignature!.isNotEmpty)
-                _buildDetailPill(
-                  icon: Icons.timer,
-                  label: 'Time',
-                  value: _song.timeSignature!,
-                ),
-
-              // Tempo pill (if available)
-              if (_song.tempo != null && _song.tempo! > 0)
-                _buildDetailPill(
-                  icon: Icons.speed,
-                  label: 'Tempo',
-                  value: '${_song.tempo} BPM',
-                ),
-
-              // Difficulty pill (if available)
-              if (_song.difficulty != null && _song.difficulty!.isNotEmpty)
-                _buildDetailPill(
-                  icon: Icons.bar_chart,
-                  label: 'Difficulty',
-                  value: _song.difficulty!,
-                ),
-
-              // Language pill (if available)
-              if (_song.language != null)
-                _buildDetailPill(
-                  icon: Icons.language,
-                  label: 'Language',
-                  value: _song.language!['name'] ?? 'Unknown',
-                ),
-
-              // Video links (if available)
-              if (_song.officialVideoUrl != null && _song.officialVideoUrl!.isNotEmpty)
-                _buildDetailPill(
-                  icon: Icons.music_video,
-                  label: 'Video',
-                  value: 'Available',
-                  onTap: () => _showVideoOptions(),
-                ),
-
-              // Tutorial video (if available)
-              if (_song.tutorialVideoUrl != null && _song.tutorialVideoUrl!.isNotEmpty)
-                _buildDetailPill(
-                  icon: Icons.school,
-                  label: 'Tutorial',
-                  value: 'Available',
-                  onTap: () => _showVideoOptions(),
-                ),
+              ),
             ],
           ),
         ),
 
-        // Tags (if available)
-        if (_song.tags != null && _song.tags!.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(
-                Icons.tag,
-                color: Colors.white70,
-                size: 16,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _song.tags!.map((tag) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF333333),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        tag,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                        ),
-                      ),
-                    );
-                  }).toList(),
+        // Horizontal scrollable chord list
+        SizedBox(
+          height: 60,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            itemCount: uniqueChords.length,
+            physics: const BouncingScrollPhysics(), // Add smooth scrolling physics
+            itemBuilder: (context, index) {
+              final chord = uniqueChords[index];
+              return Padding(
+                padding: EdgeInsets.only(
+                  right: index == uniqueChords.length - 1 ? 4.0 : 12.0, // Less padding for last item
                 ),
-              ),
-            ],
+                child: _buildChordSummaryItem(chord),
+              );
+            },
           ),
-        ],
+        ),
+
+        const SizedBox(height: 20),
       ],
+    );
+  }
+
+  // Build individual chord summary item
+  Widget _buildChordSummaryItem(String chord) {
+    return GestureDetector(
+      onTap: () => _showChordDiagram(chord),
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: const Color(0xFF2A2A2A),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            chord,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.primary,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              fontFamily: AppTheme.primaryFontFamily,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
     );
   }
 
@@ -872,8 +1137,12 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
       ];
     }
 
-    // Use the ChordFormatter widget to format the chords
+    // Return chord summary followed by the chord sheet
     return [
+      // Chord summary section
+      _buildChordSummary(),
+
+      // Chord sheet
       ChordFormatter(
         chordSheet: _song.chords!,
         fontSize: _fontSize,
@@ -888,9 +1157,11 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
 
   Widget _buildBottomNavigation() {
     return Container(
-      height: 64,
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).padding.bottom, // Add safe area padding
+      ),
       decoration: const BoxDecoration(
-        color: Color(0xFF121212),
+        color: Color(0xFF1E1E1E), // Lighter background (was 0xFF121212)
         boxShadow: [
           BoxShadow(
             color: Color(0x33000000), // Black with 20% opacity
@@ -899,7 +1170,9 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
           ),
         ],
       ),
-      child: _isAutoScrollEnabled
+      child: SizedBox(
+        height: 64,
+        child: _isAutoScrollEnabled
           // When auto-scroll is enabled, show minimal controls
           ? Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -926,41 +1199,65 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
             )
           // When auto-scroll is disabled, show all controls
           : Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                // Toggle chords button
-                _buildBottomNavButton(
-                  icon: _showChords ? Icons.music_note : Icons.music_note_outlined,
-                  label: 'Chords',
-                  isActive: _showChords,
-                  onPressed: _toggleChordsVisibility,
+                // Left side buttons (2 buttons)
+                Expanded(
+                  flex: 2,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Toggle chords button
+                      _buildBottomNavButton(
+                        icon: _showChords ? Icons.music_note : Icons.music_note_outlined,
+                        label: 'Chords',
+                        isActive: _showChords,
+                        onPressed: _toggleChordsVisibility,
+                      ),
+
+                      // Font size button
+                      _buildBottomNavButton(
+                        icon: Icons.format_size,
+                        label: 'Font',
+                        onPressed: _showFontSizeBottomSheet,
+                      ),
+                    ],
+                  ),
                 ),
 
-                // Font size button
-                _buildBottomNavButton(
-                  icon: Icons.format_size,
-                  label: 'Font',
-                  onPressed: _showFontSizeBottomSheet,
+                // Center play button (1 button, prominent)
+                Expanded(
+                  flex: 1,
+                  child: Center(
+                    child: _buildScrollButton(),
+                  ),
                 ),
 
-                // Auto-scroll button (center, prominent)
-                _buildScrollButton(),
+                // Right side buttons (2 buttons)
+                Expanded(
+                  flex: 2,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Transpose button
+                      _buildBottomNavButton(
+                        icon: _transposeValue != 0 ? Icons.music_note : Icons.music_note_outlined,
+                        label: 'Transpose',
+                        isActive: _transposeValue != 0,
+                        onPressed: _showTransposeBottomSheet,
+                      ),
 
-                // Video button
-                _buildBottomNavButton(
-                  icon: Icons.video_library_outlined,
-                  label: 'Video',
-                  onPressed: _showVideoOptions,
-                ),
-
-                // Print button
-                _buildBottomNavButton(
-                  icon: Icons.print_outlined,
-                  label: 'Print',
-                  onPressed: _printChordSheet,
+                      // Video button
+                      _buildBottomNavButton(
+                        icon: Icons.video_library_outlined,
+                        label: 'Video',
+                        onPressed: _showVideoOptions,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
+      ),
     );
   }
 
@@ -968,124 +1265,293 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section title
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
-          child: Text(
-            'Rate This Song',
-            style: AppTheme.sectionTitleStyle,
-          ),
-        ),
 
-        // Rating UI
-        Center(
-          child: Column(
-            children: [
-              // Current average rating display
-              if (_song.ratingCount > 0) ...[
+
+        // Modern Rating UI - Full Width
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.symmetric(horizontal: 0),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF1A1A2E),
+                const Color(0xFF16213E),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFF0F3460).withValues(alpha: 0.3),
+              width: 1,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                // Header with icon and title
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    StarRating(
-                      rating: _song.averageRating,
-                      size: 20,
-                      color: Theme.of(context).colorScheme.primary,
-                      showRating: true,
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE94560).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.star_rounded,
+                        color: Color(0xFFE94560),
+                        size: 20,
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '(${_song.ratingCount} ${_song.ratingCount == 1 ? 'rating' : 'ratings'})',
-                      style: const TextStyle(
-                        color: Colors.white54,
-                        fontSize: 14,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Rate this song',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Help others discover great music',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.6),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 16),
-              ],
 
-              // User's rating
-              const Text(
-                'Your Rating:',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 8),
-              _isRatingLoading
-                ? CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
-                  )
-                : InteractiveStarRating(
-                    initialRating: _song.userRating ?? 0,
-                    onRatingChanged: _rateSong,
-                    size: 36,
-                    color: Theme.of(context).colorScheme.primary,
-                    showLabel: true,
+                // Current average rating display (if exists)
+                if (_song.ratingCount > 0) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F3460).withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        StarRating(
+                          rating: _song.averageRating,
+                          size: 18,
+                          color: const Color(0xFFFFD700),
+                          showRating: true,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          '${_song.ratingCount} ${_song.ratingCount == 1 ? 'rating' : 'ratings'}',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(height: 16),
+                ],
 
-              // Thank you message if user has rated
-              if (_song.userRating != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  'Thanks for rating!',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                // User's rating section
+                _isRatingLoading
+                  ? Container(
+                      padding: const EdgeInsets.all(20),
+                      child: const CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE94560)),
+                        strokeWidth: 3,
+                      ),
+                    )
+                  : Column(
+                      children: [
+                        // Your rating label
+                        Text(
+                          _song.userRating != null
+                              ? 'Your rating:'
+                              : 'Tap to rate:',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Interactive star rating
+                        InteractiveStarRating(
+                          initialRating: _song.userRating ?? 0,
+                          onRatingChanged: _rateSong,
+                          size: 32,
+                          color: const Color(0xFFE94560),
+                          unratedColor: const Color(0xFF0F3460),
+                          showLabel: true,
+                        ),
+
+                        // Thank you message or encouragement
+                        const SizedBox(height: 12),
+                        if (_song.userRating != null) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE94560).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.check_circle,
+                                  color: Color(0xFFE94560),
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 6),
+                                const Text(
+                                  'Thanks for rating!',
+                                  style: TextStyle(
+                                    color: Color(0xFFE94560),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ] else ...[
+                          Text(
+                            'Your feedback helps improve recommendations',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              fontSize: 11,
+                              fontStyle: FontStyle.italic,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ],
+                    ),
               ],
-            ],
+            ),
           ),
         ),
       ],
     );
   }
 
-  // Build a detail pill for song information
-  Widget _buildDetailPill({
-    required IconData icon,
-    required String label,
-    required String value,
-    VoidCallback? onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFF333333),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: Colors.white70,
-              size: 16,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              '$label: $value',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
+  // Build compact song details with better styling and labels
+  Widget _buildCompactSongDetails() {
+    List<Widget> details = [];
+
+    // Helper function to add a detail item with label (no icons)
+    void addDetail(String label, String value, {VoidCallback? onTap}) {
+      details.add(
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(6),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2A2A2A),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: const Color(0xFF404040),
+                width: 0.5,
               ),
             ),
-          ],
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: '$label: ',
+                    style: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  TextSpan(
+                    text: value,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
-      ),
+      );
+    }
+
+    // Add details with proper spacing
+    // Show current key (transposed if applicable)
+    final currentKey = _getCurrentKey();
+    final keyDisplay = _transposeValue == 0 ? currentKey : '$currentKey (${_transposeValue > 0 ? '+' : ''}$_transposeValue)';
+    addDetail('Key', keyDisplay);
+
+    if (_song.capo != null && _song.capo! > 0) {
+      details.add(const SizedBox(width: 8));
+      addDetail('Capo', _song.capo.toString());
+    }
+
+    if (_song.timeSignature != null && _song.timeSignature!.isNotEmpty) {
+      details.add(const SizedBox(width: 8));
+      addDetail('Time', _song.timeSignature!);
+    }
+
+    if (_song.tempo != null && _song.tempo! > 0) {
+      details.add(const SizedBox(width: 8));
+      addDetail('Tempo', '${_song.tempo} BPM');
+    }
+
+    return Wrap(
+      alignment: WrapAlignment.start,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 0,
+      runSpacing: 6,
+      children: details,
     );
   }
 
   Widget _buildScrollButton() {
     // Get primary color from theme
     final primaryColor = Theme.of(context).colorScheme.primary;
+
+    // Determine the current state
+    final bool isPlaying = _isAutoScrollEnabled && !_autoScrollPaused;
+    final bool isPaused = _isAutoScrollEnabled && _autoScrollPaused;
+
+    // Choose icon and color based on state
+    IconData icon;
+    Color color;
+    String label;
+
+    if (isPaused) {
+      icon = Icons.pause_circle_outline;
+      color = Colors.orange;
+      label = 'Paused';
+    } else if (isPlaying) {
+      icon = Icons.pause_rounded;
+      color = Colors.redAccent;
+      label = 'Pause';
+    } else {
+      icon = Icons.play_arrow_rounded;
+      color = primaryColor;
+      label = 'Scroll';
+    }
 
     return InkWell(
       onTap: _toggleAutoScroll,
@@ -1096,18 +1562,37 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              _isAutoScrollEnabled ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              color: _isAutoScrollEnabled ? Colors.redAccent : primaryColor,
-              size: 24,
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(
+                  icon,
+                  color: color,
+                  size: 24,
+                ),
+                // Add a small indicator when paused by user
+                if (isPaused)
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Colors.orange,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 4),
             SizedBox(
               height: 14,
               child: Text(
-                _isAutoScrollEnabled ? 'Pause' : 'Play',
+                label,
                 style: TextStyle(
-                  color: _isAutoScrollEnabled ? Colors.redAccent : primaryColor,
+                  color: color,
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                 ),
@@ -1128,7 +1613,12 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
       ),
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.only(
+            left: 16.0,
+            right: 16.0,
+            top: 16.0,
+            bottom: 16.0 + MediaQuery.of(context).padding.bottom, // Add safe area bottom padding
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1203,7 +1693,12 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
       ),
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.only(
+            left: 16.0,
+            right: 16.0,
+            top: 16.0,
+            bottom: 16.0 + MediaQuery.of(context).padding.bottom, // Add safe area bottom padding
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1269,86 +1764,479 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
     );
   }
 
-  void _printChordSheet() {
-    // Show a bottom sheet with print options
+  void _showTransposeBottomSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E1E1E),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Print Options',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF1A1A1A),
+                Color(0xFF0F0F0F),
+              ],
+            ),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: EdgeInsets.only(
+            left: 24.0,
+            right: 24.0,
+            top: 24.0,
+            bottom: 24.0 + MediaQuery.of(context).padding.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf, color: Colors.white),
-              title: const Text('Save as PDF', style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pop(context);
-                _saveToPdf();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.print, color: Colors.white),
-              title: const Text('Print', style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pop(context);
-                _sendToPrinter();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.share, color: Colors.white),
-              title: const Text('Share', style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pop(context);
-                _shareChordSheet();
-              },
-            ),
-          ],
+              const SizedBox(height: 24),
+
+              // Header with icon
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.music_note,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Transpose Chords',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Change the key of all chords',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 32),
+
+              // Key transformation display
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2A2A2A),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Original key
+                    Column(
+                      children: [
+                        Text(
+                          'Original',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _song.key,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(width: 24),
+
+                    // Arrow
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 20,
+                    ),
+
+                    const SizedBox(width: 24),
+
+                    // Current key
+                    Column(
+                      children: [
+                        Text(
+                          'Current',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _getCurrentKey(),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // Transpose controls
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF252525),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    // Semitone display
+                    Text(
+                      _transposeValue == 0 ? 'Original Key' :
+                      '${_transposeValue > 0 ? '+' : ''}$_transposeValue semitone${_transposeValue.abs() == 1 ? '' : 's'}',
+                      style: TextStyle(
+                        color: _transposeValue == 0 ? Colors.white.withValues(alpha: 0.7) : Theme.of(context).colorScheme.primary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Control buttons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Transpose down
+                        Container(
+                          decoration: BoxDecoration(
+                            color: _transposeValue > -11 ? const Color(0xFF3A3A3A) : const Color(0xFF2A2A2A),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _transposeValue > -11 ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
+                            ),
+                          ),
+                          child: IconButton(
+                            onPressed: _transposeValue > -11 ? () {
+                              setState(() {
+                                this.setState(() {
+                                  _transposeDown();
+                                });
+                              });
+                            } : null,
+                            icon: const Icon(Icons.remove_rounded),
+                            color: _transposeValue > -11 ? Colors.white : Colors.grey,
+                            iconSize: 24,
+                          ),
+                        ),
+
+                        const SizedBox(width: 32),
+
+                        // Reset button
+                        Container(
+                          decoration: BoxDecoration(
+                            color: _transposeValue != 0 ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15) : const Color(0xFF2A2A2A),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _transposeValue != 0 ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3) : Colors.transparent,
+                            ),
+                          ),
+                          child: IconButton(
+                            onPressed: _transposeValue != 0 ? () {
+                              setState(() {
+                                this.setState(() {
+                                  _resetTranspose();
+                                });
+                              });
+                            } : null,
+                            icon: const Icon(Icons.refresh_rounded),
+                            color: _transposeValue != 0 ? Theme.of(context).colorScheme.primary : Colors.grey,
+                            iconSize: 24,
+                          ),
+                        ),
+
+                        const SizedBox(width: 32),
+
+                        // Transpose up
+                        Container(
+                          decoration: BoxDecoration(
+                            color: _transposeValue < 11 ? const Color(0xFF3A3A3A) : const Color(0xFF2A2A2A),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _transposeValue < 11 ? Colors.white.withValues(alpha: 0.1) : Colors.transparent,
+                            ),
+                          ),
+                          child: IconButton(
+                            onPressed: _transposeValue < 11 ? () {
+                              setState(() {
+                                this.setState(() {
+                                  _transposeUp();
+                                });
+                              });
+                            } : null,
+                            icon: const Icon(Icons.add_rounded),
+                            color: _transposeValue < 11 ? Colors.white : Colors.grey,
+                            iconSize: 24,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // Done button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Done',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  void _saveToPdf() {
-    // Show a success message for now
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Chord sheet saved as PDF'),
-        backgroundColor: Colors.green,
+  void _printChordSheet() {
+    // Show a bottom sheet with print options
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
+      builder: (BuildContext context) {
+        // Local state for chord visibility in PDF - default to true
+        bool showChordsInPdf = true;
+
+        // Use a StatefulBuilder to manage the toggle state
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            // Get screen dimensions and safe area
+            final screenHeight = MediaQuery.of(context).size.height;
+            final safeAreaBottom = MediaQuery.of(context).padding.bottom;
+            final viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
+
+            // Calculate available height
+            final availableHeight = screenHeight - safeAreaBottom - viewInsetsBottom;
+            final maxHeight = availableHeight * 0.8; // Use max 80% of available height
+
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: maxHeight,
+              ),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    left: 16.0,
+                    right: 16.0,
+                    top: 16.0,
+                    bottom: 16.0 + safeAreaBottom, // Add safe area bottom padding
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header
+                  const Text(
+                    'Chord Sheet Options',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Description
+                  const Text(
+                    'Create a printable version of this chord sheet',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Chord visibility toggle
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0x33000000),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    child: SwitchListTile(
+                      title: const Text(
+                        'Include Chords',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        showChordsInPdf
+                            ? 'PDF will include both chords and lyrics'
+                            : 'PDF will only include lyrics (no chords)',
+                        style: const TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                      value: showChordsInPdf,
+                      activeColor: Theme.of(context).colorScheme.primary,
+                      onChanged: (bool value) {
+                        setModalState(() {
+                          showChordsInPdf = value;
+                          debugPrint('Chord visibility changed to: $value');
+                        });
+                      },
+                      secondary: Icon(
+                        showChordsInPdf ? Icons.music_note : Icons.text_format,
+                        color: showChordsInPdf ? Theme.of(context).colorScheme.primary : Colors.grey,
+                      ),
+                    ),
+                  ),
+
+                  const Divider(color: Colors.white24),
+
+                  // Action buttons
+                  ListTile(
+                    leading: const Icon(Icons.print, color: Colors.white),
+                    title: const Text('Print', style: TextStyle(color: Colors.white)),
+                    subtitle: const Text('Send to a printer', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _sendToPrinter(showChords: showChordsInPdf);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.share, color: Colors.white),
+                    title: const Text('Share', style: TextStyle(color: Colors.white)),
+                    subtitle: const Text('Share via other apps', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _shareChordSheet(showChords: showChordsInPdf);
+                    },
+                  ),
+                ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
-  void _sendToPrinter() {
-    // Show a success message for now
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Sent to printer'),
-        backgroundColor: Colors.green,
-      ),
-    );
+  Future<void> _sendToPrinter({bool? showChords}) async {
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Preparing to print...'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+
+      // Print the PDF
+      await _pdfService.printSongPdf(_song, showChords: showChords ?? _showChords);
+
+      // No need for a success message as the printing dialog will be shown
+    } catch (e) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error printing: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
-  void _shareChordSheet() {
-    // Show a success message for now
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Chord sheet shared'),
-        backgroundColor: Colors.green,
-      ),
-    );
+  Future<void> _shareChordSheet({bool? showChords}) async {
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Preparing to share...'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+
+      // Share the PDF
+      await _pdfService.shareSongPdf(_song, showChords: showChords ?? _showChords);
+
+      // No need for a success message as the share dialog will be shown
+    } catch (e) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sharing: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
 
@@ -1366,7 +2254,12 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) => Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.only(
+          left: 16.0,
+          right: 16.0,
+          top: 16.0,
+          bottom: 16.0 + MediaQuery.of(context).padding.bottom, // Add safe area bottom padding
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1496,8 +2389,6 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
       ),
     );
   }
-
-
 
   Widget _buildBottomNavButton({
     required IconData icon,

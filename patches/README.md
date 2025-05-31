@@ -2,43 +2,17 @@
 
 This directory contains patches for plugins that have compatibility issues with the latest Flutter SDK.
 
-## flutter_local_notifications
+## flutter_local_notifications - REMOVED
 
-The flutter_local_notifications plugin has several issues that need to be fixed:
+The flutter_local_notifications plugin has been removed from the project due to compatibility issues.
+We now use custom SnackBar implementations for notifications instead.
 
-1. **Namespace Issue**: The plugin's build.gradle file doesn't specify a namespace, which is required by newer versions of the Android Gradle Plugin.
-2. **Linux Plugin Reference**: The plugin's pubspec.yaml references a non-existent Linux plugin.
-3. **Ambiguous Method Reference**: The plugin's Java code has an ambiguous method reference to `bigLargeIcon`.
+**Previous issues that led to removal:**
+1. **Namespace Issue**: The plugin's build.gradle file didn't specify a namespace
+2. **Linux Plugin Reference**: The plugin's pubspec.yaml referenced a non-existent Linux plugin
+3. **Ambiguous Method Reference**: The plugin's Java code had ambiguous method references
 
-### Scripts
-
-- `fix_namespace.sh`: Adds the namespace to the plugin's build.gradle file.
-- `fix_pubspec.sh`: Removes the Linux plugin reference from the plugin's pubspec.yaml.
-- `fix_java_code.sh`: Fixes the ambiguous method reference in the plugin's Java code.
-- `fix_all.sh`: Runs all the above scripts.
-
-### Usage
-
-1. Run the fix script:
-   ```bash
-   cd chords_app
-   ./patches/fix_all.sh
-   ```
-
-2. Clean the project and get dependencies:
-   ```bash
-   flutter clean
-   flutter pub get
-   ```
-
-3. Run the app:
-   ```bash
-   flutter run
-   ```
-
-### Note
-
-These fixes are temporary and will need to be reapplied if you update the plugin or clean your pub cache.
+**Current Solution**: Custom notification system using Flutter's built-in SnackBar and overlay widgets.
 
 ## sign_in_with_apple
 

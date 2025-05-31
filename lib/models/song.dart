@@ -54,15 +54,23 @@ class Song {
   factory Song.fromJson(Map<String, dynamic> json) {
     // Handle artist which can be a string, an object, or null
     String artistName = '';
-    if (json['artist'] == null) {
-      // If artist is null, try to use a default value or leave empty
+    try {
+      if (json['artist'] == null) {
+        // If artist is null, try to use a default value or leave empty
+        artistName = '';
+      } else if (json['artist'] is String) {
+        // If artist is a string, use it directly
+        artistName = json['artist'];
+      } else if (json['artist'] is Map) {
+        // If artist is an object, extract the name
+        artistName = (json['artist'] as Map)['name']?.toString() ?? '';
+      } else {
+        // Fallback: convert to string
+        artistName = json['artist']?.toString() ?? '';
+      }
+    } catch (e) {
+      debugPrint('Error parsing artist field: $e');
       artistName = '';
-    } else if (json['artist'] is String) {
-      // If artist is a string, use it directly
-      artistName = json['artist'];
-    } else if (json['artist'] is Map) {
-      // If artist is an object, extract the name
-      artistName = (json['artist'] as Map)['name'] ?? '';
     }
 
     // Get chord sheet from either chordSheet or chords field
@@ -82,10 +90,10 @@ class Song {
     }
 
     return Song(
-      id: json['id'] ?? '',
-      title: json['title'] ?? '',
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
       artist: artistName,
-      key: json['key'] ?? '',
+      key: json['key']?.toString() ?? '',
       lyrics: json['lyrics'],
       chords: chordSheet, // Use the processed chord sheet
       imageUrl: json['imageUrl'],

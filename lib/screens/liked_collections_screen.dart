@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/collection.dart';
 import '../services/collection_service.dart';
 import '../services/auth_service.dart';
+import '../widgets/skeleton_loader.dart';
 
 class LikedCollectionsScreen extends StatefulWidget {
   const LikedCollectionsScreen({super.key});
@@ -88,11 +89,87 @@ class _LikedCollectionsScreenState extends State<LikedCollectionsScreen> {
     );
   }
 
+  // Build loading skeleton
+  Widget _buildLoadingSkeleton() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16.0),
+      itemCount: 6, // Show 6 skeleton items
+      itemBuilder: (context, index) => Padding(
+        padding: const EdgeInsets.only(bottom: 16.0),
+        child: ShimmerEffect(
+          baseColor: Colors.grey[800]!,
+          highlightColor: Colors.grey[600]!,
+          child: Container(
+            height: 120,
+            decoration: BoxDecoration(
+              color: Colors.grey[700],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                // Collection image skeleton
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[600],
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      bottomLeft: Radius.circular(12),
+                    ),
+                  ),
+                ),
+                // Collection info skeleton
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title skeleton
+                        Container(
+                          width: double.infinity,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[600],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Description skeleton
+                        Container(
+                          width: 150,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[600],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const Spacer(),
+                        // Song count skeleton
+                        Container(
+                          width: 80,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[600],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return _buildLoadingSkeleton();
     }
 
     if (_errorMessage != null) {

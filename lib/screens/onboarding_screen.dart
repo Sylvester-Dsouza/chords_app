@@ -94,21 +94,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     title: 'Find Christian Songs',
                     description: 'Discover thousands of worship songs with chords and lyrics for your church service.',
                     icon: Icons.music_note,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: const Color(0xFF6C5CE7), // Vibrant purple
                     imagePath: 'assets/images/onboarding1.png',
                   ),
                   _buildPage(
-                    title: 'Create Playlists',
-                    description: 'Organize your favorite songs into playlists for easy access during worship.',
+                    title: 'Create Setlists',
+                    description: 'Organize your favorite songs into setlists for easy access during worship.',
                     icon: Icons.playlist_add,
-                    color: Theme.of(context).colorScheme.secondary,
+                    color: const Color(0xFF00D2D3), // Bright cyan/teal
                     imagePath: 'assets/images/onboarding2.png',
                   ),
                   _buildPage(
                     title: 'Practice Anywhere',
                     description: 'Take your songs offline and practice anywhere, anytime with your band.',
                     icon: Icons.headphones,
-                    color: Colors.green,
+                    color: const Color(0xFFFF6B6B), // Coral pink/red
                     imagePath: 'assets/images/onboarding3.png',
                   ),
                 ],
@@ -133,7 +133,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: ElevatedButton(
                 onPressed: _currentPage == _numPages - 1 ? _getStarted : _nextPage,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFC701),
+                  backgroundColor: Colors.white,
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
                   shape: RoundedRectangleBorder(
@@ -162,99 +162,136 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     required Color color,
     String? imagePath,
   }) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Animated icon
-          TweenAnimationBuilder(
-            tween: Tween<double>(begin: 0, end: 1),
-            duration: const Duration(milliseconds: 800),
-            builder: (context, value, child) {
-              return Transform.scale(
-                scale: value,
-                child: child,
-              );
-            },
-            child: imagePath != null
-                ? Container(
-                    width: 240,
-                    height: 240,
-                    decoration: BoxDecoration(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Image.asset(
-                      imagePath,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        // Fallback to icon if image fails to load
-                        return Container(
-                          width: 160,
-                          height: 160,
-                          decoration: BoxDecoration(
-                            color: color.withAlpha(50),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Transform.rotate(
-                              angle: math.pi / 10.0,
-                              child: Icon(
-                                icon,
-                                size: 80,
-                                color: color,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Get screen dimensions
+        final screenHeight = constraints.maxHeight;
+        final screenWidth = constraints.maxWidth;
+
+        // Calculate responsive sizes
+        final imageSize = math.min(screenWidth * 0.5, screenHeight * 0.3).clamp(120.0, 240.0);
+        final titleFontSize = (screenWidth * 0.07).clamp(20.0, 28.0);
+        final descriptionFontSize = (screenWidth * 0.04).clamp(14.0, 16.0);
+
+        // Calculate spacing based on available height
+        final availableHeight = screenHeight - imageSize - 100; // Reserve space for image and padding
+        final titleDescriptionSpace = (availableHeight * 0.15).clamp(16.0, 24.0);
+        final imageTextSpace = (availableHeight * 0.2).clamp(24.0, 48.0);
+
+        return SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: math.max(24.0, screenWidth * 0.08),
+              vertical: 16.0,
+            ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: screenHeight - 32, // Account for vertical padding
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Animated icon/image
+                  TweenAnimationBuilder(
+                    tween: Tween<double>(begin: 0, end: 1),
+                    duration: const Duration(milliseconds: 800),
+                    builder: (context, value, child) {
+                      return Transform.scale(
+                        scale: value,
+                        child: child,
+                      );
+                    },
+                    child: imagePath != null
+                        ? Container(
+                            width: imageSize,
+                            height: imageSize,
+                            decoration: BoxDecoration(
+                              color: Colors.transparent,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Image.asset(
+                              imagePath,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                // Fallback to icon if image fails to load
+                                return Container(
+                                  width: imageSize * 0.7,
+                                  height: imageSize * 0.7,
+                                  decoration: BoxDecoration(
+                                    color: color.withAlpha(50),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: Transform.rotate(
+                                      angle: math.pi / 10.0,
+                                      child: Icon(
+                                        icon,
+                                        size: imageSize * 0.35,
+                                        color: color,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                        : Container(
+                            width: imageSize * 0.7,
+                            height: imageSize * 0.7,
+                            decoration: BoxDecoration(
+                              color: color.withAlpha(50),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: Transform.rotate(
+                                angle: math.pi / 10.0,
+                                child: Icon(
+                                  icon,
+                                  size: imageSize * 0.35,
+                                  color: color,
+                                ),
                               ),
                             ),
                           ),
-                        );
-                      },
+                  ),
+                  SizedBox(height: imageTextSpace),
+
+                  // Title
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: titleFontSize,
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
                     ),
-                  )
-                : Container(
-                    width: 160,
-                    height: 160,
-                    decoration: BoxDecoration(
-                      color: color.withAlpha(50),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Transform.rotate(
-                        angle: math.pi / 10.0,
-                        child: Icon(
-                          icon,
-                          size: 80,
-                          color: color,
-                        ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: titleDescriptionSpace),
+
+                  // Description
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+                    child: Text(
+                      description,
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: descriptionFontSize,
+                        height: 1.4,
                       ),
+                      textAlign: TextAlign.center,
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-          ),
-          const SizedBox(height: 48),
-
-          // Title
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
+                ],
+              ),
             ),
-            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 24),
-
-          // Description
-          Text(
-            description,
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 16,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -265,7 +302,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       height: 8.0,
       width: isActive ? 24.0 : 8.0,
       decoration: BoxDecoration(
-        color: isActive ? const Color(0xFFFFC701) : Colors.grey,
+        color: isActive ? Theme.of(context).colorScheme.primary : Colors.grey,
         borderRadius: BorderRadius.circular(4.0),
       ),
     );

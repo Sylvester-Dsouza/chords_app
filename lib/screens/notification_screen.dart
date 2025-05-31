@@ -86,11 +86,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
         break;
       case 'PROMOTION':
         iconData = Icons.local_offer;
-        iconColor = Colors.amber;
+        iconColor = Theme.of(context).colorScheme.primary;
         break;
       default:
         iconData = Icons.notifications;
-        iconColor = const Color(0xFFFFC701); // App's yellow color
+        iconColor = Theme.of(context).colorScheme.primary;
     }
 
     return InkWell(
@@ -204,9 +204,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(
+          ? Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFFC701)),
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               ),
             )
           : _notifications.isEmpty
@@ -241,7 +241,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 )
               : RefreshIndicator(
                   onRefresh: _loadNotifications,
-                  color: const Color(0xFFFFC701),
+                  color: Colors.white,
                   child: ListView.builder(
                     itemCount: _notifications.length,
                     itemBuilder: (context, index) {

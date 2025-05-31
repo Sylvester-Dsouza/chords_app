@@ -44,6 +44,7 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
       final chordParts = _parseChordName(widget.chordName);
       final rootNote = chordParts['rootNote'];
       final chordType = chordParts['chordType'];
+      final enharmonicEquivalent = chordParts['enharmonicEquivalent'];
 
       if (rootNote == null) {
         setState(() {
@@ -56,13 +57,26 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
       // Get the guitar instrument from the library
       final instrument = GuitarChordLibrary.instrument(InstrumentType.guitar);
 
-      // Get all positions for this chord
-      final chordPositions = instrument.getChordPositions(rootNote, chordType ?? 'major');
+      // Try to get chord positions with the original root note first
+      debugPrint('Loading chord data for: $rootNote${chordType ?? 'major'} (original: ${widget.chordName})');
+      var chordPositions = instrument.getChordPositions(rootNote, chordType ?? 'major');
+
+      // If no positions found and we have an enharmonic equivalent, try that
+      if ((chordPositions == null || chordPositions.isEmpty) && enharmonicEquivalent != null) {
+        debugPrint('No chord data found for $rootNote, trying enharmonic equivalent: $enharmonicEquivalent');
+        chordPositions = instrument.getChordPositions(enharmonicEquivalent, chordType ?? 'major');
+
+        if (chordPositions != null && chordPositions.isNotEmpty) {
+          debugPrint('Successfully found chord data using enharmonic equivalent: $enharmonicEquivalent');
+        }
+      } else if (chordPositions != null && chordPositions.isNotEmpty) {
+        debugPrint('Successfully found chord data using original notation: $rootNote');
+      }
 
       if (chordPositions == null || chordPositions.isEmpty) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'No chord data found for ${widget.chordName}';
+          _errorMessage = 'No chord data found for ${widget.chordName}${enharmonicEquivalent != null ? ' or $enharmonicEquivalent' : ''}';
         });
         return;
       }
@@ -93,6 +107,22 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
 
   // Helper method to parse chord name into root note and chord type
   Map<String, String?> _parseChordName(String chordName) {
+    // Enharmonic equivalents mapping - ensures both sharp and flat notations work
+    final enharmonicMap = {
+      // Flats to sharps (library might prefer sharps)
+      'Db': 'C#',
+      'Eb': 'D#',
+      'Gb': 'F#',
+      'Ab': 'G#',
+      'Bb': 'A#',
+      // Sharps to flats (fallback if library prefers flats)
+      'C#': 'Db',
+      'D#': 'Eb',
+      'F#': 'Gb',
+      'G#': 'Ab',
+      'A#': 'Bb',
+    };
+
     // Common chord types and their mappings
     final chordTypeMap = {
       '': 'major',
@@ -123,19 +153,42 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
       return {'rootNote': null, 'chordType': null};
     }
 
-    final rootNote = match.group(1)!;
+    final originalRootNote = match.group(1)!;
     final chordTypeSuffix = match.group(2) ?? '';
 
     // Map the chord type suffix to the library's expected format
     final chordType = chordTypeMap[chordTypeSuffix] ?? 'major';
 
-    return {'rootNote': rootNote, 'chordType': chordType};
+    // Return both original and enharmonic equivalent for fallback
+    return {
+      'rootNote': originalRootNote,
+      'chordType': chordType,
+      'enharmonicEquivalent': enharmonicMap[originalRootNote],
+    };
   }
 
   @override
   Widget build(BuildContext context) {
+    // Get screen dimensions and safe area
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final safeAreaBottom = MediaQuery.of(context).padding.bottom;
+    final viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
+
+    // Calculate available height considering safe areas and system navigation
+    final availableHeight = screenHeight - safeAreaBottom - viewInsetsBottom;
+
+    // Calculate responsive height (between 45% and 75% of available height)
+    final minHeight = availableHeight * 0.45;
+    final maxHeight = availableHeight * 0.75;
+    final preferredHeight = availableHeight * 0.6;
+
+    // Use the preferred height, but constrain it within min/max bounds
+    final bottomSheetHeight = preferredHeight.clamp(minHeight, maxHeight);
+
     return Container(
-      height: MediaQuery.of(context).size.height * 0.30, // More compact height
+      height: bottomSheetHeight,
+      width: screenWidth,
       decoration: const BoxDecoration(
         color: Color(0xFF1A1A1A),
         borderRadius: BorderRadius.only(
@@ -158,12 +211,12 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
 
           // Chord name
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            padding: const EdgeInsets.symmetric(vertical: 12.0), // Increased padding
             child: Text(
               widget.chordName,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 24,
+                fontSize: 32, // Increased from 24 to 32 for bigger text
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -177,12 +230,15 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
           // Position indicator and navigation row
           if (_chordVariations.length > 1)
             Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
+              padding: EdgeInsets.only(
+                bottom: 20.0 + safeAreaBottom, // Add safe area bottom padding
+                top: 8.0,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 18),
+                    icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 24), // Increased icon size
                     onPressed: _currentVariationIndex > 0
                         ? () {
                             _pageController.previousPage(
@@ -193,15 +249,25 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
                         : null,
                     color: _currentVariationIndex > 0 ? Colors.white : Colors.grey[700],
                   ),
-                  Text(
-                    '${_currentVariationIndex + 1} of ${_chordVariations.length}',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
+                  const SizedBox(width: 16), // Added spacing
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[800],
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${_currentVariationIndex + 1} of ${_chordVariations.length}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16, // Increased font size
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 16), // Added spacing
                   IconButton(
-                    icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 18),
+                    icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 24), // Increased icon size
                     onPressed: _currentVariationIndex < _chordVariations.length - 1
                         ? () {
                             _pageController.nextPage(
@@ -265,15 +331,11 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
       itemBuilder: (context, index) {
         final variation = _chordVariations[index];
         return Center(
-          child: Container(
-            height: 160,
-            width: 140, // Even narrower width to better match reference image
-            decoration: BoxDecoration(
-              color: const Color(0xFF222222),
-              borderRadius: BorderRadius.circular(8),
-            ),
+          child: SizedBox(
+            height: 235, // Reduced by 5px from 240 to 235
+            width: 195, // Reduced by 5px from 200 to 195
             child: Transform.scale(
-              scale: 0.9, // Scale down slightly to fit better in the narrower container
+              scale: 1.2, // Increased from 0.9 to 1.2 for larger scale
               child: FlutterGuitarChord(
                 chordName: widget.chordName,
                 baseFret: variation['baseFret'],

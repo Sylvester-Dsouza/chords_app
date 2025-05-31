@@ -238,17 +238,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Logo
-                Center(
-                  child: Image.asset(
-                    'assets/images/splash.png',
-                    width: 150,
-                    height: 80,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                const SizedBox(height: 30),
-
                 // Register text
                 const Center(
                   child: Text(

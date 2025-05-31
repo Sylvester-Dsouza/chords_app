@@ -4,6 +4,7 @@ import '../utils/preferences_util.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
+import '../config/theme.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -75,9 +76,12 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       // Update loading status
       _updateLoadingStatus('Initializing...', 0.2);
 
+      // Skip permission requests at startup - request only when needed
+      _updateLoadingStatus('Loading app...', 0.3);
+
       // Simulate loading with a simple timer
       // This gives a smooth loading experience without actually preloading data
-      for (int i = 2; i <= 10; i++) {
+      for (int i = 3; i <= 10; i++) {
         if (!mounted) return;
         await Future.delayed(const Duration(milliseconds: 150));
         _updateLoadingStatus('Loading...', i * 0.1);
@@ -143,10 +147,10 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       if (!isLoggedIn) {
         debugPrint('SplashScreen: Not logged in from memory, checking with server...');
         try {
-          // Add a timeout to prevent getting stuck
+          // Add a shorter timeout to prevent getting stuck
           isLoggedIn = await Future.any([
             userProvider.isAuthenticated(),
-            Future.delayed(const Duration(seconds: 3), () {
+            Future.delayed(const Duration(seconds: 2), () {
               debugPrint('SplashScreen: Authentication check timed out');
               return false;
             }),
@@ -235,7 +239,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       );
                     },
                     child: Image.asset(
-                      'assets/images/splash.png',
+                      AppLogos.getSplashLogo(),
                       width: 200,
                       height: 200,
                       fit: BoxFit.contain,
