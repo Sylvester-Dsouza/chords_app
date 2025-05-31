@@ -6,7 +6,7 @@ import '../config/theme.dart';
 import 'home_screen.dart';
 import 'setlist_screen.dart';
 import 'search_screen.dart';
-import 'resources_screen.dart';
+import 'vocals_screen.dart';
 import 'profile_screen.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -22,7 +22,7 @@ class _MainNavigationState extends State<MainNavigation> {
     const HomeScreenNew(),
     const SetlistScreen(),
     const SearchScreen(),
-    const ResourcesScreen(),
+    const VocalsScreen(),
     const ProfileScreen(),
   ];
 

@@ -8,6 +8,7 @@ import 'services/api_service.dart';
 import 'providers/navigation_provider.dart';
 import 'providers/app_data_provider.dart';
 import 'providers/screen_state_provider.dart';
+import 'providers/course_provider.dart';
 import 'screens/setlist_detail_screen.dart';
 import 'screens/setlist_presentation_screen.dart';
 import 'screens/main_navigation.dart';
@@ -31,6 +32,10 @@ import 'screens/support_screen.dart';
 import 'screens/liked_collections_screen.dart';
 import 'screens/join_setlist_screen.dart';
 import 'screens/qr_scanner_screen.dart';
+import 'screens/vocal_warmups_screen.dart';
+import 'screens/vocal_exercises_screen.dart';
+import 'screens/courses_screen.dart';
+import 'screens/course_detail_screen.dart';
 import 'services/notification_service.dart';
 import 'services/deep_link_service.dart';
 import 'config/firebase_config.dart';
@@ -104,6 +109,9 @@ void main() async {
   // Initialize screen state provider
   final screenStateProvider = ScreenStateProvider();
 
+  // Initialize course provider
+  final courseProvider = CourseProvider();
+
   // Run the app with the splash screen as initial route
   runApp(
     MultiProvider(
@@ -112,6 +120,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
         ChangeNotifierProvider.value(value: appDataProvider),
         ChangeNotifierProvider.value(value: screenStateProvider),
+        ChangeNotifierProvider.value(value: courseProvider),
       ],
       child: const MyApp(),
     ),
@@ -152,7 +161,7 @@ class _MyAppState extends State<MyApp> {
       case '/home':
       case '/setlist':
       case '/search':
-      case '/resources':
+      case '/vocals':
       case '/profile':
         // For main navigation tabs, use the MainNavigation widget
         final navigationProvider = Provider.of<NavigationProvider>(navigatorKey.currentContext!, listen: false);
@@ -200,12 +209,15 @@ class _MyAppState extends State<MyApp> {
           '/forgot-password': (context) => const ForgotPasswordScreen(),
           '/setlist': (context) => const MainNavigation(),
           '/search': (context) => const MainNavigation(),
-          '/resources': (context) => const MainNavigation(),
+          '/vocals': (context) => const MainNavigation(),
           '/profile': (context) => const MainNavigation(),
           '/song_request': (context) => const SongRequestScreen(),
           '/comments': (context) => CommentsScreen(song: ModalRoute.of(context)!.settings.arguments as Song),
           '/about_us': (context) => const AboutUsScreen(),
           '/notifications': (context) => const NotificationScreen(),
+          '/vocal-warmups': (context) => const VocalWarmupsScreen(),
+          '/vocal-exercises': (context) => const VocalExercisesScreen(),
+          '/vocal-courses': (context) => const VocalCoursesScreen(),
         },
         onGenerateRoute: (settings) {
           // Import our custom page transitions
@@ -275,6 +287,21 @@ class _MyAppState extends State<MyApp> {
           } else if (settings.name == '/qr-scanner') {
             return FadeSlidePageRoute(
               page: const QRScannerScreen(),
+            );
+          } else if (settings.name == '/vocal-warmups') {
+            return FadeSlidePageRoute(
+              page: const VocalWarmupsScreen(),
+            );
+          } else if (settings.name == '/vocal-exercises') {
+            return FadeSlidePageRoute(
+              page: const VocalExercisesScreen(),
+            );
+          } else if (settings.name == '/course_detail') {
+            final args = settings.arguments as Map<String, dynamic>;
+            return FadeSlidePageRoute(
+              page: CourseDetailScreen(
+                courseId: args['courseId'],
+              ),
             );
           // Premium content screen removed to fix crashing issues
           // } else if (settings.name == '/premium-content') {

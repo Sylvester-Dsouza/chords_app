@@ -11,6 +11,9 @@ import '../screens/song_request_screen.dart';
 import '../screens/about_us_screen.dart';
 import '../screens/notification_screen.dart';
 import '../screens/login_screen.dart';
+import '../screens/vocal_warmups_screen.dart';
+import '../screens/vocal_exercises_screen.dart';
+import '../screens/courses_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -48,6 +51,24 @@ class AppDrawer extends StatelessWidget {
                       Icons.favorite_border_outlined,
                       'Liked Collections',
                       routeName: '/liked-collections',
+                    ),
+                    _buildMenuItem(
+                      context,
+                      Icons.mic_outlined,
+                      'Vocal Warm-ups',
+                      routeName: '/vocal-warmups',
+                    ),
+                    _buildMenuItem(
+                      context,
+                      Icons.music_note_outlined,
+                      'Vocal Exercises',
+                      routeName: '/vocal-exercises',
+                    ),
+                    _buildMenuItem(
+                      context,
+                      Icons.school_outlined,
+                      'Vocal Courses',
+                      routeName: '/vocal-courses',
                     ),
 
                     const SizedBox(height: 16),
@@ -284,6 +305,15 @@ class AppDrawer extends StatelessWidget {
             case 'Liked Collections':
               _navigateWithTransition(context, '/liked-collections');
               break;
+            case 'Vocal Warm-ups':
+              _navigateWithTransition(context, '/vocal-warmups');
+              break;
+            case 'Vocal Exercises':
+              _navigateWithTransition(context, '/vocal-exercises');
+              break;
+            case 'Vocal Courses':
+              _navigateWithTransition(context, '/vocal-courses');
+              break;
             case 'Help & Support':
               _navigateWithTransition(context, '/help-support');
               break;
@@ -408,6 +438,15 @@ class AppDrawer extends StatelessWidget {
         break;
       case '/notifications':
         page = const NotificationScreen();
+        break;
+      case '/vocal-warmups':
+        page = const VocalWarmupsScreen();
+        break;
+      case '/vocal-exercises':
+        page = const VocalExercisesScreen();
+        break;
+      case '/vocal-courses':
+        page = const VocalCoursesScreen();
         break;
       // Premium content removed to fix crashing issues
       // case '/premium-content':

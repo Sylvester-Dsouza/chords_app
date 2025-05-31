@@ -85,7 +85,7 @@ class _AnimatedBottomNavBarState extends State<AnimatedBottomNavBar> with Single
           _buildNavItem(Icons.home_filled, 'Home', 0),
           _buildNavItem(Icons.queue_music, 'My Setlist', 1),
           _buildNavItem(Icons.search, 'Search', 2),
-          _buildNavItem(Icons.article_outlined, 'Resources', 3),
+          _buildNavItem(Icons.record_voice_over_rounded, 'Vocals', 3),
           _buildNavItem(Icons.person, 'Profile', 4),
         ],
         currentIndex: widget.currentIndex,

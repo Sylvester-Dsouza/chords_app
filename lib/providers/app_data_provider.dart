@@ -4,6 +4,7 @@ import '../models/song.dart';
 import '../models/artist.dart';
 import '../models/collection.dart';
 import '../models/setlist.dart';
+import '../models/course.dart';
 import '../services/home_section_service.dart';
 import '../services/song_service.dart';
 import '../services/artist_service.dart';
