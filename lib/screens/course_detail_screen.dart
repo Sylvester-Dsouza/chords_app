@@ -85,7 +85,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           // Custom App Bar
@@ -208,7 +208,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: courseColor.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(5),
                   border: Border.all(
                     color: courseColor.withValues(alpha: 0.4),
                     width: 1,
@@ -282,7 +282,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: const Color(0xFF1A1A1A),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(5),
               border: Border.all(
                 color: Colors.white.withValues(alpha: 0.1),
                 width: 1,
@@ -313,7 +313,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
       case 'advanced':
         return const Color(0xFFEC4899);
       default:
-        return AppTheme.primaryColor;
+        return AppTheme.primary;
     }
   }
 
@@ -323,7 +323,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
         children: [
           Icon(
             icon,
-            color: AppTheme.primaryColor,
+            color: AppTheme.primary,
             size: 20,
           ),
           const SizedBox(height: 8),
@@ -366,12 +366,12 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
+              color: AppTheme.primary.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(5),
             ),
             child: Icon(
               Icons.timeline_rounded,
-              color: AppTheme.primaryColor,
+              color: AppTheme.primary,
               size: 20,
             ),
           ),
@@ -460,14 +460,14 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
           height: 40,
           decoration: BoxDecoration(
             color: isCompleted
-                ? AppTheme.primaryColor
+                ? AppTheme.primary
                 : isCurrent
                     ? courseColor
                     : Colors.white.withValues(alpha: 0.1),
             shape: BoxShape.circle,
             border: Border.all(
               color: isCompleted
-                  ? AppTheme.primaryColor
+                  ? AppTheme.primary
                   : isCurrent
                       ? courseColor
                       : Colors.white.withValues(alpha: 0.2),
@@ -512,7 +512,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
             width: 2,
             height: 60,
             color: isCompleted
-                ? AppTheme.primaryColor.withValues(alpha: 0.5)
+                ? AppTheme.primary.withValues(alpha: 0.5)
                 : Colors.white.withValues(alpha: 0.1),
           ),
       ],
@@ -572,13 +572,13 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(8),
+                          color: AppTheme.primary.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(5),
                         ),
                         child: Text(
                           'Completed',
                           style: TextStyle(
-                            color: AppTheme.primaryColor,
+                            color: AppTheme.primary,
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
                             fontFamily: AppTheme.primaryFontFamily,
@@ -590,7 +590,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: courseColor.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(5),
                         ),
                         child: Text(
                           'Current',
@@ -637,7 +637,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(5),
                     border: Border.all(
                       color: Colors.white.withValues(alpha: 0.1),
                       width: 1,
@@ -650,7 +650,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                         height: 40,
                         decoration: BoxDecoration(
                           color: _getCourseColor().withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(5),
                         ),
                         child: Icon(
                           Icons.music_note_rounded,
@@ -730,7 +730,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
   Widget _buildFloatingActionButton() {
     return FloatingActionButton.extended(
       onPressed: () => _enrollInCourse(),
-      backgroundColor: AppTheme.primaryColor,
+      backgroundColor: AppTheme.primary,
       foregroundColor: Colors.black,
       icon: Icon(
         isEnrolled ? Icons.play_arrow_rounded : Icons.school_rounded,

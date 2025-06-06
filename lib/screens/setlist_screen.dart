@@ -4,6 +4,7 @@ import '../models/song.dart';
 import '../services/setlist_service.dart';
 import '../services/liked_songs_service.dart';
 import '../services/liked_songs_notifier.dart';
+import '../config/theme.dart';
 
 import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
@@ -871,7 +872,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
               padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
               decoration: BoxDecoration(
                 color: const Color(0xFF333333),
-                borderRadius: BorderRadius.circular(4.0),
+                borderRadius: BorderRadius.circular(5),
               ),
               child: Text(
                 song.key,
@@ -953,30 +954,51 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
         }
 
         return Scaffold(
-          backgroundColor: const Color(0xFF121212),
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
-        backgroundColor: const Color(0xFF121212),
+        backgroundColor: AppTheme.appBar,
         elevation: 0,
-        title: const Text(
-          'Setlists',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Join Collab button on the left
+            TextButton.icon(
+              icon: const Icon(Icons.group_add, size: 20),
+              label: const Text('Join Collab'),
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).primaryColor,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  side: BorderSide(color: Theme.of(context).primaryColor),
+                ),
+              ),
+              onPressed: () async {
+                final result = await Navigator.pushNamed(context, '/join-setlist');
+                if (result == true) {
+                  _fetchSetlists(forceRefresh: true);
+                }
+              },
+            ),
+            // Title in the center
+            const Text(
+              'Setlists',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            // Empty container to balance the layout
+            const SizedBox(width: 80), // Same width as the Join Collab button
+          ],
         ),
         centerTitle: true,
         actions: [
+          // Info icon on the right
           IconButton(
-            icon: const Icon(Icons.group_add),
-            onPressed: () async {
-              final result = await Navigator.pushNamed(context, '/join-setlist');
-              if (result == true) {
-                // Refresh setlists after successful join
-                _fetchSetlists(forceRefresh: true);
-              }
-            },
-            tooltip: 'Join Setlist',
-            color: Colors.white,
+            icon: const Icon(Icons.info_outline, color: Colors.white70),
+            onPressed: _showSetlistInfo,
+            tooltip: 'Setlist Help',
           ),
         ],
       ),
@@ -1271,7 +1293,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
         return Dialog(
           backgroundColor: const Color(0xFF1E1E1E),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(5),
           ),
           child: Padding(
             padding: const EdgeInsets.all(24.0),
@@ -1286,7 +1308,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: Colors.red.withAlpha(50),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(5),
                       ),
                       child: const Icon(
                         Icons.warning_amber_rounded,
@@ -1348,7 +1370,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(5),
                         ),
                       ),
                       onPressed: () async {
@@ -1441,7 +1463,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
         return Dialog(
           backgroundColor: const Color(0xFF1E1E1E),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(5),
           ),
           child: Padding(
             padding: const EdgeInsets.all(24.0),
@@ -1456,7 +1478,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: Colors.orange.withAlpha(50),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(5),
                       ),
                       child: const Icon(
                         Icons.edit_rounded,
@@ -1492,7 +1514,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
                     filled: true,
                     fillColor: const Color(0xFF2A2A2A),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(5),
                       borderSide: BorderSide.none,
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1516,7 +1538,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
                     filled: true,
                     fillColor: const Color(0xFF2A2A2A),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(5),
                       borderSide: BorderSide.none,
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1547,7 +1569,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
                         foregroundColor: Colors.black,
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(5),
                         ),
                       ),
                       onPressed: () async {
@@ -1644,6 +1666,86 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
           _fetchSetlists(forceRefresh: true);
         },
       ),
+    );
+  }
+
+  void _showSetlistInfo() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          title: const Text(
+            'Setlist Collaboration',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildInfoItem(
+                  icon: Icons.group_add,
+                  title: 'Join a Setlist',
+                  description: 'Tap the "Join Collab" button to join an existing setlist using a code.',
+                ),
+                const SizedBox(height: 16),
+                _buildInfoItem(
+                  icon: Icons.add_circle_outline,
+                  title: 'Create a Setlist',
+                  description: 'Tap the + button at the bottom right to create a new setlist.',
+                ),
+                const SizedBox(height: 16),
+                _buildInfoItem(
+                  icon: Icons.people_alt_outlined,
+                  title: 'Collaborate',
+                  description: 'Share your setlist code with team members to collaborate in real-time.',
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('GOT IT', style: TextStyle(color: Colors.white70)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoItem({
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: Theme.of(context).primaryColor, size: 24),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

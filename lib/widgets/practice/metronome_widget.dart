@@ -153,10 +153,10 @@ class _MetronomeWidgetState extends State<MetronomeWidget>
                     height: 80,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppTheme.primaryColor,
+                      color: AppTheme.primary,
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.5),
+                          color: AppTheme.primary.withValues(alpha: 0.5),
                           blurRadius: 20,
                           spreadRadius: 5,
                         ),
@@ -234,12 +234,12 @@ class _MetronomeWidgetState extends State<MetronomeWidget>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: widget.metronomeService.isRunning
-                    ? AppTheme.primaryColor
+                    ? AppTheme.primary
                     : Colors.grey[700],
                 boxShadow: widget.metronomeService.isRunning
                     ? [
                         BoxShadow(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.5),
+                          color: AppTheme.primary.withValues(alpha: 0.5),
                           blurRadius: 15,
                           spreadRadius: 3,
                         ),
@@ -279,7 +279,7 @@ class _MetronomeWidgetState extends State<MetronomeWidget>
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: isCurrentBeat
-            ? AppTheme.primaryColor
+            ? AppTheme.primary
             : isFirstBeat
                 ? Colors.white
                 : Colors.grey[600],
@@ -305,7 +305,7 @@ class PendulumPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     final bobPaint = Paint()
-      ..color = isActive ? AppTheme.primaryColor : Colors.grey[700]!
+      ..color = isActive ? AppTheme.primary : Colors.grey[700]!
       ..style = PaintingStyle.fill;
 
     // Pendulum rod

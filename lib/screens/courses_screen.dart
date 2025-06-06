@@ -26,7 +26,7 @@ class _VocalCoursesScreenState extends State<VocalCoursesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           // Custom App Bar
@@ -41,7 +41,7 @@ class _VocalCoursesScreenState extends State<VocalCoursesScreen> {
                 if (courseProvider.isLoading) {
                   return const Center(
                     child: CircularProgressIndicator(
-                      color: AppTheme.primaryColor,
+                      color: AppTheme.primary,
                     ),
                   );
                 }
@@ -78,7 +78,7 @@ class _VocalCoursesScreenState extends State<VocalCoursesScreen> {
                         ElevatedButton(
                           onPressed: () => courseProvider.loadCourses(forceRefresh: true),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryColor,
+                            backgroundColor: AppTheme.primary,
                             foregroundColor: Colors.black,
                           ),
                           child: const Text('Retry'),
@@ -90,7 +90,7 @@ class _VocalCoursesScreenState extends State<VocalCoursesScreen> {
 
                 return RefreshIndicator(
                   onRefresh: () => courseProvider.refresh(),
-                  color: AppTheme.primaryColor,
+                  color: AppTheme.primary,
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     child: Column(
@@ -160,12 +160,12 @@ class _VocalCoursesScreenState extends State<VocalCoursesScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(16),
+                  color: AppTheme.primary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(5),
                 ),
                 child: Icon(
                   Icons.school_rounded,
-                  color: AppTheme.primaryColor,
+                  color: AppTheme.primary,
                   size: 24,
                 ),
               ),
@@ -195,7 +195,7 @@ class _VocalCoursesScreenState extends State<VocalCoursesScreen> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A1A),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(5),
           border: Border.all(
             color: Colors.white.withValues(alpha: 0.1),
             width: 1,
@@ -205,7 +205,7 @@ class _VocalCoursesScreenState extends State<VocalCoursesScreen> {
           children: [
             Icon(
               icon,
-              color: AppTheme.primaryColor,
+              color: AppTheme.primary,
               size: 20,
             ),
             const SizedBox(height: 8),
@@ -270,18 +270,18 @@ class _VocalCoursesScreenState extends State<VocalCoursesScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? AppTheme.primaryColor
+                            ? AppTheme.primary
                             : Colors.white.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(22),
                         border: Border.all(
                           color: isSelected
-                              ? AppTheme.primaryColor
+                              ? AppTheme.primary
                               : Colors.white.withValues(alpha: 0.15),
                           width: 1,
                         ),
                         boxShadow: isSelected ? [
                           BoxShadow(
-                            color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                            color: AppTheme.primary.withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -314,15 +314,15 @@ class _VocalCoursesScreenState extends State<VocalCoursesScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppTheme.primaryColor.withValues(alpha: 0.2),
-            AppTheme.primaryColor.withValues(alpha: 0.1),
+            AppTheme.primary.withValues(alpha: 0.2),
+            AppTheme.primary.withValues(alpha: 0.1),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: AppTheme.primaryColor.withValues(alpha: 0.3),
+          color: AppTheme.primary.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -334,8 +334,8 @@ class _VocalCoursesScreenState extends State<VocalCoursesScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor,
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppTheme.primary,
+                  borderRadius: BorderRadius.circular(5),
                 ),
                 child: Text(
                   'FEATURED',
@@ -350,7 +350,7 @@ class _VocalCoursesScreenState extends State<VocalCoursesScreen> {
               const Spacer(),
               Icon(
                 Icons.star_rounded,
-                color: AppTheme.primaryColor,
+                color: AppTheme.primary,
                 size: 20,
               ),
             ],
@@ -411,11 +411,11 @@ class _VocalCoursesScreenState extends State<VocalCoursesScreen> {
             child: ElevatedButton(
               onPressed: () => _openCourseDetail(course),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
+                backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.black,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(5),
                 ),
                 elevation: 0,
               ),
@@ -585,7 +585,7 @@ class _VocalCoursesScreenState extends State<VocalCoursesScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: _getLevelColor(course.level).withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(5),
                       border: Border.all(
                         color: _getLevelColor(course.level).withValues(alpha: 0.5),
                         width: 1,
@@ -606,7 +606,7 @@ class _VocalCoursesScreenState extends State<VocalCoursesScreen> {
                     Text(
                       course.formattedPrice,
                       style: TextStyle(
-                        color: AppTheme.primaryColor,
+                        color: AppTheme.primary,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         fontFamily: AppTheme.primaryFontFamily,
@@ -650,11 +650,11 @@ class _VocalCoursesScreenState extends State<VocalCoursesScreen> {
             child: ElevatedButton(
               onPressed: () => _openCourseDetail(course),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
+                backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.black,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(5),
                 ),
                 elevation: 0,
               ),
@@ -682,7 +682,7 @@ class _VocalCoursesScreenState extends State<VocalCoursesScreen> {
       case 'advanced':
         return Colors.red;
       default:
-        return AppTheme.primaryColor;
+        return AppTheme.primary;
     }
   }
 

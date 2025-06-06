@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
-import '../widgets/inner_screen_app_bar.dart';
-import 'vocal_warmup_player_screen.dart';
+import '../models/vocal.dart';
+import '../services/vocal_service.dart';
+import '../core/service_locator.dart';
+import '../core/constants.dart';
+import 'vocal_warmup_category_detail_screen.dart';
 
 class VocalWarmupsScreen extends StatefulWidget {
   const VocalWarmupsScreen({super.key});
@@ -10,446 +13,378 @@ class VocalWarmupsScreen extends StatefulWidget {
   State<VocalWarmupsScreen> createState() => _VocalWarmupsScreenState();
 }
 
-class _VocalWarmupsScreenState extends State<VocalWarmupsScreen> {
+class _VocalWarmupsScreenState extends State<VocalWarmupsScreen>
+    with TickerProviderStateMixin {
+  // Use service locator instead of creating new instance
+  VocalService get _vocalService => serviceLocator.vocalService;
+  late AnimationController _fadeController;
+  late AnimationController _slideController;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(
+      duration: AppConstants.fadeAnimationDuration,
+      vsync: this,
+    );
+    _slideController = AnimationController(
+      duration: AppConstants.slideAnimationDuration,
+      vsync: this,
+    );
+    _initializeData();
+  }
+
+  @override
+  void dispose() {
+    // Dispose animation controllers with error handling
+    try {
+      if (_fadeController.isAnimating) {
+        _fadeController.stop();
+      }
+      _fadeController.dispose();
+    } catch (e) {
+      debugPrint('Error disposing fade controller: $e');
+    }
+
+    try {
+      if (_slideController.isAnimating) {
+        _slideController.stop();
+      }
+      _slideController.dispose();
+    } catch (e) {
+      debugPrint('Error disposing slide controller: $e');
+    }
+
+    super.dispose();
+  }
+
+  Future<void> _initializeData() async {
+    await _vocalService.fetchCategories();
+    _fadeController.forward();
+    _slideController.forward();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
-      body: Column(
-        children: [
-          // Custom App Bar
-          InnerScreenAppBar(
-            title: 'Course Warmups',
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        backgroundColor: AppTheme.appBar,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppTheme.text),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          'Vocal Warmups',
+          style: TextStyle(
+            fontFamily: AppTheme.primaryFontFamily,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.text,
+            fontSize: 20,
           ),
-
-          // Main Content
-          Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                children: [
-                  // Hero Section
-                  _buildHeroSection(),
-
-                  // Quick Start Section
-                  _buildQuickStartSection(),
-
-                  // Warmup Categories
-                  _buildWarmupsSection(),
-
-                  // Bottom padding
-                  const SizedBox(height: 32),
-                ],
-              ),
+        ),
+        centerTitle: false,
+      ),
+      body: FadeTransition(
+        opacity: _fadeController,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.1),
+            end: Offset.zero,
+          ).animate(
+            CurvedAnimation(
+              parent: _slideController,
+              curve: Curves.easeOutCubic,
             ),
           ),
-        ],
+          child: _VocalWarmupsContent(vocalService: _vocalService),
+        ),
+      ),
+    );
+  }
+}
+
+/// Optimized content widget that reduces unnecessary rebuilds
+class _VocalWarmupsContent extends StatefulWidget {
+  final VocalService vocalService;
+
+  const _VocalWarmupsContent({required this.vocalService});
+
+  @override
+  State<_VocalWarmupsContent> createState() => _VocalWarmupsContentState();
+}
+
+class _VocalWarmupsContentState extends State<_VocalWarmupsContent> {
+  List<VocalCategory>? _cachedCategories;
+  bool? _cachedIsLoading;
+  String? _cachedError;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: widget.vocalService,
+      builder: (context, child) {
+        final warmupCategories = widget.vocalService.getCategoriesByType(
+          VocalType.warmup,
+        );
+        final isLoading = widget.vocalService.isLoading;
+        final error = widget.vocalService.error;
+
+        // Only rebuild if data actually changed
+        if (_cachedCategories != warmupCategories ||
+            _cachedIsLoading != isLoading ||
+            _cachedError != error) {
+          _cachedCategories = warmupCategories;
+          _cachedIsLoading = isLoading;
+          _cachedError = error;
+        }
+
+        if (isLoading) {
+          return _buildLoadingState();
+        }
+
+        if (error != null) {
+          return _buildErrorState(error);
+        }
+
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: EdgeInsets.all(AppConstants.defaultPadding + 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Categories
+                if (warmupCategories.isNotEmpty) ...[
+                  _buildCategoriesSection(warmupCategories),
+                ] else ...[
+                  _buildEmptyState(),
+                ],
+
+                // Bottom padding
+                SizedBox(height: AppConstants.extraLargePadding),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return const Center(
+      child: CircularProgressIndicator(
+        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
       ),
     );
   }
 
-  // Modern Hero Section
-  Widget _buildHeroSection() {
-    return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.primaryColor.withValues(alpha: 0.1),
-            AppTheme.primaryColor.withValues(alpha: 0.05),
+  Widget _buildErrorState(String error) {
+    final theme = Theme.of(context);
+    final errorColor = theme.colorScheme.error;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: errorColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: 40,
+                color: errorColor,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Failed to Load Warmups',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontFamily: AppTheme.primaryFontFamily,
+                color: theme.colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              error,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontFamily: AppTheme.primaryFontFamily,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: AppTheme.primaryColor.withValues(alpha: 0.2),
-          width: 1,
-        ),
       ),
+    );
+  }
+
+  Widget _buildCategoriesSection(List<VocalCategory> categories) {
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: categories.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        return _VocalCategoryCard(
+          category: categories[index],
+          vocalService: widget.vocalService,
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyState() {
+    final theme = Theme.of(context);
+    final primaryColor = theme.primaryColor;
+
+    return Center(
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Animated Icon
           Container(
-            width: 80,
-            height: 80,
+            width: 96,
+            height: 96,
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  spreadRadius: 2,
-                ),
-              ],
+              color: primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(5),
             ),
             child: Icon(
-              Icons.mic_rounded,
-              color: AppTheme.primaryColor,
-              size: 40,
+              Icons.music_note_outlined,
+              size: 48,
+              color: primaryColor,
             ),
           ),
-
-          const SizedBox(height: 20),
-
+          const SizedBox(height: 24),
           Text(
-            'Ready to Warm Up?',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
+            'No Warmups Available',
+            style: theme.textTheme.headlineSmall?.copyWith(
               fontFamily: AppTheme.primaryFontFamily,
-            ),
-            textAlign: TextAlign.center,
-          ),
-
-          const SizedBox(height: 8),
-
-          Text(
-            'Prepare your voice with guided exercises\ndesigned for every skill level',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.8),
-              fontSize: 16,
-              fontFamily: AppTheme.primaryFontFamily,
-              height: 1.4,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Quick Start Section
-  Widget _buildQuickStartSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Quick Start',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              fontFamily: AppTheme.primaryFontFamily,
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
             ),
           ),
-
-          const SizedBox(height: 16),
-
-          // Quick Start Button
-          Container(
-            width: double.infinity,
-            height: 64,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppTheme.primaryColor,
-                  AppTheme.primaryColor.withValues(alpha: 0.8),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.4),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => _startQuickWarmup(),
-                borderRadius: BorderRadius.circular(20),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.flash_on_rounded,
-                          color: Colors.black,
-                          size: 24,
-                        ),
-                      ),
-
-                      const SizedBox(width: 16),
-
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '5-Minute Express',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: AppTheme.primaryFontFamily,
-                              ),
-                            ),
-                            Text(
-                              'Perfect for quick sessions',
-                              style: TextStyle(
-                                color: Colors.black.withValues(alpha: 0.7),
-                                fontSize: 14,
-                                fontFamily: AppTheme.primaryFontFamily,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        color: Colors.black,
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Modern Warmups Section
-  Widget _buildWarmupsSection() {
-    return Container(
-      margin: const EdgeInsets.only(top: 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+          const SizedBox(height: 12),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Text(
-              'Choose Your Warmup',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+              'New vocal warmup exercises will be added soon. Check back later!',
+              style: theme.textTheme.bodyMedium?.copyWith(
                 fontFamily: AppTheme.primaryFontFamily,
+                color: theme.colorScheme.onSurfaceVariant,
+                height: 1.5,
               ),
+              textAlign: TextAlign.center,
             ),
           ),
-
-          const SizedBox(height: 20),
-
-          // Warmup Grid
-          _buildWarmupGrid(),
         ],
       ),
     );
   }
+}
 
-  Widget _buildWarmupGrid() {
-    final warmups = [
-      {
-        'name': 'Daily Flow',
-        'description': 'Perfect daily routine',
-        'duration': 10,
-        'difficulty': 'Medium',
-        'type': 'standard',
-        'color': const Color(0xFF6366F1),
-        'emoji': '🎯',
-        'gradient': [const Color(0xFF6366F1), const Color(0xFF8B5CF6)],
-      },
-      {
-        'name': 'Quick Boost',
-        'description': 'Fast vocal prep',
-        'duration': 5,
-        'difficulty': 'Easy',
-        'type': 'quick',
-        'color': const Color(0xFF00D4AA),
-        'emoji': '⚡',
-        'gradient': [const Color(0xFF00D4AA), const Color(0xFF34D399)],
-      },
-      {
-        'name': 'Stage Ready',
-        'description': 'Performance prep',
-        'duration': 15,
-        'difficulty': 'Pro',
-        'type': 'performance',
-        'color': const Color(0xFFEC4899),
-        'emoji': '🚀',
-        'gradient': [const Color(0xFFEC4899), const Color(0xFFF472B6)],
-      },
-      {
-        'name': 'Chill Mode',
-        'description': 'Gentle recovery',
-        'duration': 8,
-        'difficulty': 'Easy',
-        'type': 'recovery',
-        'color': const Color(0xFF8B5CF6),
-        'emoji': '🌙',
-        'gradient': [const Color(0xFF8B5CF6), const Color(0xFFA78BFA)],
-      },
-    ];
+/// Optimized category card widget
+class _VocalCategoryCard extends StatelessWidget {
+  final VocalCategory category;
+  final VocalService vocalService;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 0.85,
-        ),
-        itemCount: warmups.length,
-        itemBuilder: (context, index) => _buildModernWarmupCard(warmups[index]),
-      ),
-    );
-  }
+  const _VocalCategoryCard({
+    required this.category,
+    required this.vocalService,
+  });
 
-  // Modern Warmup Card Design
-  Widget _buildModernWarmupCard(Map<String, dynamic> warmup) {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primaryColor = theme.primaryColor;
+    final onSurface = theme.colorScheme.onSurface;
+
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: warmup['gradient'] as List<Color>,
-        ),
-        borderRadius: BorderRadius.circular(20),
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: primaryColor.withOpacity(0.1), width: 1),
         boxShadow: [
           BoxShadow(
-            color: (warmup['color'] as Color).withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => _startWarmup(warmup),
-          borderRadius: BorderRadius.circular(20),
+          onTap: () => _openCategory(context),
+          borderRadius: BorderRadius.circular(5),
           child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            padding: const EdgeInsets.all(16),
+            child: Row(
               children: [
-                // Top Row - Emoji and Duration
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Center(
-                        child: Text(
-                          warmup['emoji'] as String,
-                          style: const TextStyle(fontSize: 24),
-                        ),
-                      ),
+                // Icon
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        primaryColor.withOpacity(0.8),
+                        primaryColor.withOpacity(0.6),
+                      ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${warmup['duration']}m',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: AppTheme.primaryFontFamily,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // Title
-                Text(
-                  warmup['name'] as String,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: AppTheme.primaryFontFamily,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Icon(
+                    Icons.music_note_outlined,
+                    color: theme.colorScheme.onPrimary,
+                    size: 24,
                   ),
                 ),
 
-                const SizedBox(height: 4),
+                const SizedBox(width: 16),
 
-                // Description
-                Text(
-                  warmup['description'] as String,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 14,
-                    fontFamily: AppTheme.primaryFontFamily,
-                  ),
-                ),
-
-                const Spacer(),
-
-                // Bottom Row - Difficulty and Play Button
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        warmup['difficulty'] as String,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
+                // Content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        category.name,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: onSurface,
                           fontWeight: FontWeight.w600,
                           fontFamily: AppTheme.primaryFontFamily,
+                          fontSize: 18,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${category.itemCount ?? 0} warmups',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.primary.withOpacity(0.8),
+                          fontWeight: FontWeight.w500,
+                          fontFamily: AppTheme.primaryFontFamily,
+                          fontSize: 16,
                         ),
                       ),
-                    ),
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: const Icon(
-                        Icons.play_arrow_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -459,26 +394,11 @@ class _VocalWarmupsScreenState extends State<VocalWarmupsScreen> {
     );
   }
 
-  void _startQuickWarmup() {
+  void _openCategory(BuildContext context) async {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => WarmupPlayerScreen(
-          warmupName: '5-Minute Express Warmup',
-          warmupType: 'quick',
-        ),
-      ),
-    );
-  }
-
-  void _startWarmup(Map<String, dynamic> warmup) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => WarmupPlayerScreen(
-          warmupName: warmup['name'] as String,
-          warmupType: warmup['type'] as String,
-        ),
+        builder: (context) => VocalWarmupCategoryDetailScreen(category: category),
       ),
     );
   }

@@ -193,7 +193,7 @@ Download Stuthi app to join the collaborative setlist.''';
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.red.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(5),
                   border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                 ),
                 child: Row(
@@ -237,7 +237,7 @@ Download Stuthi app to join the collaborative setlist.''';
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(5),
           ),
           child: Column(
             children: [
@@ -294,7 +294,7 @@ Download Stuthi app to join the collaborative setlist.''';
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: const Color(0xFF2A2A2A),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(5),
           ),
           child: Column(
             children: [
@@ -337,7 +337,7 @@ Download Stuthi app to join the collaborative setlist.''';
                   foregroundColor: const Color(0xFFC19FFF),
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
               ),
@@ -353,7 +353,7 @@ Download Stuthi app to join the collaborative setlist.''';
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
               ),

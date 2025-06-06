@@ -205,7 +205,7 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
             height: 4,
             decoration: BoxDecoration(
               color: Colors.grey[600],
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(5),
             ),
           ),
 

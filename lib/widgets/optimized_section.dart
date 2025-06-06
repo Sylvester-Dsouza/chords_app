@@ -46,7 +46,7 @@ class OptimizedSection extends StatelessWidget {
               child: const Text(
                 'See more',
                 style: TextStyle(
-                  color: AppTheme.primaryColor,
+                  color: AppTheme.primary,
                   fontSize: 14,
                 ),
               ),

@@ -76,6 +76,26 @@ class HomeSection {
       isActive: json['isActive'] ?? true,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'type': type.toString().split('.').last,
+      'items': items.map((item) {
+        if (item is Collection) {
+          return item.toJson();
+        } else if (item is Song) {
+          return item.toJson();
+        } else if (item is Artist) {
+          return item.toJson();
+        } else {
+          return item; // For banner items or other raw data
+        }
+      }).toList(),
+      'isActive': isActive,
+    };
+  }
 }
 
 class HomeSectionService {

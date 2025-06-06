@@ -118,7 +118,7 @@ Download Stuthi app for worship song chords and lyrics.''';
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: const Color(0xFF2A2A2A),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(5),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,7 +171,7 @@ Download Stuthi app for worship song chords and lyrics.''';
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(5),
           ),
           child: Column(
             children: [
@@ -228,7 +228,7 @@ Download Stuthi app for worship song chords and lyrics.''';
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: const Color(0xFF2A2A2A),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(5),
           ),
           child: Column(
             children: [
@@ -271,7 +271,7 @@ Download Stuthi app for worship song chords and lyrics.''';
                   foregroundColor: const Color(0xFFC19FFF),
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
               ),
@@ -287,7 +287,7 @@ Download Stuthi app for worship song chords and lyrics.''';
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
               ),

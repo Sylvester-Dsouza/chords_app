@@ -18,7 +18,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: const InnerScreenAppBar(
         title: 'Resources',
         showBackButton: false,
@@ -40,7 +40,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF009688), // Teal color
-        borderRadius: BorderRadius.circular(8.0),
+        borderRadius: BorderRadius.circular(5),
       ),
       child: Column(
         children: [
@@ -63,7 +63,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
               margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(4.0),
+                borderRadius: BorderRadius.circular(5),
               ),
               child: Center(
                 child: Column(

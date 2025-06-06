@@ -1,5 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../services/setlist_service.dart';
 import '../utils/ui_helpers.dart';
@@ -13,8 +14,9 @@ class QRScannerScreen extends StatefulWidget {
 
 class _QRScannerScreenState extends State<QRScannerScreen> {
   final SetlistService _setlistService = SetlistService();
-  late MobileScannerController controller;
-
+  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+  QRViewController? controller;
+  Barcode? result;
   bool _isProcessing = false;
   bool _hasPermission = false;
   String? _errorMessage;
@@ -22,13 +24,22 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   @override
   void initState() {
     super.initState();
-    controller = MobileScannerController();
     _checkCameraPermission();
   }
 
   @override
+  void reassemble() {
+    super.reassemble();
+    if (Platform.isAndroid) {
+      controller?.pauseCamera();
+    } else if (Platform.isIOS) {
+      controller?.resumeCamera();
+    }
+  }
+
+  @override
   void dispose() {
-    controller.dispose();
+    controller?.dispose();
     super.dispose();
   }
 
@@ -49,11 +60,13 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     }
   }
 
-  void _onDetect(BarcodeCapture capture) {
-    final List<Barcode> barcodes = capture.barcodes;
-    if (!_isProcessing && barcodes.isNotEmpty && barcodes.first.rawValue != null) {
-      _processQRCode(barcodes.first.rawValue!);
-    }
+  void _onQRViewCreated(QRViewController controller) {
+    this.controller = controller;
+    controller.scannedDataStream.listen((scanData) {
+      if (!_isProcessing && scanData.code != null) {
+        _processQRCode(scanData.code!);
+      }
+    });
   }
 
   Future<void> _processQRCode(String qrData) async {
@@ -65,7 +78,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
     try {
       // Stop scanning while processing
-      await controller.stop();
+      await controller?.pauseCamera();
 
       String? shareCode;
 
@@ -111,7 +124,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           }
         } else {
           // Resume scanning if user cancels
-          await controller.start();
+          await controller?.resumeCamera();
           setState(() {
             _isProcessing = false;
           });
@@ -125,7 +138,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         );
 
         // Resume scanning after error
-        await controller.start();
+        await controller?.resumeCamera();
         setState(() {
           _isProcessing = false;
         });
@@ -139,7 +152,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E1E1E),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(5),
         ),
         title: Row(
           children: [
@@ -176,7 +189,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: const Color(0xFF2A2A2A),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(5),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,7 +262,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         ),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -260,19 +273,16 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             child: _hasPermission
                 ? Stack(
                     children: [
-                      MobileScanner(
-                        controller: controller,
-                        onDetect: _onDetect,
-                      ),
-                      // Custom overlay with cutout
-                      CustomPaint(
-                        painter: QRScannerOverlay(
+                      QRView(
+                        key: qrKey,
+                        onQRViewCreated: _onQRViewCreated,
+                        overlay: QrScannerOverlayShape(
                           borderColor: const Color(0xFFC19FFF),
-                          borderWidth: 4,
+                          borderRadius: 10,
+                          borderLength: 30,
+                          borderWidth: 10,
                           cutOutSize: 250,
-                          borderRadius: 16,
                         ),
-                        child: Container(),
                       ),
                       if (_isProcessing)
                         Container(
@@ -298,60 +308,96 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                         ),
                     ],
                   )
-                : Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.camera_alt_outlined,
-                          size: 64,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _errorMessage ?? 'Camera permission required',
-                          style: TextStyle(
-                            color: Colors.grey[400],
-                            fontSize: 16,
+                : _errorMessage != null
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                size: 64,
+                                color: Colors.red,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                _errorMessage!,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 24),
+                              ElevatedButton(
+                                onPressed: _checkCameraPermission,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFC19FFF),
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: const Text('Request Permission'),
+                              ),
+                            ],
                           ),
-                          textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _checkCameraPermission,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFC19FFF),
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Grant Permission'),
+                      )
+                    : const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFFC19FFF),
                         ),
-                      ],
-                    ),
-                  ),
+                      ),
           ),
           Expanded(
             flex: 1,
             child: Container(
-              padding: const EdgeInsets.all(24),
+              color: Colors.black,
+              padding: const EdgeInsets.all(16),
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    'Position the QR code within the frame',
+                  const Text(
+                    'Enter 4-digit code manually',
                     style: TextStyle(
-                      color: Colors.grey[300],
+                      color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
-                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'The camera will automatically scan when a valid QR code is detected',
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 14,
-                    ),
-                    textAlign: TextAlign.center,
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 200,
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: '4-digit code',
+                            hintStyle: TextStyle(color: Colors.grey[600]),
+                            filled: true,
+                            fillColor: const Color(0xFF2A2A2A),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(5),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                          ),
+                          style: const TextStyle(color: Colors.white),
+                          keyboardType: TextInputType.number,
+                          maxLength: 4,
+                          textAlign: TextAlign.center,
+                          onChanged: (value) {
+                            // Handle manual code entry
+                            if (value.length == 4 && RegExp(r'^\d{4}$').hasMatch(value)) {
+                              _processQRCode(value);
+                            }
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -361,115 +407,4 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       ),
     );
   }
-}
-
-class QRScannerOverlay extends CustomPainter {
-  final Color borderColor;
-  final double borderWidth;
-  final double cutOutSize;
-  final double borderRadius;
-
-  QRScannerOverlay({
-    required this.borderColor,
-    required this.borderWidth,
-    required this.cutOutSize,
-    required this.borderRadius,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Paint backgroundPaint = Paint()
-      ..color = Colors.black.withValues(alpha: 0.5)
-      ..style = PaintingStyle.fill;
-
-    final Paint borderPaint = Paint()
-      ..color = borderColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = borderWidth;
-
-    // Draw background overlay
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), backgroundPaint);
-
-    // Calculate cutout position (center)
-    final double cutOutLeft = (size.width - cutOutSize) / 2;
-    final double cutOutTop = (size.height - cutOutSize) / 2;
-
-    // Create cutout path
-    final Path cutOutPath = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(cutOutLeft, cutOutTop, cutOutSize, cutOutSize),
-        Radius.circular(borderRadius),
-      ));
-
-    // Clear the cutout area
-    canvas.drawPath(cutOutPath, Paint()..blendMode = BlendMode.clear);
-
-    // Draw border around cutout
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(cutOutLeft, cutOutTop, cutOutSize, cutOutSize),
-        Radius.circular(borderRadius),
-      ),
-      borderPaint,
-    );
-
-    // Draw corner indicators
-    final double cornerLength = 30;
-    final Paint cornerPaint = Paint()
-      ..color = borderColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = borderWidth + 2
-      ..strokeCap = StrokeCap.round;
-
-    // Top-left corner
-    canvas.drawLine(
-      Offset(cutOutLeft, cutOutTop + cornerLength),
-      Offset(cutOutLeft, cutOutTop + borderRadius),
-      cornerPaint,
-    );
-    canvas.drawLine(
-      Offset(cutOutLeft + cornerLength, cutOutTop),
-      Offset(cutOutLeft + borderRadius, cutOutTop),
-      cornerPaint,
-    );
-
-    // Top-right corner
-    canvas.drawLine(
-      Offset(cutOutLeft + cutOutSize, cutOutTop + cornerLength),
-      Offset(cutOutLeft + cutOutSize, cutOutTop + borderRadius),
-      cornerPaint,
-    );
-    canvas.drawLine(
-      Offset(cutOutLeft + cutOutSize - cornerLength, cutOutTop),
-      Offset(cutOutLeft + cutOutSize - borderRadius, cutOutTop),
-      cornerPaint,
-    );
-
-    // Bottom-left corner
-    canvas.drawLine(
-      Offset(cutOutLeft, cutOutTop + cutOutSize - cornerLength),
-      Offset(cutOutLeft, cutOutTop + cutOutSize - borderRadius),
-      cornerPaint,
-    );
-    canvas.drawLine(
-      Offset(cutOutLeft + cornerLength, cutOutTop + cutOutSize),
-      Offset(cutOutLeft + borderRadius, cutOutTop + cutOutSize),
-      cornerPaint,
-    );
-
-    // Bottom-right corner
-    canvas.drawLine(
-      Offset(cutOutLeft + cutOutSize, cutOutTop + cutOutSize - cornerLength),
-      Offset(cutOutLeft + cutOutSize, cutOutTop + cutOutSize - borderRadius),
-      cornerPaint,
-    );
-    canvas.drawLine(
-      Offset(cutOutLeft + cutOutSize - cornerLength, cutOutTop + cutOutSize),
-      Offset(cutOutLeft + cutOutSize - borderRadius, cutOutTop + cutOutSize),
-      cornerPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

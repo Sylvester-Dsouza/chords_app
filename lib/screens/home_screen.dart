@@ -16,7 +16,11 @@ import '../widgets/skeleton_loader.dart';
 import '../services/notification_service.dart';
 import '../services/cache_service.dart';
 import '../services/home_section_service.dart';
+import '../core/service_locator.dart';
+import '../config/theme.dart';
 import './list_screen.dart';
+import '../widgets/connectivity_status_widget.dart';
+import '../services/connectivity_service.dart';
 
 class HomeScreenNew extends StatefulWidget {
   const HomeScreenNew({super.key});
@@ -25,8 +29,8 @@ class HomeScreenNew extends StatefulWidget {
   State<HomeScreenNew> createState() => _HomeScreenNewState();
 }
 
-class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserver {
-
+class _HomeScreenNewState extends State<HomeScreenNew>
+    with WidgetsBindingObserver {
   // Services
   // AdService removed to fix crashing issues
   // final AdService _adService = AdService();
@@ -56,7 +60,10 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
 
     // Listen to AppDataProvider changes for automatic updates
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final appDataProvider = Provider.of<AppDataProvider>(context, listen: false);
+      final appDataProvider = Provider.of<AppDataProvider>(
+        context,
+        listen: false,
+      );
       appDataProvider.addListener(_onAppDataProviderChanged);
     });
 
@@ -65,19 +72,34 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       _checkLoginState();
 
       // Sync with navigation provider and screen state
-      final navigationProvider = Provider.of<NavigationProvider>(context, listen: false);
-      final screenStateProvider = Provider.of<ScreenStateProvider>(context, listen: false);
+      final navigationProvider = Provider.of<NavigationProvider>(
+        context,
+        listen: false,
+      );
+      final screenStateProvider = Provider.of<ScreenStateProvider>(
+        context,
+        listen: false,
+      );
 
       navigationProvider.updateIndex(0); // Home screen is index 0
       screenStateProvider.navigateToScreen(ScreenType.home);
       screenStateProvider.markScreenInitialized(ScreenType.home);
 
-      // Check if we already have data from AppDataProvider
-      final appDataProvider = Provider.of<AppDataProvider>(context, listen: false);
+      // Complete notification setup now that user is on home screen
+      _completeNotificationSetup();
 
-      if (appDataProvider.homeSections.isNotEmpty && appDataProvider.homeState == DataState.loaded) {
+      // Check if we already have data from AppDataProvider
+      final appDataProvider = Provider.of<AppDataProvider>(
+        context,
+        listen: false,
+      );
+
+      if (appDataProvider.homeSections.isNotEmpty &&
+          appDataProvider.homeState == DataState.loaded) {
         // Use existing data from AppDataProvider
-        debugPrint('Home: Using existing data from AppDataProvider (${appDataProvider.homeSections.length} sections)');
+        debugPrint(
+          'Home: Using existing data from AppDataProvider (${appDataProvider.homeSections.length} sections)',
+        );
         setState(() {
           _homeSections = appDataProvider.homeSections;
           _isLoadingHomeSections = false;
@@ -95,7 +117,8 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
         _clearImageCache();
 
         // Initialize app data if needed
-        if (appDataProvider.homeState == DataState.loading && appDataProvider.homeSections.isEmpty) {
+        if (appDataProvider.homeState == DataState.loading &&
+            appDataProvider.homeSections.isEmpty) {
           debugPrint('Home: App data not initialized, initializing now...');
           appDataProvider.initializeAfterLogin().catchError((e) {
             debugPrint('Error initializing app data from home screen: $e');
@@ -121,7 +144,10 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
 
     // Remove listener from AppDataProvider
     try {
-      final appDataProvider = Provider.of<AppDataProvider>(context, listen: false);
+      final appDataProvider = Provider.of<AppDataProvider>(
+        context,
+        listen: false,
+      );
       appDataProvider.removeListener(_onAppDataProviderChanged);
     } catch (e) {
       debugPrint('Error removing AppDataProvider listener: $e');
@@ -134,15 +160,19 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
   void _onAppDataProviderChanged() {
     if (!mounted) return;
 
-    final appDataProvider = Provider.of<AppDataProvider>(context, listen: false);
+    final appDataProvider = Provider.of<AppDataProvider>(
+      context,
+      listen: false,
+    );
 
     // Only update if we have new data and it's different from current data
     if (appDataProvider.homeSections.isNotEmpty &&
         appDataProvider.homeState == DataState.loaded &&
         (_homeSections.length != appDataProvider.homeSections.length ||
-         _hasContentChanged(_homeSections, appDataProvider.homeSections))) {
-
-      debugPrint('📱 Home: AppDataProvider updated, refreshing UI with new data');
+            _hasContentChanged(_homeSections, appDataProvider.homeSections))) {
+      debugPrint(
+        '📱 Home: AppDataProvider updated, refreshing UI with new data',
+      );
       setState(() {
         _homeSections = appDataProvider.homeSections;
         _isLoadingHomeSections = false;
@@ -159,22 +189,32 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
 
     // Only refresh in background if it's been more than the minimum interval
     if (timeSinceLastRefresh > _minRefreshInterval) {
-      debugPrint('Background refresh check: Last refresh was ${timeSinceLastRefresh}ms ago, triggering background refresh via AppDataProvider');
+      debugPrint(
+        'Background refresh check: Last refresh was ${timeSinceLastRefresh}ms ago, triggering background refresh via AppDataProvider',
+      );
 
       // Use AppDataProvider for background refresh instead of direct service call
-      final appDataProvider = Provider.of<AppDataProvider>(context, listen: false);
-      appDataProvider.getHomeSections(forceRefresh: false); // This will trigger background refresh if needed
+      final appDataProvider = Provider.of<AppDataProvider>(
+        context,
+        listen: false,
+      );
+      appDataProvider.getHomeSections(
+        forceRefresh: false,
+      ); // This will trigger background refresh if needed
 
       _lastRefreshTime = now;
     } else {
-      debugPrint('Background refresh check: Last refresh was ${timeSinceLastRefresh}ms ago, skipping refresh');
+      debugPrint(
+        'Background refresh check: Last refresh was ${timeSinceLastRefresh}ms ago, skipping refresh',
+      );
     }
   }
 
-
-
   // Helper method to check if content has changed
-  bool _hasContentChanged(List<HomeSection> oldSections, List<HomeSection> newSections) {
+  bool _hasContentChanged(
+    List<HomeSection> oldSections,
+    List<HomeSection> newSections,
+  ) {
     if (oldSections.length != newSections.length) return true;
 
     for (int i = 0; i < oldSections.length; i++) {
@@ -221,8 +261,6 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
         break;
     }
   }
-
-
 
   // Clear the image cache to ensure fresh images - only used on first load
   void _clearImageCache() {
@@ -273,15 +311,34 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
     }
   }
 
-
-
-
-
   // Fetch dynamic home sections using global data provider
   Future<void> _fetchHomeSections({bool forceRefresh = false}) async {
     try {
-      final appDataProvider = Provider.of<AppDataProvider>(context, listen: false);
-      final screenStateProvider = Provider.of<ScreenStateProvider>(context, listen: false);
+      // Check connectivity before attempting to fetch data
+      final connectivityService = serviceLocator.connectivityService;
+      if (!connectivityService.isFullyOnline && forceRefresh) {
+        debugPrint('📱 Home: No connectivity, skipping data fetch');
+        // Show a message to user about connectivity issue
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(connectivityService.getConnectivityMessage()),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
+      final appDataProvider = Provider.of<AppDataProvider>(
+        context,
+        listen: false,
+      );
+      final screenStateProvider = Provider.of<ScreenStateProvider>(
+        context,
+        listen: false,
+      );
 
       // Check if we already have fresh data and don't need to refresh
       if (!forceRefresh && _dataInitiallyLoaded && _homeSections.isNotEmpty) {
@@ -297,20 +354,25 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       }
 
       // Get sections from global provider (uses smart caching)
-      final sections = await appDataProvider.getHomeSections(forceRefresh: forceRefresh);
+      final sections = await appDataProvider.getHomeSections(
+        forceRefresh: forceRefresh,
+      );
 
       if (mounted) {
         setState(() {
           _homeSections = sections;
           _isLoadingHomeSections = false;
           _dataInitiallyLoaded = true; // Mark data as loaded
-          _lastRefreshTime = DateTime.now().millisecondsSinceEpoch; // Update last refresh time
+          _lastRefreshTime =
+              DateTime.now().millisecondsSinceEpoch; // Update last refresh time
         });
 
         // Mark data as refreshed in screen state provider
         screenStateProvider.markDataRefreshed(ScreenType.home);
 
-        debugPrint('📱 Home: Loaded ${sections.length} sections from global provider');
+        debugPrint(
+          '📱 Home: Loaded ${sections.length} sections from global provider',
+        );
       }
     } catch (e) {
       debugPrint('❌ Home: Error fetching sections: $e');
@@ -322,8 +384,6 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       }
     }
   }
-
-
 
   Future<void> _checkLoginState() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
@@ -347,6 +407,30 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       debugPrint('User is not logged in, but not forcing login');
       // Uncomment to force login
       // Navigator.pushReplacementNamed(context, '/login');
+    }
+  }
+
+  // Complete notification setup when user reaches home screen
+  void _completeNotificationSetup() {
+    try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+      // Only setup notifications if user is logged in
+      if (userProvider.isLoggedIn) {
+        debugPrint('🏠 Home: User is logged in, completing notification setup...');
+
+        // Import service locator to access notification service
+        final notificationService = serviceLocator.notificationService;
+
+        // Complete notification setup in background (non-blocking)
+        notificationService.completeSetupAfterLogin().catchError((e) {
+          debugPrint('❌ Home: Error completing notification setup: $e');
+        });
+      } else {
+        debugPrint('🏠 Home: User not logged in, skipping notification setup');
+      }
+    } catch (e) {
+      debugPrint('❌ Home: Error accessing notification service: $e');
     }
   }
 
@@ -400,26 +484,28 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ListScreen(
-          title: sectionTitle,
-          listType: listType,
-          sectionId: section?.id,
-          sectionType: sectionType,
-        ),
+        builder:
+            (context) => ListScreen(
+              title: sectionTitle,
+              listType: listType,
+              sectionId: section?.id,
+              sectionType: sectionType,
+            ),
       ),
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: const AppDrawer(),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF121212),
+        backgroundColor: AppTheme.appBar,
         elevation: 0,
+        scrolledUnderElevation: 0, // Prevents elevation change when scrolling
+        surfaceTintColor:
+            Colors.transparent, // Prevents blue tinting from primary color
         leading: Builder(
           builder:
               (context) => IconButton(
@@ -439,15 +525,19 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
         ),
         centerTitle: true,
         actions: [
+          // Connectivity indicator
+          ConnectivityIndicator(
+            margin: const EdgeInsets.only(right: 8.0),
+          ),
           Stack(
             children: [
               IconButton(
-                icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                icon: const Icon(
+                  Icons.notifications_outlined,
+                  color: Colors.white,
+                ),
                 onPressed: () {
-                  Navigator.pushNamed(
-                    context,
-                    '/notifications',
-                  ).then((_) {
+                  Navigator.pushNamed(context, '/notifications').then((_) {
                     // Refresh notification count when returning from notification screen
                     _fetchUnreadNotificationCount();
                   });
@@ -474,15 +564,21 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
                     padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
                       color: Colors.red,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                     constraints: const BoxConstraints(
                       minWidth: 16,
                       minHeight: 16,
                     ),
                     child: Text(
-                      _unreadNotificationCount > 99 ? '99+' : _unreadNotificationCount.toString(),
-                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      _unreadNotificationCount > 99
+                          ? '99+'
+                          : _unreadNotificationCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -498,6 +594,15 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
             // Top spacing
             const SizedBox(height: 16.0),
 
+            // Connectivity Status Widget
+            ConnectivityStatusWidget(
+              margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              onRetryPressed: () {
+                // Retry loading home sections when connectivity is restored
+                _fetchHomeSections(forceRefresh: true);
+              },
+            ),
+
             // Dynamic Home Sections
             if (_isLoadingHomeSections)
               _buildLoadingIndicator()
@@ -505,22 +610,21 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
               // Render dynamic sections
               for (var section in _homeSections)
                 if (section.isActive != false) // Skip inactive sections
-                  ...[
-                    // For banner sections, don't show header with title and "See more"
-                    if (section.type == SectionType.BANNER)
-                      _buildBannerSection(section)
-                    else
-                      ...[
-                        _buildSectionHeader(section.title, sectionType: section.type),
-                        _buildSectionContent(section),
-                      ],
+                ...[
+                  // For banner sections, don't show header with title and "See more"
+                  if (section.type == SectionType.BANNER)
+                    _buildBannerSection(section)
+                  else ...[
+                    _buildSectionHeader(
+                      section.title,
+                      sectionType: section.type,
+                    ),
+                    _buildSectionContent(section),
                   ],
-
-
+                ],
 
             // Support Us section
             _buildSupportUsSection(),
-
 
             // Extra space at bottom to ensure all content is visible above bottom nav bar
             const SizedBox(height: 24),
@@ -532,12 +636,17 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
 
   Widget _buildSectionHeader(String title, {SectionType? sectionType}) {
     return Padding(
-      padding: const EdgeInsets.only(top: 16.0), // Add consistent top padding between sections
+      padding: const EdgeInsets.only(
+        top: 16.0,
+      ), // Add consistent top padding between sections
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -578,7 +687,9 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
           ),
 
           // Add consistent spacing between section header and content
-          const SizedBox(height: 8.0), // Standard spacing between header and content
+          const SizedBox(
+            height: 8.0,
+          ), // Standard spacing between header and content
         ],
       ),
     );
@@ -600,8 +711,6 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
     );
   }
 
-
-
   Widget _buildLoadingIndicator() {
     return Column(
       children: [
@@ -621,10 +730,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       height: 140, // Default height to match horizontal scroll section
       margin: const EdgeInsets.only(bottom: 16.0), // Reduced bottom margin
       child: Center(
-        child: Text(
-          message,
-          style: TextStyle(color: Colors.grey[400]),
-        ),
+        child: Text(message, style: TextStyle(color: Colors.grey[400])),
       ),
     );
   }
@@ -648,7 +754,11 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
     return colors[DateTime.now().millisecondsSinceEpoch % colors.length];
   }
 
-  Widget _buildCollectionItem(String title, Color color, {Collection? collection}) {
+  Widget _buildCollectionItem(
+    String title,
+    Color color, {
+    Collection? collection,
+  }) {
     return GestureDetector(
       onTap: () {
         if (collection != null) {
@@ -666,41 +776,45 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
         width: 260, // Optimal width for rectangular collection items
         margin: const EdgeInsets.symmetric(horizontal: 8.0),
         child: AspectRatio(
-          aspectRatio: 16/9, // 16:9 aspect ratio
+          aspectRatio: 16 / 9, // 16:9 aspect ratio
           child: Container(
             decoration: BoxDecoration(
               color: _getColorWithOpacity(color, 0.3),
-              borderRadius: BorderRadius.circular(8.0),
+              borderRadius: BorderRadius.circular(5),
               // No gradient overlay to keep image clear
             ),
-            child: collection?.imageUrl != null
-              ? MemoryEfficientImage(
-                  imageUrl: collection!.imageUrl!,
-                  width: 400, // Use reasonable fixed size instead of infinity
-                  height: 225, // 16:9 aspect ratio (400 * 9/16 = 225)
-                  fit: BoxFit.cover,
-                  borderRadius: BorderRadius.circular(8.0),
-                  placeholder: Center(
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
-                      strokeWidth: 2,
+            child:
+                collection?.imageUrl != null
+                    ? MemoryEfficientImage(
+                      imageUrl: collection!.imageUrl!,
+                      width:
+                          400, // Use reasonable fixed size instead of infinity
+                      height: 225, // 16:9 aspect ratio (400 * 9/16 = 225)
+                      fit: BoxFit.cover,
+                      borderRadius: BorderRadius.circular(5),
+                      placeholder: Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Theme.of(context).colorScheme.primary,
+                          ),
+                          strokeWidth: 2,
+                        ),
+                      ),
+                      errorWidget: Center(
+                        child: Icon(
+                          Icons.collections_bookmark,
+                          color: Colors.white,
+                          size: 40,
+                        ),
+                      ),
+                    )
+                    : Center(
+                      child: Icon(
+                        Icons.collections_bookmark,
+                        color: Colors.white,
+                        size: 40,
+                      ),
                     ),
-                  ),
-                  errorWidget: Center(
-                    child: Icon(
-                      Icons.collections_bookmark,
-                      color: Colors.white,
-                      size: 40,
-                    ),
-                  ),
-                )
-              : Center(
-                  child: Icon(
-                    Icons.collections_bookmark,
-                    color: Colors.white,
-                    size: 40,
-                  ),
-                ),
           ),
         ),
       ),
@@ -711,11 +825,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
     return GestureDetector(
       onTap: () {
         if (song != null) {
-          Navigator.pushNamed(
-            context,
-            '/song_detail',
-            arguments: song,
-          );
+          Navigator.pushNamed(context, '/song_detail', arguments: song);
         }
       },
       child: Container(
@@ -729,7 +839,10 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
             final textHeight = (availableHeight * 0.18).clamp(16.0, 22.0);
 
             // Calculate the size of the square image
-            final imageSize = availableHeight - textHeight - 10.0; // Subtract text height and spacing
+            final imageSize =
+                availableHeight -
+                textHeight -
+                10.0; // Subtract text height and spacing
 
             // Calculate the total height needed
             final totalContentHeight = imageSize + 10.0 + textHeight;
@@ -749,43 +862,54 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
                     child: Container(
                       decoration: BoxDecoration(
                         color: _getColorWithOpacity(color, 0.3),
-                        borderRadius: BorderRadius.circular(8.0),
+                        borderRadius: BorderRadius.circular(5),
                         // Fallback gradient if no image is available
-                        gradient: song?.imageUrl == null ? LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            _getColorWithOpacity(color, 0.7),
-                            Color.fromRGBO(0, 0, 0, 0.9), // Black with opacity
-                          ],
-                        ) : null,
+                        gradient:
+                            song?.imageUrl == null
+                                ? LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    _getColorWithOpacity(color, 0.7),
+                                    Color.fromRGBO(
+                                      0,
+                                      0,
+                                      0,
+                                      0.9,
+                                    ), // Black with opacity
+                                  ],
+                                )
+                                : null,
                       ),
-                      child: song?.imageUrl != null
-                        ? MemoryEfficientImage(
-                            imageUrl: song!.imageUrl!,
-                            width: imageSize,
-                            height: imageSize,
-                            fit: BoxFit.cover,
-                            borderRadius: BorderRadius.circular(8.0),
-                            placeholder: Center(
-                              child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
-                                strokeWidth: 2,
+                      child:
+                          song?.imageUrl != null
+                              ? MemoryEfficientImage(
+                                imageUrl: song!.imageUrl!,
+                                width: imageSize,
+                                height: imageSize,
+                                fit: BoxFit.cover,
+                                borderRadius: BorderRadius.circular(5),
+                                placeholder: Center(
+                                  child: CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Theme.of(context).colorScheme.primary,
+                                    ),
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                                errorWidget: Icon(
+                                  Icons.music_note,
+                                  color: Colors.white,
+                                  size: 40,
+                                ),
+                              )
+                              : Center(
+                                child: Icon(
+                                  Icons.music_note,
+                                  color: Colors.white,
+                                  size: 40,
+                                ),
                               ),
-                            ),
-                            errorWidget: Icon(
-                              Icons.music_note,
-                              color: Colors.white,
-                              size: 40,
-                            ),
-                          )
-                        : Center(
-                            child: Icon(
-                              Icons.music_note,
-                              color: Colors.white,
-                              size: 40,
-                            ),
-                          ),
                     ),
                   ),
 
@@ -818,9 +942,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
           Navigator.pushNamed(
             context,
             '/artist_detail',
-            arguments: {
-              'artistName': artist.name,
-            },
+            arguments: {'artistName': artist.name},
           );
         }
       },
@@ -834,7 +956,8 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
             // Minimize text height to give more space to the image
             final textHeight = (availableHeight * 0.14).clamp(12.0, 16.0);
             // Increase artist image size - make it larger
-            final imageSize = ((availableHeight - textHeight - 4.0) * 0.95).clamp(65.0, 95.0);
+            final imageSize = ((availableHeight - textHeight - 4.0) * 0.95)
+                .clamp(65.0, 95.0);
 
             // Calculate the total height needed
             final totalContentHeight = imageSize + 4.0 + textHeight;
@@ -845,7 +968,8 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
               padding: EdgeInsets.only(top: topPadding > 0 ? topPadding : 0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center, // Center horizontally
+                crossAxisAlignment:
+                    CrossAxisAlignment.center, // Center horizontally
                 children: [
                   // Placeholder for artist image (circular)
                   Container(
@@ -859,31 +983,34 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
                         stops: const [0.5, 1.0],
                       ),
                     ),
-                    child: artist?.imageUrl != null
-                        ? ClipOval(
-                            child: MemoryEfficientImage(
-                              imageUrl: artist!.imageUrl!,
-                              width: imageSize,
-                              height: imageSize,
-                              fit: BoxFit.cover,
-                              placeholder: Center(
-                                child: CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  strokeWidth: 2,
+                    child:
+                        artist?.imageUrl != null
+                            ? ClipOval(
+                              child: MemoryEfficientImage(
+                                imageUrl: artist!.imageUrl!,
+                                width: imageSize,
+                                height: imageSize,
+                                fit: BoxFit.cover,
+                                placeholder: Center(
+                                  child: CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                                errorWidget: Icon(
+                                  Icons.person,
+                                  color: Colors.white,
+                                  size: imageSize * 0.5,
                                 ),
                               ),
-                              errorWidget: Icon(
-                                Icons.person,
-                                color: Colors.white,
-                                size: imageSize * 0.5,
-                              ),
+                            )
+                            : Icon(
+                              Icons.person,
+                              color: Colors.white,
+                              size: imageSize * 0.5,
                             ),
-                          )
-                        : Icon(
-                            Icons.person,
-                            color: Colors.white,
-                            size: imageSize * 0.5,
-                          ),
                   ),
 
                   // Minimal spacing between image and text for artist items
@@ -948,18 +1075,14 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
                 Navigator.pushNamed(
                   context,
                   '/collection_detail',
-                  arguments: {
-                    'collectionId': targetId,
-                  },
+                  arguments: {'collectionId': targetId},
                 );
                 break;
               case 'ARTIST':
                 Navigator.pushNamed(
                   context,
                   '/artist_detail',
-                  arguments: {
-                    'artistId': targetId,
-                  },
+                  arguments: {'artistId': targetId},
                 );
                 break;
               default:
@@ -977,9 +1100,11 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
         bannerItems.add(
           BannerItem(
             imageUrl: imageUrl,
-            onTap: onTap as void Function()? ?? () {
-              debugPrint('Banner item tapped, but no target specified');
-            },
+            onTap:
+                onTap as void Function()? ??
+                () {
+                  debugPrint('Banner item tapped, but no target specified');
+                },
           ),
         );
       }
@@ -995,7 +1120,12 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
 
     // Return a sliding banner with the items
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 16.0), // Consistent spacing between sections
+      padding: const EdgeInsets.fromLTRB(
+        16.0,
+        16.0,
+        16.0,
+        16.0,
+      ), // Consistent spacing between sections
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(5),
@@ -1031,7 +1161,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
               Theme.of(context).colorScheme.primary.withAlpha(5),
             ],
           ),
-          borderRadius: BorderRadius.circular(16.0),
+          borderRadius: BorderRadius.circular(5),
           // Thin border with primary color
           border: Border.all(
             color: Theme.of(context).colorScheme.primary.withAlpha(50),
@@ -1055,10 +1185,9 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
                   const SizedBox(width: 8),
                   Text(
                     'Free Forever',
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
                     ),
                   ),
                 ],
@@ -1088,18 +1217,20 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
                 },
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Theme.of(context).colorScheme.primary,
-                  side: BorderSide(color: Theme.of(context).colorScheme.primary),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 10,
+                  ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
                 child: const Text(
                   'Support Us',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
               ),
             ],
@@ -1117,61 +1248,66 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          left: 24.0,
-          right: 24.0,
-          top: 24.0,
-          bottom: 24.0 + MediaQuery.of(context).padding.bottom, // Add safe area bottom padding
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Support Options',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
+      builder:
+          (context) => Padding(
+            padding: EdgeInsets.only(
+              left: 24.0,
+              right: 24.0,
+              top: 24.0,
+              bottom:
+                  24.0 +
+                  MediaQuery.of(
+                    context,
+                  ).padding.bottom, // Add safe area bottom padding
             ),
-            const SizedBox(height: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Support Options',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 24),
 
-            // Support options list
-            ...[
-              _buildSupportOption(
-                icon: Icons.payments_outlined,
-                title: 'Financial Support',
-                description: 'Donate via various payment methods',
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, '/support');
-                },
-              ),
-              _buildSupportOption(
-                icon: Icons.star,
-                title: 'Rate the app',
-                description: 'Help others find us',
-                onTap: () {
-                  Navigator.pop(context);
-                  _launchAppStore();
-                },
-              ),
-              _buildSupportOption(
-                icon: Icons.share,
-                title: 'Share with friends',
-                description: 'Spread the word',
-                onTap: () {
-                  Navigator.pop(context);
-                  _shareApp();
-                },
-              ),
-            ],
+                // Support options list
+                ...[
+                  _buildSupportOption(
+                    icon: Icons.payments_outlined,
+                    title: 'Financial Support',
+                    description: 'Donate via various payment methods',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.pushNamed(context, '/support');
+                    },
+                  ),
+                  _buildSupportOption(
+                    icon: Icons.star,
+                    title: 'Rate the app',
+                    description: 'Help others find us',
+                    onTap: () {
+                      Navigator.pop(context);
+                      _launchAppStore();
+                    },
+                  ),
+                  _buildSupportOption(
+                    icon: Icons.share,
+                    title: 'Share with friends',
+                    description: 'Spread the word',
+                    onTap: () {
+                      Navigator.pop(context);
+                      _shareApp();
+                    },
+                  ),
+                ],
 
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
     );
   }
 
@@ -1184,7 +1320,10 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
 
     try {
       if (Theme.of(context).platform == TargetPlatform.android) {
-        launchUrl(Uri.parse(playStoreUrl), mode: LaunchMode.externalApplication);
+        launchUrl(
+          Uri.parse(playStoreUrl),
+          mode: LaunchMode.externalApplication,
+        );
       } else if (Theme.of(context).platform == TargetPlatform.iOS) {
         launchUrl(Uri.parse(appStoreUrl), mode: LaunchMode.externalApplication);
       }
@@ -1202,7 +1341,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
   void _shareApp() {
     // Use URL launcher to open a share intent
     final url = Uri.parse(
-      'https://play.google.com/store/apps/details?id=com.stuti.chords'
+      'https://play.google.com/store/apps/details?id=com.stuti.chords',
     );
     launchUrl(url, mode: LaunchMode.externalApplication);
   }
@@ -1215,10 +1354,7 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
     required VoidCallback onTap,
   }) {
     return ListTile(
-      leading: Icon(
-        icon,
-        color: Theme.of(context).colorScheme.primary,
-      ),
+      leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
       title: Text(
         title,
         style: const TextStyle(
@@ -1228,61 +1364,58 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       ),
       subtitle: Text(
         description,
-        style: const TextStyle(
-          color: Colors.white60,
-          fontSize: 12,
-        ),
+        style: const TextStyle(color: Colors.white60, fontSize: 12),
       ),
       onTap: onTap,
     );
   }
-
-
-
-
-
-
 
   // Build section content based on section type
   Widget _buildSectionContent(HomeSection section) {
     switch (section.type) {
       case SectionType.COLLECTIONS:
         return section.items.isEmpty
-          ? _buildEmptyState('No collections available')
-          : _buildHorizontalScrollSection(
-              section.items.map((collection) =>
-                _buildCollectionItem(
-                  collection.title,
-                  collection.color,
-                  collection: collection,
-                )
-              ).toList(),
+            ? _buildEmptyState('No collections available')
+            : _buildHorizontalScrollSection(
+              section.items
+                  .map(
+                    (collection) => _buildCollectionItem(
+                      collection.title,
+                      collection.color,
+                      collection: collection,
+                    ),
+                  )
+                  .toList(),
             );
 
       case SectionType.SONGS:
         return section.items.isEmpty
-          ? _buildEmptyState('No songs available')
-          : _buildHorizontalScrollSection(
-              section.items.map((song) =>
-                _buildSongItem(
-                  song.title,
-                  _getRandomColor(),
-                  song: song,
-                )
-              ).toList(),
+            ? _buildEmptyState('No songs available')
+            : _buildHorizontalScrollSection(
+              section.items
+                  .map(
+                    (song) => _buildSongItem(
+                      song.title,
+                      _getRandomColor(),
+                      song: song,
+                    ),
+                  )
+                  .toList(),
             );
 
       case SectionType.ARTISTS:
         return section.items.isEmpty
-          ? _buildEmptyState('No artists available')
-          : _buildHorizontalScrollSection(
-              section.items.map((artist) =>
-                _buildArtistItem(
-                  artist.name,
-                  _getRandomColor(),
-                  artist: artist,
-                )
-              ).toList(),
+            ? _buildEmptyState('No artists available')
+            : _buildHorizontalScrollSection(
+              section.items
+                  .map(
+                    (artist) => _buildArtistItem(
+                      artist.name,
+                      _getRandomColor(),
+                      artist: artist,
+                    ),
+                  )
+                  .toList(),
             );
 
       case SectionType.BANNER:
@@ -1290,7 +1423,9 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
         return _buildEmptyState('Banner section (should not be shown here)');
 
       case SectionType.SONG_LIST:
-        debugPrint('Building SONG_LIST section: ${section.title} with ${section.items.length} items');
+        debugPrint(
+          'Building SONG_LIST section: ${section.title} with ${section.items.length} items',
+        );
 
         // Convert items to Song objects manually to ensure proper conversion
         List<Song> songs = [];
@@ -1311,8 +1446,8 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
         debugPrint('Converted ${songs.length} items to Song objects');
 
         return songs.isEmpty
-          ? _buildEmptyState('No songs available')
-          : _buildSongListSection(songs);
+            ? _buildEmptyState('No songs available')
+            : _buildSongListSection(songs);
     }
   }
 
@@ -1328,10 +1463,10 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
     }
 
     // Ensure we have valid songs with required fields
-    final validSongs = songs.where((song) =>
-      song.id.isNotEmpty &&
-      song.title.isNotEmpty
-    ).toList();
+    final validSongs =
+        songs
+            .where((song) => song.id.isNotEmpty && song.title.isNotEmpty)
+            .toList();
 
     debugPrint('Found ${validSongs.length} valid songs out of ${songs.length}');
 
@@ -1344,7 +1479,10 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       child: ListView.builder(
         physics: const NeverScrollableScrollPhysics(),
         shrinkWrap: true,
-        itemCount: validSongs.length > 8 ? 8 : validSongs.length, // Limit to 8 songs for a compact view
+        itemCount:
+            validSongs.length > 8
+                ? 8
+                : validSongs.length, // Limit to 8 songs for a compact view
         itemBuilder: (context, index) {
           final song = validSongs[index];
           debugPrint('Building song item $index: ${song.title}');
@@ -1360,14 +1498,13 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
       children: [
         InkWell(
           onTap: () {
-            Navigator.pushNamed(
-              context,
-              '/song_detail',
-              arguments: song,
-            );
+            Navigator.pushNamed(context, '/song_detail', arguments: song);
           },
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Row(
               children: [
                 // Song thumbnail
@@ -1376,39 +1513,47 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
                   height: 50,
                   decoration: BoxDecoration(
                     color: _getColorWithOpacity(_getRandomColor(), 0.2),
-                    borderRadius: BorderRadius.circular(6.0),
+                    borderRadius: BorderRadius.circular(5),
                   ),
-                  child: song.imageUrl != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(6.0),
-                        child: CachedNetworkImage(
-                          imageUrl: song.imageUrl!,
-                          fit: BoxFit.cover,
-                          fadeInDuration: const Duration(milliseconds: 300),
-                          placeholder: (context, url) => Center(
-                            child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
-                                strokeWidth: 2,
-                              ),
+                  child:
+                      song.imageUrl != null
+                          ? ClipRRect(
+                            borderRadius: BorderRadius.circular(5),
+                            child: CachedNetworkImage(
+                              imageUrl: song.imageUrl!,
+                              fit: BoxFit.cover,
+                              fadeInDuration: const Duration(milliseconds: 300),
+                              placeholder:
+                                  (context, url) => Center(
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                            ),
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  ),
+                              errorWidget:
+                                  (context, url, error) => const Icon(
+                                    Icons.music_note,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                            ),
+                          )
+                          : const Center(
+                            child: Icon(
+                              Icons.music_note,
+                              color: Colors.white,
+                              size: 24,
                             ),
                           ),
-                          errorWidget: (context, url, error) => const Icon(
-                            Icons.music_note,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                      )
-                    : const Center(
-                        child: Icon(
-                          Icons.music_note,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                      ),
                 ),
 
                 const SizedBox(width: 16),
@@ -1421,10 +1566,9 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
                       // Song title
                       Text(
                         song.title,
-                        style: const TextStyle(
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w500,
-                          fontSize: 15,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -1435,10 +1579,9 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
                       // Artist name only
                       Text(
                         song.artist,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 13,
-                        ),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -1450,9 +1593,8 @@ class _HomeScreenNewState extends State<HomeScreenNew> with WidgetsBindingObserv
                 if (song.key.isNotEmpty)
                   Text(
                     song.key,
-                    style: const TextStyle(
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: Colors.grey,
-                      fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
                   ),

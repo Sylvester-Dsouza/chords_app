@@ -878,4 +878,87 @@ class CacheService {
       return true;
     }
   }
+
+  /// Generic method to cache any string data with a key
+  Future<void> set(String key, String data) async {
+    try {
+      final cacheData = {
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+        'data': data,
+      };
+
+      // Save to memory cache
+      _memoryCache[key] = cacheData;
+
+      // Save to persistent storage
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, json.encode(cacheData));
+
+      debugPrint('Cached data for key: $key');
+    } catch (e) {
+      debugPrint('Error caching data for key $key: $e');
+    }
+  }
+
+  /// Generic method to get cached string data by key
+  Future<String?> get(String key, {int expirationMinutes = 30}) async {
+    try {
+      // First check memory cache
+      if (_memoryCache.containsKey(key)) {
+        final cacheMap = _memoryCache[key] as Map<String, dynamic>;
+        final timestamp = cacheMap['timestamp'] as int;
+        final expirationTime = timestamp + (expirationMinutes * 60 * 1000);
+
+        // Check if memory cache is still valid
+        if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
+          final data = cacheMap['data'] as String;
+          debugPrint('Retrieved data for key $key from memory cache');
+          return data;
+        }
+      }
+
+      // If not in memory or expired, check persistent storage
+      final prefs = await SharedPreferences.getInstance();
+      final cachedData = prefs.getString(key);
+
+      if (cachedData != null) {
+        final cacheMap = json.decode(cachedData) as Map<String, dynamic>;
+        final timestamp = cacheMap['timestamp'] as int;
+        final expirationTime = timestamp + (expirationMinutes * 60 * 1000);
+
+        // Check if persistent cache is still valid
+        if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
+          final data = cacheMap['data'] as String;
+
+          // Update memory cache
+          _memoryCache[key] = cacheMap;
+
+          debugPrint('Retrieved data for key $key from persistent cache');
+          return data;
+        }
+      }
+
+      // No valid cache found
+      return null;
+    } catch (e) {
+      debugPrint('Error getting cached data for key $key: $e');
+      return null;
+    }
+  }
+
+  /// Remove cached data by key
+  Future<void> remove(String key) async {
+    try {
+      // Remove from memory cache
+      _memoryCache.remove(key);
+
+      // Remove from persistent storage
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(key);
+
+      debugPrint('Removed cached data for key: $key');
+    } catch (e) {
+      debugPrint('Error removing cached data for key $key: $e');
+    }
+  }
 }

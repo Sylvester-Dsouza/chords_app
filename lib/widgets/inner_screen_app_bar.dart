@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/theme.dart';
 
 class InnerScreenAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -18,9 +19,14 @@ class InnerScreenAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Update status bar color to match app bar
+    AppTheme.updateStatusBarColor();
+
     return AppBar(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: AppTheme.appBar,
       elevation: 0,
+      scrolledUnderElevation: 0, // Prevents elevation change when scrolling
+      surfaceTintColor: Colors.transparent, // Prevents blue tinting from primary color
       leading: showBackButton
           ? IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),

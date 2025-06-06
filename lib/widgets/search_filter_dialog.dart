@@ -3,6 +3,7 @@ import '../models/search_filters.dart';
 import '../models/song.dart';
 import '../models/artist.dart';
 import '../models/collection.dart';
+import '../config/theme.dart';
 
 class SearchFilterDialog extends StatefulWidget {
   final int tabIndex; // 0 = Songs, 1 = Artists, 2 = Collections
@@ -171,7 +172,7 @@ class _SearchFilterDialogState extends State<SearchFilterDialog> {
         ),
         decoration: BoxDecoration(
           color: const Color(0xFF121212),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(5),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -195,8 +196,8 @@ class _SearchFilterDialogState extends State<SearchFilterDialog> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFC19FFF),
-                        borderRadius: BorderRadius.circular(12),
+                        color: AppTheme.primary,
+                        borderRadius: BorderRadius.circular(5),
                       ),
                       child: Text(
                         '${_getActiveFilterCount()}',
@@ -265,11 +266,11 @@ class _SearchFilterDialogState extends State<SearchFilterDialog> {
                     child: ElevatedButton(
                       onPressed: _applyFilters,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFC19FFF),
+                        backgroundColor: AppTheme.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(5),
                         ),
                         elevation: 0,
                       ),
@@ -462,8 +463,8 @@ class _SearchFilterDialogState extends State<SearchFilterDialog> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFFC19FFF) : Colors.grey[800],
-              borderRadius: BorderRadius.circular(8),
+              color: isSelected ? AppTheme.primary : Colors.grey[800],
+              borderRadius: BorderRadius.circular(5),
             ),
             child: Text(
               option.displayName,
@@ -494,8 +495,8 @@ class _SearchFilterDialogState extends State<SearchFilterDialog> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFFC19FFF) : Colors.grey[800],
-              borderRadius: BorderRadius.circular(6),
+              color: isSelected ? AppTheme.primary : Colors.grey[800],
+              borderRadius: BorderRadius.circular(5),
             ),
             child: Text(
               option.displayName,

@@ -7,18 +7,9 @@ class AboutUsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // List of contributors
     final List<Map<String, String>> contributors = [
-      {
-        'name': 'Silvan Dsouza',
-        'role': 'Marketing',
-      },
-      {
-        'name': 'Silvan Dsouza',
-        'role': 'Marketing',
-      },
-      {
-        'name': 'Silvan Dsouza',
-        'role': 'Marketing',
-      },
+      {'name': 'Silvan Dsouza', 'role': 'Marketing'},
+      {'name': 'Silvan Dsouza', 'role': 'Marketing'},
+      {'name': 'Silvan Dsouza', 'role': 'Marketing'},
     ];
 
     return Scaffold(
@@ -95,7 +86,9 @@ class AboutUsScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               // Contributors list
-              ...contributors.map((contributor) => _buildContributorCard(context, contributor)),
+              ...contributors.map(
+                (contributor) => _buildContributorCard(context, contributor),
+              ),
 
               const SizedBox(height: 24),
 
@@ -130,22 +123,22 @@ class AboutUsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContributorCard(BuildContext context, Map<String, String> contributor) {
+  Widget _buildContributorCard(
+    BuildContext context,
+    Map<String, String> contributor,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(5),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
           radius: 24,
           backgroundColor: const Color(0xFF333333),
-          child: const Icon(
-            Icons.person,
-            color: Colors.grey,
-          ),
+          child: const Icon(Icons.person, color: Colors.grey),
         ),
         title: Text(
           contributor['name']!,
@@ -157,10 +150,7 @@ class AboutUsScreen extends StatelessWidget {
         ),
         subtitle: Text(
           contributor['role']!,
-          style: const TextStyle(
-            color: Colors.grey,
-            fontSize: 14,
-          ),
+          style: const TextStyle(color: Colors.grey, fontSize: 14),
         ),
         trailing: Icon(
           Icons.link,

@@ -396,7 +396,7 @@ class _SongPresentationScreenState extends State<SongPresentationScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(5),
               border: Border.all(
                 color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                 width: 1,
@@ -633,7 +633,7 @@ class _SongPresentationScreenState extends State<SongPresentationScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(5),
               border: Border.all(
                 color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                 width: 1,

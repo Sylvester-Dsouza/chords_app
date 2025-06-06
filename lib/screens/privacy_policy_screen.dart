@@ -8,7 +8,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: const InnerScreenAppBar(
         title: 'Privacy Policy',
       ),
@@ -103,7 +103,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           Text(
             title,
             style: const TextStyle(
-              color: AppTheme.primaryColor,
+              color: AppTheme.primary,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),

@@ -1,11 +1,11 @@
 {
-    "name": "chords_app",
-    "short_name": "chords_app",
+    "name": "Stuthi - Christian Song Chords & Lyrics",
+    "short_name": "Stuthi",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#121212",
+    "theme_color": "#FF9500",
+    "description": "Christian song chords and lyrics app for worship leaders and musicians.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

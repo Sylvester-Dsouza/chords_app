@@ -103,7 +103,7 @@ class _LikedCollectionsScreenState extends State<LikedCollectionsScreen> {
             height: 120,
             decoration: BoxDecoration(
               color: Colors.grey[700],
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(5),
             ),
             child: Row(
               children: [
@@ -132,7 +132,7 @@ class _LikedCollectionsScreenState extends State<LikedCollectionsScreen> {
                           height: 18,
                           decoration: BoxDecoration(
                             color: Colors.grey[600],
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(5),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -142,7 +142,7 @@ class _LikedCollectionsScreenState extends State<LikedCollectionsScreen> {
                           height: 14,
                           decoration: BoxDecoration(
                             color: Colors.grey[600],
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(5),
                           ),
                         ),
                         const Spacer(),
@@ -152,7 +152,7 @@ class _LikedCollectionsScreenState extends State<LikedCollectionsScreen> {
                           height: 12,
                           decoration: BoxDecoration(
                             color: Colors.grey[600],
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(5),
                           ),
                         ),
                       ],
@@ -238,7 +238,7 @@ class _LikedCollectionsScreenState extends State<LikedCollectionsScreen> {
           // Collection background
           Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8.0),
+              borderRadius: BorderRadius.circular(5),
               color: Colors.grey[800],
               image: collection.imageUrl != null
                   ? DecorationImage(
@@ -268,7 +268,7 @@ class _LikedCollectionsScreenState extends State<LikedCollectionsScreen> {
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8.0),
+                borderRadius: BorderRadius.circular(5),
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -307,7 +307,7 @@ class _LikedCollectionsScreenState extends State<LikedCollectionsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: Colors.black.withAlpha(128),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(5),
               ),
               child: Row(
                 children: [

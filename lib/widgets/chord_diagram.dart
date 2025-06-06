@@ -18,7 +18,7 @@ class ChordDiagram extends StatelessWidget {
           height: 60,
           decoration: BoxDecoration(
             color: const Color(0xFF1E1E1E),
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(5),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withAlpha(70),
@@ -47,7 +47,7 @@ class ChordDiagram extends StatelessWidget {
                     width: 8,
                     height: 8,
                     decoration: const BoxDecoration(
-                      color: AppTheme.primaryColor,
+                      color: AppTheme.primary,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -55,7 +55,7 @@ class ChordDiagram extends StatelessWidget {
                     width: 8,
                     height: 8,
                     decoration: const BoxDecoration(
-                      color: AppTheme.primaryColor,
+                      color: AppTheme.primary,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -80,7 +80,7 @@ class ChordDiagram extends StatelessWidget {
                     width: 8,
                     height: 8,
                     decoration: const BoxDecoration(
-                      color: AppTheme.primaryColor,
+                      color: AppTheme.primary,
                       shape: BoxShape.circle,
                     ),
                   ),

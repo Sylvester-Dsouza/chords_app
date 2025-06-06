@@ -327,7 +327,7 @@ class _SongRequestScreenState extends State<SongRequestScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2), // Further reduced from 4 to 2
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(6), // Slightly smaller radius
+        borderRadius: BorderRadius.circular(5), // Slightly smaller radius
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), // Further reduced padding
@@ -356,7 +356,7 @@ class _SongRequestScreenState extends State<SongRequestScreen> {
           height: 42, // Further reduced from 50
           decoration: BoxDecoration(
             color: const Color(0xFF333333),
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(5),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -627,7 +627,7 @@ class _AddSongRequestFormState extends State<_AddSongRequestForm> {
               foregroundColor: Theme.of(context).colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(5),
               ),
               disabledBackgroundColor: Theme.of(context).colorScheme.primary.withAlpha(128), // Primary color with 50% opacity
             ),

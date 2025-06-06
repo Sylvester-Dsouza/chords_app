@@ -25,13 +25,16 @@ class _RateAppScreenState extends State<RateAppScreen> {
   Future<void> _launchAppStore() async {
     // Replace with your actual app store links
     final Uri appStoreUrl = Uri.parse('https://apps.apple.com/app/yourappid');
-    final Uri playStoreUrl = Uri.parse('https://play.google.com/store/apps/details?id=com.yourapp.id');
+    final Uri playStoreUrl = Uri.parse(
+      'https://play.google.com/store/apps/details?id=com.yourapp.id',
+    );
 
     try {
       // Determine which store to open based on platform
-      final Uri storeUrl = Theme.of(context).platform == TargetPlatform.iOS
-          ? appStoreUrl
-          : playStoreUrl;
+      final Uri storeUrl =
+          Theme.of(context).platform == TargetPlatform.iOS
+              ? appStoreUrl
+              : playStoreUrl;
 
       if (await canLaunchUrl(storeUrl)) {
         await launchUrl(storeUrl, mode: LaunchMode.externalApplication);
@@ -41,7 +44,10 @@ class _RateAppScreenState extends State<RateAppScreen> {
     } catch (e) {
       debugPrint('Error launching store: $e');
       if (!mounted) return;
-      ToastUtil.showError(context, 'Could not open app store. Please try again later.');
+      ToastUtil.showError(
+        context,
+        'Could not open app store. Please try again later.',
+      );
     }
   }
 
@@ -72,7 +78,10 @@ class _RateAppScreenState extends State<RateAppScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      ToastUtil.showError(context, 'Failed to submit feedback. Please try again.');
+      ToastUtil.showError(
+        context,
+        'Failed to submit feedback. Please try again.',
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -85,50 +94,49 @@ class _RateAppScreenState extends State<RateAppScreen> {
   void _showRateOnStoreDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        title: const Text(
-          'Rate on App Store',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: const Text(
-          'Would you like to rate our app on the app store?',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
-            },
-            child: const Text(
-              'Not Now',
-              style: TextStyle(color: Colors.grey),
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: const Color(0xFF1E1E1E),
+            title: const Text(
+              'Rate on App Store',
+              style: TextStyle(color: Colors.white),
             ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
-              _launchAppStore();
-            },
-            child: const Text(
-              'Rate Now',
-              style: TextStyle(color: AppTheme.primaryColor),
+            content: const Text(
+              'Would you like to rate our app on the app store?',
+              style: TextStyle(color: Colors.white70),
             ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop();
+                },
+                child: const Text(
+                  'Not Now',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop();
+                  _launchAppStore();
+                },
+                child: const Text(
+                  'Rate Now',
+                  style: TextStyle(color: AppTheme.primary),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      appBar: const InnerScreenAppBar(
-        title: 'Rate App',
-      ),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: const InnerScreenAppBar(title: 'Rate App'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
@@ -153,7 +161,7 @@ class _RateAppScreenState extends State<RateAppScreen> {
               ),
               child: const Icon(
                 Icons.music_note,
-                color: AppTheme.primaryColor,
+                color: AppTheme.primary,
                 size: 60,
               ),
             ),
@@ -173,10 +181,7 @@ class _RateAppScreenState extends State<RateAppScreen> {
 
             const Text(
               'v1.0.0',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 16,
-              ),
+              style: TextStyle(color: Colors.grey, fontSize: 16),
             ),
 
             const SizedBox(height: 32),
@@ -199,7 +204,7 @@ class _RateAppScreenState extends State<RateAppScreen> {
                 return IconButton(
                   icon: Icon(
                     index < _rating ? Icons.star : Icons.star_border,
-                    color: AppTheme.primaryColor,
+                    color: AppTheme.primary,
                     size: 40,
                   ),
                   onPressed: () {
@@ -222,7 +227,7 @@ class _RateAppScreenState extends State<RateAppScreen> {
                 filled: true,
                 fillColor: const Color(0xFF1E1E1E),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(5),
                   borderSide: BorderSide.none,
                 ),
                 contentPadding: const EdgeInsets.all(16),
@@ -240,24 +245,27 @@ class _RateAppScreenState extends State<RateAppScreen> {
               child: ElevatedButton(
                 onPressed: _isSubmitting ? null : _submitFeedback,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
+                  backgroundColor: AppTheme.primary,
                   foregroundColor: Colors.black,
                   disabledBackgroundColor: Colors.grey,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
-                child: _isSubmitting
-                    ? const CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-                      )
-                    : const Text(
-                        'Submit Feedback',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                child:
+                    _isSubmitting
+                        ? const CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.black,
+                          ),
+                        )
+                        : const Text(
+                          'Submit Feedback',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
               ),
             ),
 
@@ -266,16 +274,10 @@ class _RateAppScreenState extends State<RateAppScreen> {
             // Rate on Store Button
             TextButton.icon(
               onPressed: _launchAppStore,
-              icon: const Icon(
-                Icons.star,
-                color: AppTheme.primaryColor,
-              ),
+              icon: const Icon(Icons.star, color: AppTheme.primary),
               label: const Text(
                 'Rate on App Store',
-                style: TextStyle(
-                  color: AppTheme.primaryColor,
-                  fontSize: 16,
-                ),
+                style: TextStyle(color: AppTheme.primary, fontSize: 16),
               ),
             ),
 

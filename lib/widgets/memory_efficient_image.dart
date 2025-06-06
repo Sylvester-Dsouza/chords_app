@@ -49,11 +49,11 @@ class MemoryEfficientImage extends StatelessWidget {
         debugPrint('Error loading image: $url - $error');
         return errorWidget ?? _defaultErrorWidget;
       },
-      // Memory management options
+      // Aggressive memory management options
       memCacheWidth: _calculateMemCacheSize(width),
       memCacheHeight: _calculateMemCacheSize(height),
-      maxWidthDiskCache: 800, // Limit disk cache size
-      maxHeightDiskCache: 800, // Limit disk cache size
+      maxWidthDiskCache: 400, // Reduced disk cache size for memory efficiency
+      maxHeightDiskCache: 400, // Reduced disk cache size for memory efficiency
     );
 
     // Apply border radius if needed
@@ -112,13 +112,13 @@ class MemoryEfficientImage extends StatelessWidget {
 
     // Handle infinity values
     if (size.isInfinite || size.isNaN) {
-      return 800; // Use a reasonable default size
+      return 300; // Reduced default size for memory efficiency
     }
 
     // Get device pixel ratio (default to 2.0 if not available)
     final pixelRatio = WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
 
-    // Calculate size based on pixel ratio, with a maximum of 1000 pixels
-    return (size * pixelRatio).round().clamp(0, 1000);
+    // Calculate size based on pixel ratio, with a maximum of 400 pixels (reduced from 1000)
+    return (size * pixelRatio).round().clamp(0, 400);
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/notification_service.dart';
+import '../config/theme.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -131,7 +132,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   iconColor.g.toInt(),
                   iconColor.b.toInt(),
                 ),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(5),
               ),
               child: Icon(
                 iconData,
@@ -190,11 +191,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Notifications'),
         centerTitle: true,
-        backgroundColor: const Color(0xFF121212),
+        backgroundColor: AppTheme.appBar,
         elevation: 0,
         actions: [
           IconButton(

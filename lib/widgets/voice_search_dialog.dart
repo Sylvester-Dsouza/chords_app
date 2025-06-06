@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import '../config/theme.dart';
 
 class VoiceSearchDialog extends StatefulWidget {
   final bool isListening;
@@ -98,7 +99,7 @@ class _VoiceSearchDialogState extends State<VoiceSearchDialog>
           color: const Color(0xFF1A1A1A),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: const Color(0xFFC19FFF).withValues(alpha: 0.3),
+            color: AppTheme.primary.withValues(alpha: 0.3),
             width: 1,
           ),
           boxShadow: [
@@ -140,7 +141,7 @@ class _VoiceSearchDialogState extends State<VoiceSearchDialog>
                           size: const Size(120, 120),
                           painter: SoundWavePainter(
                             animation: _waveAnimation.value,
-                            color: const Color(0xFFC19FFF),
+                            color: AppTheme.primary,
                           ),
                         );
                       },
@@ -156,13 +157,13 @@ class _VoiceSearchDialogState extends State<VoiceSearchDialog>
                           width: 60,
                           height: 60,
                           decoration: BoxDecoration(
-                            color: widget.isListening 
-                                ? const Color(0xFFC19FFF)
+                            color: widget.isListening
+                                ? AppTheme.primary
                                 : const Color(0xFF333333),
                             shape: BoxShape.circle,
                             boxShadow: widget.isListening ? [
                               BoxShadow(
-                                color: const Color(0xFFC19FFF).withValues(alpha: 0.4),
+                                color: AppTheme.primary.withValues(alpha: 0.4),
                                 blurRadius: 20,
                                 spreadRadius: 2,
                               ),
@@ -204,9 +205,9 @@ class _VoiceSearchDialogState extends State<VoiceSearchDialog>
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: const Color(0xFF2A2A2A),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(5),
                   border: Border.all(
-                    color: const Color(0xFFC19FFF).withValues(alpha: 0.3),
+                    color: AppTheme.primary.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -273,7 +274,7 @@ class _VoiceSearchDialogState extends State<VoiceSearchDialog>
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     backgroundColor: const Color(0xFF333333),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                   ),
                   child: const Text(
@@ -291,9 +292,9 @@ class _VoiceSearchDialogState extends State<VoiceSearchDialog>
                     onPressed: widget.onRetry,
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      backgroundColor: const Color(0xFFC19FFF),
+                      backgroundColor: AppTheme.primary,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(5),
                       ),
                     ),
                     child: const Text(

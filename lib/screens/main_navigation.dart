@@ -70,7 +70,7 @@ class _MainNavigationState extends State<MainNavigation> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('No', style: TextStyle(color: AppTheme.primaryColor)),
+              child: const Text('No', style: TextStyle(color: AppTheme.primary)),
             ),
             TextButton(
               onPressed: () {
@@ -78,7 +78,7 @@ class _MainNavigationState extends State<MainNavigation> {
                 // This will exit the app safely
                 Navigator.of(context).popUntil((route) => route.isFirst);
               },
-              child: const Text('Yes', style: TextStyle(color: AppTheme.primaryColor)),
+              child: const Text('Yes', style: TextStyle(color: AppTheme.primary)),
             ),
           ],
         ),
@@ -117,8 +117,10 @@ class _MainNavigationState extends State<MainNavigation> {
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppTheme.appBar, // Use theme app bar color
         elevation: 0,
+        scrolledUnderElevation: 0, // Prevents elevation change when scrolling
+        surfaceTintColor: Colors.transparent, // Prevents blue tinting
         automaticallyImplyLeading: false, // Don't show back button
         // Custom back button that handles our navigation logic
         leading: BackButton(

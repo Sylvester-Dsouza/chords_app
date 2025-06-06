@@ -4,7 +4,6 @@ import '../models/song.dart';
 import '../models/artist.dart';
 import '../models/collection.dart';
 import '../models/setlist.dart';
-import '../models/course.dart';
 import '../services/home_section_service.dart';
 import '../services/song_service.dart';
 import '../services/artist_service.dart';
@@ -13,6 +12,9 @@ import '../services/collection_service.dart';
 import '../services/setlist_service.dart';
 import '../services/liked_songs_service.dart';
 import '../services/cache_service.dart';
+import '../services/smart_data_manager.dart';
+import '../core/error_handler.dart';
+import '../core/service_locator.dart';
 
 enum DataState { loading, loaded, error, refreshing }
 
@@ -22,6 +24,9 @@ class AppDataProvider extends ChangeNotifier {
   AppDataProvider._internal() {
     // Add notification throttling
     _setupNotificationThrottling();
+
+    // Set up memory management
+    _setupMemoryManagement();
   }
 
   // Notification throttling
@@ -60,6 +65,7 @@ class AppDataProvider extends ChangeNotifier {
   final LikedSongsService _likedSongsService = LikedSongsService();
   final CacheService _cacheService = CacheService();
   final OfflineService _offlineService = OfflineService();
+  final SmartDataManager _smartDataManager = SmartDataManager();
 
   // Data States
   DataState _homeState = DataState.loading;
@@ -69,19 +75,20 @@ class AppDataProvider extends ChangeNotifier {
   DataState _setlistsState = DataState.loading;
   DataState _likedSongsState = DataState.loading;
 
-  // Data Storage
-  List<HomeSection> _homeSections = [];
-  List<Song> _songs = [];
-  List<Artist> _artists = [];
-  List<Collection> _collections = [];
-  List<Setlist> _setlists = [];
-  List<Song> _likedSongs = [];
+  // Data Storage - Use smaller initial capacity and lazy loading
+  List<HomeSection> _homeSections = <HomeSection>[];
+  List<Song> _songs = <Song>[];
+  List<Artist> _artists = <Artist>[];
+  List<Collection> _collections = <Collection>[];
+  List<Setlist> _setlists = <Setlist>[];
+  List<Song> _likedSongs = <Song>[];
 
-  // Cache Timestamps
-  DateTime? _lastHomeRefresh;
-  DateTime? _lastSongsRefresh;
-  DateTime? _lastArtistsRefresh;
-  DateTime? _lastCollectionsRefresh;
+  // Memory management
+  static const int _maxSongsInMemory = 100; // Limit songs in memory
+  static const int _maxArtistsInMemory = 50; // Limit artists in memory
+  static const int _maxCollectionsInMemory = 20; // Limit collections in memory
+
+  // Cache Timestamps (only for setlists and liked songs that still use old caching)
   DateTime? _lastSetlistsRefresh;
   DateTime? _lastLikedSongsRefresh;
 
@@ -119,134 +126,70 @@ class AppDataProvider extends ChangeNotifier {
 
   // Initialize app data - called once when app starts
   Future<void> initializeAppData() async {
-    debugPrint('🚀 AppDataProvider: Initializing app data...');
+    debugPrint('🚀 AppDataProvider: Initializing app data with smart loading...');
 
-    // Load cached data first for instant UI
-    await _loadCachedData();
+    // Initialize smart data manager
+    await _smartDataManager.initialize();
 
-    // Then refresh data in background
-    _refreshAllDataInBackground();
+    // Load only essential data immediately (home sections)
+    await _loadEssentialDataOnly();
+
+    // Don't load other data - it will be loaded when needed
+    debugPrint('✅ App data initialization complete - other data will load on demand');
   }
 
   // Initialize app data after login - lighter version for faster login
   Future<void> initializeAfterLogin() async {
     debugPrint('🚀 AppDataProvider: Initializing app data after login...');
 
-    // Load only essential cached data first
-    await _loadEssentialCachedData();
+    // Load only essential data (home sections)
+    await _loadEssentialDataOnly();
 
-    // Then refresh data in background
-    _refreshAllDataInBackground();
+    // Other data will be loaded on demand
+    debugPrint('✅ Post-login initialization complete');
   }
 
-  // Load only essential cached data for faster startup
-  Future<void> _loadEssentialCachedData() async {
+  // Load only essential data (home sections) for immediate UI
+  Future<void> _loadEssentialDataOnly() async {
     try {
-      // Load home sections from cache (most important for home screen)
-      final cachedHomeSections = await _homeSectionService.getCachedHomeSections(checkOnly: true);
-      if (cachedHomeSections != null && cachedHomeSections.isNotEmpty) {
-        _homeSections = cachedHomeSections;
+      // Load home sections using smart data manager
+      final homeSections = await _smartDataManager.getHomeSections();
+
+      if (homeSections.isNotEmpty) {
+        _homeSections = homeSections;
         _homeState = DataState.loaded;
-        _lastHomeRefresh = DateTime.now();
-        debugPrint('📱 Loaded ${_homeSections.length} home sections from cache');
-      }
-
-      notifyListeners();
-    } catch (e) {
-      debugPrint('❌ Error loading essential cached data: $e');
-    }
-  }
-
-  // Load cached data for instant UI
-  Future<void> _loadCachedData() async {
-    try {
-      // Load home sections from cache
-      final cachedHomeSections = await _homeSectionService.getCachedHomeSections(checkOnly: true);
-      if (cachedHomeSections != null && cachedHomeSections.isNotEmpty) {
-        _homeSections = cachedHomeSections;
-        _homeState = DataState.loaded;
-        _lastHomeRefresh = DateTime.now();
-        debugPrint('📱 Loaded ${_homeSections.length} home sections from cache');
-      }
-
-      // Load songs from cache
-      final cachedSongs = await _cacheService.getCachedSongs();
-      if (cachedSongs != null && cachedSongs.isNotEmpty) {
-        _songs = cachedSongs;
-        _songsState = DataState.loaded;
-        _lastSongsRefresh = DateTime.now();
-        debugPrint('📱 Loaded ${_songs.length} songs from cache');
-      }
-
-      // Load artists from cache
-      final cachedArtists = await _cacheService.getCachedArtists();
-      if (cachedArtists != null && cachedArtists.isNotEmpty) {
-        _artists = cachedArtists;
-        _artistsState = DataState.loaded;
-        _lastArtistsRefresh = DateTime.now();
-        debugPrint('📱 Loaded ${_artists.length} artists from cache');
-      }
-
-      // Load collections from cache (using seasonal collections as fallback)
-      final cachedCollections = await _cacheService.getCachedSeasonalCollections();
-      if (cachedCollections != null && cachedCollections.isNotEmpty) {
-        _collections = cachedCollections;
-        _collectionsState = DataState.loaded;
-        _lastCollectionsRefresh = DateTime.now();
-        debugPrint('📱 Loaded ${_collections.length} collections from cache');
-      }
-
-      // Notify listeners if we have any cached data
-      if (_homeSections.isNotEmpty || _songs.isNotEmpty || _artists.isNotEmpty || _collections.isNotEmpty) {
+        debugPrint('📱 Loaded ${_homeSections.length} home sections (smart cache)');
         notifyListeners();
-        debugPrint('📱 Notified listeners with cached data');
       }
     } catch (e) {
-      debugPrint('❌ Error loading cached data: $e');
+      debugPrint('❌ Error loading essential data: $e');
+      _homeState = DataState.error;
+      notifyListeners();
     }
   }
 
-  // Refresh all data in background
-  void _refreshAllDataInBackground() {
-    debugPrint('🔄 Starting background data refresh...');
 
-    // Refresh home sections
-    if (!_isDataFresh(_lastHomeRefresh)) {
-      _refreshHomeSections(background: true);
-    }
 
-    // Refresh songs
-    if (!_isDataFresh(_lastSongsRefresh)) {
-      _refreshSongs(background: true);
-    }
 
-    // Refresh artists
-    if (!_isDataFresh(_lastArtistsRefresh)) {
-      _refreshArtists(background: true);
-    }
-
-    // Refresh collections
-    if (!_isDataFresh(_lastCollectionsRefresh)) {
-      _refreshCollections(background: true);
-    }
-  }
 
   // Get home sections with smart caching
   Future<List<HomeSection>> getHomeSections({bool forceRefresh = false}) async {
-    // If we have fresh data and not forcing refresh, return immediately
-    if (!forceRefresh && _isDataFresh(_lastHomeRefresh) && _homeSections.isNotEmpty) {
-      debugPrint('📱 Returning cached home sections');
+    try {
+      // Use smart data manager for efficient loading
+      final homeSections = await _smartDataManager.getHomeSections(forceRefresh: forceRefresh);
 
-      // Check if background refresh is needed
-      if (_needsBackgroundRefresh(_lastHomeRefresh)) {
-        _refreshHomeSections(background: true);
-      }
+      // Update local state
+      _homeSections = homeSections;
+      _homeState = DataState.loaded;
 
-      return _homeSections;
+      notifyListeners();
+      return homeSections;
+    } catch (e) {
+      debugPrint('❌ Error getting home sections: $e');
+      _homeState = DataState.error;
+      notifyListeners();
+      return _homeSections; // Return cached data as fallback
     }
-
-    // If forcing refresh or no fresh data, fetch from API
-    return await _refreshHomeSections(background: false);
   }
 
   // Refresh home sections
@@ -262,35 +205,47 @@ class AppDataProvider extends ChangeNotifier {
 
       _homeSections = sections;
       _homeState = DataState.loaded;
-      _lastHomeRefresh = DateTime.now();
 
       notifyListeners();
       debugPrint('✅ Home sections refreshed: ${sections.length} sections');
 
       return sections;
     } catch (e) {
-      debugPrint('❌ Error refreshing home sections: $e');
+      final errorMessage = ErrorHandler.handleErrorWithContext('Home sections refresh', e);
+      debugPrint('❌ Error refreshing home sections: $errorMessage');
+
       if (!background) {
         _homeState = DataState.error;
         notifyListeners();
       }
-      return _homeSections; // Return cached data on error
+
+      // Return cached data on error as fallback
+      return _homeSections;
     }
   }
 
-  // Get songs with smart caching
-  Future<List<Song>> getSongs({bool forceRefresh = false}) async {
-    if (!forceRefresh && _isDataFresh(_lastSongsRefresh) && _songs.isNotEmpty) {
-      debugPrint('📱 Returning cached songs');
+  // Get songs with smart caching (lazy loading)
+  Future<List<Song>> getSongs({bool forceRefresh = false, int limit = 50}) async {
+    try {
+      _songsState = DataState.loading;
+      notifyListeners();
 
-      if (_needsBackgroundRefresh(_lastSongsRefresh)) {
-        _refreshSongs(background: true);
-      }
+      // Use smart data manager for efficient loading
+      final songs = await _smartDataManager.getSongs(forceRefresh: forceRefresh, limit: limit);
 
+      // Update local state with limited data
+      _songs = songs.take(_maxSongsInMemory).toList();
+      _songsState = DataState.loaded;
+
+      notifyListeners();
+      debugPrint('📱 Loaded ${_songs.length} songs (smart cache, limited)');
       return _songs;
+    } catch (e) {
+      debugPrint('❌ Error getting songs: $e');
+      _songsState = DataState.error;
+      notifyListeners();
+      return _songs; // Return cached data as fallback
     }
-
-    return await _refreshSongs(background: false);
   }
 
   // Refresh songs
@@ -308,7 +263,6 @@ class AppDataProvider extends ChangeNotifier {
         if (offlineSongs != null && offlineSongs.isNotEmpty) {
           _songs = offlineSongs;
           _songsState = DataState.loaded;
-          _lastSongsRefresh = DateTime.now();
           notifyListeners();
           debugPrint('✅ Offline songs loaded: ${offlineSongs.length} songs');
           return offlineSongs;
@@ -320,7 +274,6 @@ class AppDataProvider extends ChangeNotifier {
 
       _songs = songs;
       _songsState = DataState.loaded;
-      _lastSongsRefresh = DateTime.now();
 
       // Cache songs for offline use
       if (_offlineService.isOnline) {
@@ -354,19 +307,28 @@ class AppDataProvider extends ChangeNotifier {
     }
   }
 
-  // Get artists with smart caching
-  Future<List<Artist>> getArtists({bool forceRefresh = false}) async {
-    if (!forceRefresh && _isDataFresh(_lastArtistsRefresh) && _artists.isNotEmpty) {
-      debugPrint('📱 Returning cached artists');
+  // Get artists with smart caching (lazy loading)
+  Future<List<Artist>> getArtists({bool forceRefresh = false, int limit = 30}) async {
+    try {
+      _artistsState = DataState.loading;
+      notifyListeners();
 
-      if (_needsBackgroundRefresh(_lastArtistsRefresh)) {
-        _refreshArtists(background: true);
-      }
+      // Use smart data manager for efficient loading
+      final artists = await _smartDataManager.getArtists(forceRefresh: forceRefresh, limit: limit);
 
+      // Update local state with limited data
+      _artists = artists.take(_maxArtistsInMemory).toList();
+      _artistsState = DataState.loaded;
+
+      notifyListeners();
+      debugPrint('📱 Loaded ${_artists.length} artists (smart cache, limited)');
       return _artists;
+    } catch (e) {
+      debugPrint('❌ Error getting artists: $e');
+      _artistsState = DataState.error;
+      notifyListeners();
+      return _artists; // Return cached data as fallback
     }
-
-    return await _refreshArtists(background: false);
   }
 
   // Refresh artists
@@ -382,7 +344,6 @@ class AppDataProvider extends ChangeNotifier {
 
       _artists = artists;
       _artistsState = DataState.loaded;
-      _lastArtistsRefresh = DateTime.now();
 
       notifyListeners();
       debugPrint('✅ Artists refreshed: ${artists.length} artists');
@@ -398,19 +359,28 @@ class AppDataProvider extends ChangeNotifier {
     }
   }
 
-  // Get collections with smart caching
-  Future<List<Collection>> getCollections({bool forceRefresh = false}) async {
-    if (!forceRefresh && _isDataFresh(_lastCollectionsRefresh) && _collections.isNotEmpty) {
-      debugPrint('📱 Returning cached collections');
+  // Get collections with smart caching (lazy loading)
+  Future<List<Collection>> getCollections({bool forceRefresh = false, int limit = 20}) async {
+    try {
+      _collectionsState = DataState.loading;
+      notifyListeners();
 
-      if (_needsBackgroundRefresh(_lastCollectionsRefresh)) {
-        _refreshCollections(background: true);
-      }
+      // Use smart data manager for efficient loading
+      final collections = await _smartDataManager.getCollections(forceRefresh: forceRefresh, limit: limit);
 
+      // Update local state with limited data
+      _collections = collections.take(_maxCollectionsInMemory).toList();
+      _collectionsState = DataState.loaded;
+
+      notifyListeners();
+      debugPrint('📱 Loaded ${_collections.length} collections (smart cache, limited)');
       return _collections;
+    } catch (e) {
+      debugPrint('❌ Error getting collections: $e');
+      _collectionsState = DataState.error;
+      notifyListeners();
+      return _collections; // Return cached data as fallback
     }
-
-    return await _refreshCollections(background: false);
   }
 
   // Refresh collections
@@ -426,7 +396,6 @@ class AppDataProvider extends ChangeNotifier {
 
       _collections = collections;
       _collectionsState = DataState.loaded;
-      _lastCollectionsRefresh = DateTime.now();
 
       notifyListeners();
       debugPrint('✅ Collections refreshed: ${collections.length} collections');
@@ -564,10 +533,6 @@ class AppDataProvider extends ChangeNotifier {
     _setlistsState = DataState.loading;
     _likedSongsState = DataState.loading;
 
-    _lastHomeRefresh = null;
-    _lastSongsRefresh = null;
-    _lastArtistsRefresh = null;
-    _lastCollectionsRefresh = null;
     _lastSetlistsRefresh = null;
     _lastLikedSongsRefresh = null;
 
@@ -575,6 +540,80 @@ class AppDataProvider extends ChangeNotifier {
 
     notifyListeners();
     debugPrint('✅ All data and cache cleared');
+  }
+
+  // Set up memory management callbacks
+  void _setupMemoryManagement() {
+    try {
+      final memoryManager = serviceLocator.memoryManager;
+
+      // Add memory pressure callback
+      memoryManager.addMemoryPressureCallback(() {
+        debugPrint('⚠️ Memory pressure detected - cleaning up AppDataProvider');
+        cleanupMemory();
+      });
+
+      // Add critical memory callback
+      memoryManager.addCriticalMemoryCallback(() {
+        debugPrint('🚨 Critical memory pressure - aggressive cleanup');
+        _aggressiveCleanup();
+      });
+
+      debugPrint('🧠 Memory management callbacks set up for AppDataProvider');
+    } catch (e) {
+      debugPrint('❌ Error setting up memory management: $e');
+    }
+  }
+
+  // Memory cleanup method
+  void cleanupMemory() {
+    debugPrint('🧹 Cleaning up memory in AppDataProvider...');
+
+    // Keep only essential data and clear the rest
+    if (_songs.length > _maxSongsInMemory) {
+      _songs = _songs.take(_maxSongsInMemory).toList();
+      debugPrint('🧹 Trimmed songs to ${_songs.length}');
+    }
+
+    if (_artists.length > _maxArtistsInMemory) {
+      _artists = _artists.take(_maxArtistsInMemory).toList();
+      debugPrint('🧹 Trimmed artists to ${_artists.length}');
+    }
+
+    if (_collections.length > _maxCollectionsInMemory) {
+      _collections = _collections.take(_maxCollectionsInMemory).toList();
+      debugPrint('🧹 Trimmed collections to ${_collections.length}');
+    }
+
+    // Force garbage collection
+    debugPrint('🧹 Memory cleanup completed');
+  }
+
+  // Aggressive cleanup for critical memory situations
+  void _aggressiveCleanup() {
+    debugPrint('🚨 Aggressive memory cleanup in AppDataProvider...');
+
+    // Clear all non-essential data
+    _songs.clear();
+    _artists.clear();
+    _collections.clear();
+    _setlists.clear();
+    _likedSongs.clear();
+
+    // Keep only home sections (most essential)
+    if (_homeSections.length > 3) {
+      _homeSections = _homeSections.take(3).toList();
+    }
+
+    // Reset states to force reload when needed
+    _songsState = DataState.loading;
+    _artistsState = DataState.loading;
+    _collectionsState = DataState.loading;
+    _setlistsState = DataState.loading;
+    _likedSongsState = DataState.loading;
+
+    debugPrint('🚨 Aggressive cleanup completed');
+    notifyListeners();
   }
 
   @override

@@ -307,7 +307,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                     height: 24,
                     decoration: BoxDecoration(
                       color: Colors.grey[700],
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                   ),
                 ),
@@ -356,7 +356,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
               height: 14,
               decoration: BoxDecoration(
                 color: Colors.grey[700],
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(5),
               ),
             ),
           ),
@@ -413,7 +413,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                       const SizedBox(height: 20),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryColor,
+                          backgroundColor: AppTheme.primary,
                           foregroundColor: Colors.black,
                         ),
                         onPressed: () {
@@ -449,13 +449,13 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _songs.isEmpty
                                 ? Colors.grey.withValues(alpha: 0.2)
-                                : AppTheme.primaryColor,
+                                : AppTheme.primary,
                             foregroundColor: _songs.isEmpty
                                 ? Colors.grey
                                 : Colors.black,
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(5),
                             ),
                             elevation: 0,
                             shadowColor: Colors.transparent,
@@ -489,7 +489,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                             side: const BorderSide(color: Colors.white24, width: 1),
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(5),
                             ),
                           ),
                           onPressed: () {
@@ -540,7 +540,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                             side: const BorderSide(color: Colors.white24, width: 1),
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(5),
                             ),
                           ),
                           onPressed: () {
@@ -611,7 +611,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                                   // Force refresh setlist details
                                   await _fetchSetlistDetails();
                                 },
-                          color: AppTheme.primaryColor,
+                          color: AppTheme.primary,
                           child: ListView.builder(
                             itemCount: _songs.length,
                             itemBuilder: (context, index) {
@@ -746,7 +746,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A1A), // Dark solid color
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(5),
         border: Border.all(
           color: const Color(0xFFC19FFF).withValues(alpha: 0.3),
           width: 1,
@@ -797,7 +797,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: const Color(0xFFC19FFF),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                   child: const Text(
                     'SHARED',
@@ -819,7 +819,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: const Color(0xFF2A2A2A),
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(5),
                 border: Border.all(
                   color: const Color(0xFFC19FFF).withValues(alpha: 0.3),
                   width: 1,
@@ -829,7 +829,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                 onTap: () {
                   _openCollaborationCommentsScreen();
                 },
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(5),
                 child: Padding(
                   padding: const EdgeInsets.all(4),
                   child: Row(
@@ -957,7 +957,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                             Text(
                               '${selectedSongIds.length} selected',
                               style: const TextStyle(
-                                color: AppTheme.primaryColor,
+                                color: AppTheme.primary,
                                 fontSize: 14,
                               ),
                             ),
@@ -1017,7 +1017,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                                   child: Text(
                                     song.title,
                                     style: TextStyle(
-                                      color: isSelected ? AppTheme.primaryColor : Colors.white,
+                                      color: isSelected ? AppTheme.primary : Colors.white,
                                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                       fontSize: 15, // Slightly smaller font
                                     ),
@@ -1030,7 +1030,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                                     padding: EdgeInsets.only(left: 4.0),
                                     child: Icon(
                                       Icons.playlist_add_check,
-                                      color: AppTheme.primaryColor,
+                                      color: AppTheme.primary,
                                       size: 16,
                                     ),
                                   ),
@@ -1047,11 +1047,11 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                             ),
                             trailing: Checkbox(
                               value: isSelected,
-                              activeColor: AppTheme.primaryColor,
+                              activeColor: AppTheme.primary,
                               checkColor: Colors.black,
                               side: const BorderSide(color: Colors.grey),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(4),
+                                borderRadius: BorderRadius.circular(5),
                               ),
                               onChanged: (bool? value) {
                                 setState(() {
@@ -1129,11 +1129,11 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                           // Add button
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: _isAddingSongs ? Colors.grey : AppTheme.primaryColor,
+                              backgroundColor: _isAddingSongs ? Colors.grey : AppTheme.primary,
                               foregroundColor: Colors.black,
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(5),
                               ),
                             ),
                             onPressed: _isAddingSongs ? null : () async {
@@ -1177,7 +1177,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           const CircularProgressIndicator(
-                                            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+                                            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
                                           ),
                                           const SizedBox(height: 16),
                                           Text(
@@ -1313,7 +1313,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                     borderSide: BorderSide(color: Colors.grey),
                   ),
                   focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: AppTheme.primaryColor),
+                    borderSide: BorderSide(color: AppTheme.primary),
                   ),
                 ),
                 controller: TextEditingController(text: newName),
@@ -1331,7 +1331,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                     borderSide: BorderSide(color: Colors.grey),
                   ),
                   focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: AppTheme.primaryColor),
+                    borderSide: BorderSide(color: AppTheme.primary),
                   ),
                 ),
                 controller: TextEditingController(text: newDescription),
@@ -1354,7 +1354,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
             TextButton(
               child: const Text(
                 'Save',
-                style: TextStyle(color: AppTheme.primaryColor),
+                style: TextStyle(color: AppTheme.primary),
               ),
               onPressed: () async {
                 if (newName.isNotEmpty) {

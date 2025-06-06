@@ -84,14 +84,15 @@ class _CommentsScreenState extends State<CommentsScreen> {
         final reply = await _commentService.addReply(
           widget.song.id,
           _replyingToId!,
-          text
+          text,
         );
 
         setState(() {
           // Find the parent comment and add the reply
           for (int i = 0; i < _comments.length; i++) {
             if (_comments[i].id == _replyingToId) {
-              final updatedReplies = List<Comment>.from(_comments[i].replies)..add(reply);
+              final updatedReplies = List<Comment>.from(_comments[i].replies)
+                ..add(reply);
               _comments[i] = Comment(
                 id: _comments[i].id,
                 songId: _comments[i].songId,
@@ -185,7 +186,10 @@ class _CommentsScreenState extends State<CommentsScreen> {
               createdAt: comment.createdAt,
               updatedAt: comment.updatedAt,
               replies: comment.replies,
-              likesCount: comment.isLiked ? comment.likesCount - 1 : comment.likesCount + 1,
+              likesCount:
+                  comment.isLiked
+                      ? comment.likesCount - 1
+                      : comment.likesCount + 1,
               isLiked: !comment.isLiked,
               isDeleted: comment.isDeleted,
               deletedAt: comment.deletedAt,
@@ -208,7 +212,10 @@ class _CommentsScreenState extends State<CommentsScreen> {
                 createdAt: comment.createdAt,
                 updatedAt: comment.updatedAt,
                 replies: [],
-                likesCount: comment.isLiked ? comment.likesCount - 1 : comment.likesCount + 1,
+                likesCount:
+                    comment.isLiked
+                        ? comment.likesCount - 1
+                        : comment.likesCount + 1,
                 isLiked: !comment.isLiked,
                 isDeleted: comment.isDeleted,
                 deletedAt: comment.deletedAt,
@@ -256,105 +263,106 @@ class _CommentsScreenState extends State<CommentsScreen> {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: 6, // Show 6 skeleton comments
-      itemBuilder: (context, index) => Padding(
-        padding: const EdgeInsets.only(bottom: 16.0),
-        child: ShimmerEffect(
-          baseColor: Colors.grey[800]!,
-          highlightColor: Colors.grey[600]!,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Avatar skeleton
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.grey[700],
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Comment content skeleton
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Username skeleton
-                    Container(
-                      width: 120,
-                      height: 16,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[700],
-                        borderRadius: BorderRadius.circular(4),
-                      ),
+      itemBuilder:
+          (context, index) => Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: ShimmerEffect(
+              baseColor: Colors.grey[800]!,
+              highlightColor: Colors.grey[600]!,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Avatar skeleton
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[700],
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(height: 8),
-                    // Comment text skeleton
-                    Container(
-                      width: double.infinity,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[700],
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      width: 200,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[700],
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    // Time and actions skeleton
-                    Row(
+                  ),
+                  const SizedBox(width: 12),
+                  // Comment content skeleton
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Username skeleton
                         Container(
-                          width: 60,
-                          height: 12,
+                          width: 120,
+                          height: 16,
                           decoration: BoxDecoration(
                             color: Colors.grey[700],
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(5),
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(height: 8),
+                        // Comment text skeleton
                         Container(
-                          width: 40,
-                          height: 12,
+                          width: double.infinity,
+                          height: 14,
                           decoration: BoxDecoration(
                             color: Colors.grey[700],
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(5),
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(height: 4),
                         Container(
-                          width: 30,
-                          height: 12,
+                          width: 200,
+                          height: 14,
                           decoration: BoxDecoration(
                             color: Colors.grey[700],
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(5),
                           ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Time and actions skeleton
+                        Row(
+                          children: [
+                            Container(
+                              width: 60,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[700],
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Container(
+                              width: 40,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[700],
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Container(
+                              width: 30,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[700],
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF121212),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         title: Text(
           'Comments - ${widget.song.title}',
@@ -366,23 +374,24 @@ class _CommentsScreenState extends State<CommentsScreen> {
         children: [
           // Comments list
           Expanded(
-            child: _isLoading
-                ? _buildCommentsSkeleton()
-                : _comments.isEmpty
+            child:
+                _isLoading
+                    ? _buildCommentsSkeleton()
+                    : _comments.isEmpty
                     ? const Center(
-                        child: Text(
-                          'No comments yet. Be the first to comment!',
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _comments.length,
-                        itemBuilder: (context, index) {
-                          final comment = _comments[index];
-                          return _buildCommentItem(comment);
-                        },
+                      child: Text(
+                        'No comments yet. Be the first to comment!',
+                        style: TextStyle(color: Colors.white70),
                       ),
+                    )
+                    : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _comments.length,
+                      itemBuilder: (context, index) {
+                        final comment = _comments[index];
+                        return _buildCommentItem(comment);
+                      },
+                    ),
           ),
 
           // Reply indicator
@@ -422,9 +431,10 @@ class _CommentsScreenState extends State<CommentsScreen> {
                     controller: _commentController,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      hintText: _replyingToId != null
-                          ? 'Write a reply...'
-                          : 'Add a comment...',
+                      hintText:
+                          _replyingToId != null
+                              ? 'Write a reply...'
+                              : 'Add a comment...',
                       hintStyle: const TextStyle(color: Colors.white54),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
@@ -445,7 +455,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
                 Container(
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppTheme.primaryColor,
+                    color: AppTheme.primary,
                   ),
                   child: IconButton(
                     icon: const Icon(Icons.send, color: Colors.black),
@@ -473,20 +483,22 @@ class _CommentsScreenState extends State<CommentsScreen> {
               CircleAvatar(
                 radius: 20,
                 backgroundColor: const Color(0xFF333333),
-                backgroundImage: comment.customerProfilePicture != null
-                    ? NetworkImage(comment.customerProfilePicture!)
-                    : null,
-                child: comment.customerProfilePicture == null
-                    ? Text(
-                        comment.customerName.isNotEmpty
-                            ? comment.customerName[0].toUpperCase()
-                            : '?',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      )
-                    : null,
+                backgroundImage:
+                    comment.customerProfilePicture != null
+                        ? NetworkImage(comment.customerProfilePicture!)
+                        : null,
+                child:
+                    comment.customerProfilePicture == null
+                        ? Text(
+                          comment.customerName.isNotEmpty
+                              ? comment.customerName[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                        : null,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -532,18 +544,20 @@ class _CommentsScreenState extends State<CommentsScreen> {
                                 comment.isLiked
                                     ? Icons.favorite
                                     : Icons.favorite_border,
-                                color: comment.isLiked
-                                    ? Colors.red
-                                    : Colors.white54,
+                                color:
+                                    comment.isLiked
+                                        ? Colors.red
+                                        : Colors.white54,
                                 size: 16,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 comment.likesCount.toString(),
                                 style: TextStyle(
-                                  color: comment.isLiked
-                                      ? Colors.red
-                                      : Colors.white54,
+                                  color:
+                                      comment.isLiked
+                                          ? Colors.red
+                                          : Colors.white54,
                                   fontSize: 12,
                                 ),
                               ),
@@ -553,7 +567,9 @@ class _CommentsScreenState extends State<CommentsScreen> {
                         const SizedBox(width: 16),
                         // Reply button
                         InkWell(
-                          onTap: () => _startReply(comment.id, comment.customerName),
+                          onTap:
+                              () =>
+                                  _startReply(comment.id, comment.customerName),
                           child: const Row(
                             children: [
                               Icon(
@@ -586,129 +602,140 @@ class _CommentsScreenState extends State<CommentsScreen> {
           Container(
             margin: const EdgeInsets.only(left: 52),
             child: Column(
-              children: comment.replies.map((reply) {
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Profile picture
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor: const Color(0xFF333333),
-                        backgroundImage: reply.customerProfilePicture != null
-                            ? NetworkImage(reply.customerProfilePicture!)
-                            : null,
-                        child: reply.customerProfilePicture == null
-                            ? Text(
-                                reply.customerName.isNotEmpty
-                                    ? reply.customerName[0].toUpperCase()
-                                    : '?',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              )
-                            : null,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Reply header
-                            Row(
+              children:
+                  comment.replies.map((reply) {
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Profile picture
+                          CircleAvatar(
+                            radius: 16,
+                            backgroundColor: const Color(0xFF333333),
+                            backgroundImage:
+                                reply.customerProfilePicture != null
+                                    ? NetworkImage(
+                                      reply.customerProfilePicture!,
+                                    )
+                                    : null,
+                            child:
+                                reply.customerProfilePicture == null
+                                    ? Text(
+                                      reply.customerName.isNotEmpty
+                                          ? reply.customerName[0].toUpperCase()
+                                          : '?',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    )
+                                    : null,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // Reply header
+                                Row(
+                                  children: [
+                                    Text(
+                                      reply.customerName,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      timeago.format(reply.createdAt),
+                                      style: const TextStyle(
+                                        color: Colors.white54,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                // Reply text
                                 Text(
-                                  reply.customerName,
+                                  reply.text,
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  timeago.format(reply.createdAt),
-                                  style: const TextStyle(
-                                    color: Colors.white54,
-                                    fontSize: 11,
-                                  ),
+                                const SizedBox(height: 4),
+                                // Reply actions
+                                Row(
+                                  children: [
+                                    // Like button
+                                    InkWell(
+                                      onTap: () => _toggleLike(reply),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            reply.isLiked
+                                                ? Icons.favorite
+                                                : Icons.favorite_border,
+                                            color:
+                                                reply.isLiked
+                                                    ? Colors.red
+                                                    : Colors.white54,
+                                            size: 14,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            reply.likesCount.toString(),
+                                            style: TextStyle(
+                                              color:
+                                                  reply.isLiked
+                                                      ? Colors.red
+                                                      : Colors.white54,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    // Reply button
+                                    InkWell(
+                                      onTap:
+                                          () => _startReply(
+                                            comment.id,
+                                            reply.customerName,
+                                          ),
+                                      child: const Row(
+                                        children: [
+                                          Icon(
+                                            Icons.reply,
+                                            color: Colors.white54,
+                                            size: 14,
+                                          ),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'Reply',
+                                            style: TextStyle(
+                                              color: Colors.white54,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 2),
-                            // Reply text
-                            Text(
-                              reply.text,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            // Reply actions
-                            Row(
-                              children: [
-                                // Like button
-                                InkWell(
-                                  onTap: () => _toggleLike(reply),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        reply.isLiked
-                                            ? Icons.favorite
-                                            : Icons.favorite_border,
-                                        color: reply.isLiked
-                                            ? Colors.red
-                                            : Colors.white54,
-                                        size: 14,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        reply.likesCount.toString(),
-                                        style: TextStyle(
-                                          color: reply.isLiked
-                                              ? Colors.red
-                                              : Colors.white54,
-                                          fontSize: 11,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                // Reply button
-                                InkWell(
-                                  onTap: () => _startReply(comment.id, reply.customerName),
-                                  child: const Row(
-                                    children: [
-                                      Icon(
-                                        Icons.reply,
-                                        color: Colors.white54,
-                                        size: 14,
-                                      ),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        'Reply',
-                                        style: TextStyle(
-                                          color: Colors.white54,
-                                          fontSize: 11,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                );
-              }).toList(),
+                    );
+                  }).toList(),
             ),
           ),
 

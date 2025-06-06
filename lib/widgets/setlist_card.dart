@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/setlist.dart';
+import '../config/theme.dart';
 
 class SetlistCard extends StatelessWidget {
   final Setlist setlist;
@@ -42,7 +43,7 @@ class SetlistCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10), // Reduced margin
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12), // Smaller radius
+        borderRadius: BorderRadius.circular(5), // Smaller radius
         boxShadow: [
           BoxShadow(
             color: cardColor.withAlpha(30), // Using withAlpha instead of withOpacity
@@ -55,11 +56,11 @@ class SetlistCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12), // Smaller radius
+          borderRadius: BorderRadius.circular(5), // Smaller radius
           child: Ink(
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1A1A), // Simpler background
-              borderRadius: BorderRadius.circular(12), // Smaller radius
+              color: Theme.of(context).colorScheme.surface, // Use theme surface color
+              borderRadius: BorderRadius.circular(5), // Smaller radius
               border: Border.all(
                 color: cardColor.withAlpha(40), // Using withAlpha
                 width: 1,
@@ -74,7 +75,7 @@ class SetlistCard extends StatelessWidget {
                     padding: const EdgeInsets.all(6), // Smaller padding
                     decoration: BoxDecoration(
                       color: cardColor.withAlpha(40), // Using withAlpha
-                      borderRadius: BorderRadius.circular(6), // Smaller radius
+                      borderRadius: BorderRadius.circular(5), // Smaller radius
                     ),
                     child: Icon(
                       Icons.queue_music_rounded, // Rounded icon
@@ -90,7 +91,7 @@ class SetlistCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Setlist name with shared tag
+                        // Setlist name with status tags
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.center, // Center align vertically
                           children: [
@@ -106,6 +107,52 @@ class SetlistCard extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
+
+                            // Status tags
+                            if (setlist.isSharedWithMe) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary.withAlpha(40),
+                                  borderRadius: BorderRadius.circular(3),
+                                  border: Border.all(
+                                    color: AppTheme.primary.withAlpha(80),
+                                    width: 0.5,
+                                  ),
+                                ),
+                                child: Text(
+                                  'Joined',
+                                  style: TextStyle(
+                                    color: AppTheme.primary,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    fontFamily: AppTheme.primaryFontFamily,
+                                  ),
+                                ),
+                              ),
+                            ] else if (setlist.isShared && setlist.shareCode != null) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withAlpha(40),
+                                  borderRadius: BorderRadius.circular(3),
+                                  border: Border.all(
+                                    color: Colors.green.withAlpha(80),
+                                    width: 0.5,
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Shared',
+                                  style: TextStyle(
+                                    color: Colors.green,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                             // Shared tag
                             if (setlist.isSharedWithMe == true)
                               Container(
@@ -113,7 +160,7 @@ class SetlistCard extends StatelessWidget {
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: Colors.blue.withAlpha(51), // 0.2 * 255 = 51
-                                  borderRadius: BorderRadius.circular(4),
+                                  borderRadius: BorderRadius.circular(5),
                                   border: Border.all(
                                     color: Colors.blue.withAlpha(128), // 0.5 * 255 = 128
                                     width: 1,
@@ -149,7 +196,7 @@ class SetlistCard extends StatelessWidget {
                       padding: const EdgeInsets.all(6.0),
                       decoration: BoxDecoration(
                         color: Colors.grey[800],
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(5),
                       ),
                       child: const Icon(
                         Icons.more_vert_rounded,
@@ -158,7 +205,7 @@ class SetlistCard extends StatelessWidget {
                       ),
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                     color: const Color(0xFF1E1E1E),
                     elevation: 4,
@@ -173,7 +220,7 @@ class SetlistCard extends StatelessWidget {
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
                                 color: Colors.green.withAlpha(40),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(5),
                               ),
                               child: const Icon(
                                 Icons.share_rounded,
@@ -198,7 +245,7 @@ class SetlistCard extends StatelessWidget {
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
                                 color: Colors.orange.withAlpha(40),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(5),
                               ),
                               child: const Icon(
                                 Icons.edit_rounded,
@@ -223,7 +270,7 @@ class SetlistCard extends StatelessWidget {
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
                                 color: Colors.red.withAlpha(40),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(5),
                               ),
                               child: const Icon(
                                 Icons.delete_outline_rounded,

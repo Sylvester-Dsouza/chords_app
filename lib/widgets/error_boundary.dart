@@ -140,7 +140,7 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(5),
                       ),
                       child: Text(
                         _errorDetails!.exception.toString(),

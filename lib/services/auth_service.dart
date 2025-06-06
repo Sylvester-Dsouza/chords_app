@@ -7,6 +7,8 @@ import 'dart:convert';
 import 'dart:async'; // For TimeoutException
 import 'api_service.dart';
 import '../firebase_options.dart';
+import '../core/service_locator.dart';
+import '../core/crashlytics_service.dart';
 
 // Constants for secure storage keys
 const String _tokenKey = 'auth_token';
@@ -320,6 +322,29 @@ class AuthService {
           if (result['success'] != true) {
             debugPrint('Backend login failed, signing out from Firebase for consistency');
             await FirebaseAuth.instance.signOut();
+
+            // Log authentication failure to Crashlytics
+            if (serviceLocator.isRegistered<CrashlyticsService>()) {
+              await serviceLocator.crashlyticsService.logEvent('auth_backend_failure', {
+                'auth_method': 'email',
+                'error_type': 'backend_login_failed',
+                'firebase_success': true,
+                'timestamp': DateTime.now().toIso8601String(),
+              });
+            }
+          } else {
+            // Log successful login
+            if (serviceLocator.isRegistered<CrashlyticsService>()) {
+              await serviceLocator.crashlyticsService.setUserInfo(
+                userId: userCredential.user!.uid,
+                email: userCredential.user!.email,
+                name: userCredential.user!.displayName,
+                customAttributes: {
+                  'auth_method': 'email',
+                  'login_timestamp': DateTime.now().toIso8601String(),
+                },
+              );
+            }
           }
 
           return result;

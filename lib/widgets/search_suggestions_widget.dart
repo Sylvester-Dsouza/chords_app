@@ -39,7 +39,7 @@ class SearchSuggestionsWidget extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(5),
         border: Border.all(
           color: const Color(0xFF333333),
           width: 1,
@@ -78,7 +78,7 @@ class SearchSuggestionsWidget extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(5),
         border: Border.all(
           color: const Color(0xFF333333),
           width: 1,
@@ -123,13 +123,13 @@ class SearchSuggestionsWidget extends StatelessWidget {
           Icon(
             icon,
             size: 18,
-            color: AppTheme.primaryColor,
+            color: AppTheme.primary,
           ),
           const SizedBox(width: 8),
           Text(
             title,
             style: TextStyle(
-              color: AppTheme.primaryColor,
+              color: AppTheme.primary,
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
@@ -142,7 +142,7 @@ class SearchSuggestionsWidget extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.grey[800],
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(5),
                 ),
                 child: Text(
                   'Clear',

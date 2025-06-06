@@ -1,9 +1,11 @@
-// import 'dart:async' - removed unused import
+import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'core/service_locator.dart';
+import 'core/constants.dart';
+import 'core/crashlytics_service.dart';
 import 'utils/page_transitions.dart';
-import 'services/cache_service.dart';
-import 'services/auth_service.dart';
 import 'services/api_service.dart';
 import 'providers/navigation_provider.dart';
 import 'providers/app_data_provider.dart';
@@ -36,12 +38,11 @@ import 'screens/vocal_warmups_screen.dart';
 import 'screens/vocal_exercises_screen.dart';
 import 'screens/courses_screen.dart';
 import 'screens/course_detail_screen.dart';
-import 'services/notification_service.dart';
 import 'services/deep_link_service.dart';
-import 'config/firebase_config.dart';
 import 'config/theme.dart';
 import 'providers/user_provider.dart';
 import 'models/song.dart';
+import 'utils/performance_tracker.dart';
 
 // Removed flutter_local_notifications due to compatibility issues
 
@@ -49,53 +50,40 @@ void main() async {
   // This ensures the Flutter binding is initialized before anything else
   WidgetsFlutterBinding.ensureInitialized();
 
-  // YouTube player iframe will be initialized in screens that use it
-  debugPrint('YouTube player iframe will be initialized when needed in specific screens');
+  debugPrint('🚀 ${AppConstants.appName} starting up...');
 
-  // We'll initialize the Flutter Local Notifications plugin in the NotificationService
+  // Start tracking app startup performance (non-blocking)
+  PerformanceTracker.trackAppStartup().catchError((e) {
+    debugPrint('⚠️ Performance tracking error: $e');
+  });
 
-  // We'll create the notification channel in the NotificationService
+  // Initialize service locator with dependency injection (includes Crashlytics)
+  try {
+    await setupServiceLocator();
+    debugPrint('✅ Service locator initialized successfully');
+
+    // Log app startup
+    if (serviceLocator.isRegistered<CrashlyticsService>()) {
+      await serviceLocator.crashlyticsService.logEvent('app_startup', {
+        'app_version': AppConstants.appName,
+        'platform': Platform.operatingSystem,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+    }
+  } catch (e) {
+    debugPrint('❌ Error setting up service locator: $e');
+    // Continue anyway to allow the app to start
+  }
 
   // Test API connection
   try {
-    debugPrint('Testing API connection...');
+    debugPrint('🔗 Testing API connection...');
     final isConnected = await ApiService.testApiConnection();
-    debugPrint('API connection test result: ${isConnected ? 'Connected' : 'Failed to connect'}');
+    debugPrint('API connection test result: ${isConnected ? 'Connected ✅' : 'Failed to connect ❌'}');
   } catch (e) {
-    debugPrint('Error testing API connection: $e');
+    debugPrint('❌ Error testing API connection: $e');
     // Continue anyway
   }
-
-  // Initialize Firebase with the correct project
-  try {
-    final authService = AuthService();
-    await authService.initializeFirebase();
-
-    // Log Firebase initialization status
-    debugPrint('Firebase initialized with project: ${FirebaseConfig.projectId}');
-  } catch (e) {
-    debugPrint('Error initializing Firebase: $e');
-    // Continue anyway to allow the app to start
-  }
-
-  // Initialize notification service
-  final notificationService = NotificationService();
-  await notificationService.initialize();
-
-  // Initialize cache service
-  await CacheService().initialize();
-  debugPrint('Cache service initialized');
-
-  // Initialize permission service (but don't request permissions at startup)
-  try {
-    debugPrint('Permission service available for use');
-  } catch (e) {
-    debugPrint('Error with permission service: $e');
-    // Continue anyway to allow the app to start
-  }
-
-  // AdMob initialization removed to fix crashing issues
-  debugPrint('AdMob has been completely removed from the app');
 
   // Initialize UserProvider before running the app
   final userProvider = UserProvider();
@@ -125,6 +113,35 @@ void main() async {
       child: const MyApp(),
     ),
   );
+
+  // Complete app startup tracking (non-blocking)
+  PerformanceTracker.completeAppStartup(attributes: {
+    'platform': Platform.operatingSystem,
+    'app_version': AppConstants.appName,
+  }).catchError((e) {
+    debugPrint('⚠️ Performance tracking completion error: $e');
+  });
+
+  // Print performance status for debugging (after a delay to ensure initialization)
+  Timer(const Duration(seconds: 3), () {
+    try {
+      serviceLocator.performanceService.printStatus();
+
+      // Test a simple trace to verify it's working
+      PerformanceTracker.track('test_trace', () async {
+        await Future.delayed(const Duration(milliseconds: 100));
+        debugPrint('🧪 Test trace completed - this should appear in Firebase Performance');
+      }, attributes: {
+        'test_type': 'startup_verification',
+        'platform': Platform.operatingSystem,
+      }).catchError((e) {
+        debugPrint('⚠️ Test trace failed: $e');
+      });
+
+    } catch (e) {
+      debugPrint('⚠️ Could not print performance status: $e');
+    }
+  });
 }
 
 // Create a global navigator key

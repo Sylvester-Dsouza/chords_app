@@ -72,10 +72,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color(0xFF121212), // Fixed: Use solid background instead of transparent
         elevation: 0,
+        scrolledUnderElevation: 0, // Prevents elevation change when scrolling
+        surfaceTintColor: Colors.transparent, // Prevents blue tinting from primary color
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
@@ -123,7 +125,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           Container(
             decoration: BoxDecoration(
               color: const Color(0xFF1E1E1E),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(5),
             ),
             child: TextFormField(
               controller: _emailController,
@@ -162,7 +164,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               foregroundColor: Theme.of(context).colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(5),
               ),
             ),
             child: _isLoading
@@ -273,7 +275,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             foregroundColor: Theme.of(context).colorScheme.onPrimary,
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(5),
             ),
           ),
           child: const Text(

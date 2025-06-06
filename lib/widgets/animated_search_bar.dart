@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/theme.dart';
 
 class AnimatedSearchBar extends StatefulWidget {
   final TextEditingController controller;
@@ -28,12 +29,12 @@ class AnimatedSearchBar extends StatefulWidget {
     this.isFilterActive = false,
     this.showVoiceSearch = false,
     this.showSuggestions = false,
-    this.primaryColor = const Color(0xFFC19FFF),
-    this.backgroundColor = const Color(0xFF1E1E1E),
-    this.textColor = Colors.white,
+    this.primaryColor = AppTheme.primary,
+    this.backgroundColor = AppTheme.surface,
+    this.textColor = AppTheme.text,
     this.hintColor = Colors.grey,
     this.iconColor = Colors.grey,
-    this.activeFilterColor = const Color(0xFFC19FFF),
+    this.activeFilterColor = AppTheme.primary,
   });
 
   @override
@@ -107,7 +108,13 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar> with SingleTicker
             height: 44,
             decoration: BoxDecoration(
               color: widget.backgroundColor,
-              borderRadius: BorderRadius.circular(8.0),
+              borderRadius: BorderRadius.circular(5),
+              border: Border.all(
+                color: _isFocused 
+                    ? widget.primaryColor 
+                    : Colors.grey.withValues(alpha: 0.5),
+                width: _isFocused ? 1.5 : 1.0,
+              ),
               boxShadow: _isFocused ? [
                 BoxShadow(
                   color: widget.primaryColor.withAlpha(76), // 0.3 * 255 = 76
@@ -220,7 +227,7 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar> with SingleTicker
           height: 44,
           decoration: BoxDecoration(
             color: widget.backgroundColor,
-            borderRadius: BorderRadius.circular(8.0),
+            borderRadius: BorderRadius.circular(5),
             boxShadow: widget.isFilterActive ? [
               BoxShadow(
                 color: widget.activeFilterColor.withAlpha(76), // 0.3 * 255 = 76
@@ -232,7 +239,7 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar> with SingleTicker
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(8.0),
+              borderRadius: BorderRadius.circular(5),
               onTap: widget.onFilterPressed,
               child: Center(
                 child: Icon(

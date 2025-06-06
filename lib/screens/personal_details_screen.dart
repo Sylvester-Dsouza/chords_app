@@ -97,7 +97,10 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
         if (!mounted) return;
 
         // Show error message
-        ToastUtil.showError(context, 'Failed to update profile. Please try again.');
+        ToastUtil.showError(
+          context,
+          'Failed to update profile. Please try again.',
+        );
 
         setState(() {
           _isLoading = false;
@@ -112,29 +115,26 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
     final bool isLoggedIn = userProvider.isLoggedIn;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: InnerScreenAppBar(
         title: 'Personal Details',
-        actions: _isEditing
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () {
-                    setState(() {
-                      _isEditing = false;
-                      _loadUserData(); // Reset to original data
-                    });
-                  },
-                ),
-              ]
-            : null,
+        actions:
+            _isEditing
+                ? [
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () {
+                      setState(() {
+                        _isEditing = false;
+                        _loadUserData(); // Reset to original data
+                      });
+                    },
+                  ),
+                ]
+                : null,
       ),
-      body: isLoggedIn
-        ? _buildPersonalDetailsContent()
-        : _buildLoginPrompt(),
-      bottomNavigationBar: isLoggedIn && _isEditing
-        ? _buildSaveButton()
-        : null,
+      body: isLoggedIn ? _buildPersonalDetailsContent() : _buildLoginPrompt(),
+      bottomNavigationBar: isLoggedIn && _isEditing ? _buildSaveButton() : null,
     );
   }
 
@@ -145,11 +145,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.lock,
-              color: AppTheme.primaryColor,
-              size: 64,
-            ),
+            const Icon(Icons.lock, color: AppTheme.primary, size: 64),
             const SizedBox(height: 24),
             const Text(
               'Login Required',
@@ -163,10 +159,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
             const Text(
               'You need to be logged in to view and edit your personal details.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 16,
-              ),
+              style: TextStyle(color: Colors.grey, fontSize: 16),
             ),
             const SizedBox(height: 32),
             SizedBox(
@@ -176,19 +169,16 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                   Navigator.pushReplacementNamed(context, '/login');
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
+                  backgroundColor: AppTheme.primary,
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
                 child: const Text(
                   'Login',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -217,7 +207,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                       shape: BoxShape.circle,
                       color: Colors.grey[800],
                       border: Border.all(
-                        color: AppTheme.primaryColor,
+                        color: AppTheme.primary,
                         width: 2,
                       ),
                     ),
@@ -236,7 +226,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                         height: 40,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: AppTheme.primaryColor,
+                          color: AppTheme.primary,
                           border: Border.all(
                             color: const Color(0xFF121212),
                             width: 2,
@@ -268,9 +258,12 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1E1E1E),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                   ),
                 ),
@@ -378,12 +371,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         color: Color(0xFF1E1E1E),
-        border: Border(
-          top: BorderSide(
-            color: Color(0xFF333333),
-            width: 1,
-          ),
-        ),
+        border: Border(top: BorderSide(color: Color(0xFF333333), width: 1)),
       ),
       child: SizedBox(
         width: double.infinity,
@@ -391,24 +379,22 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
         child: ElevatedButton(
           onPressed: _isLoading ? null : _saveUserData,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryColor,
+            backgroundColor: AppTheme.primary,
             foregroundColor: Colors.black,
             disabledBackgroundColor: Colors.grey,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(5),
             ),
           ),
-          child: _isLoading
-              ? const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-                )
-              : const Text(
-                  'Save Changes',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+          child:
+              _isLoading
+                  ? const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                  )
+                  : const Text(
+                    'Save Changes',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                ),
         ),
       ),
     );
@@ -444,7 +430,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
             filled: true,
             fillColor: const Color(0xFF1E1E1E),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(5),
               borderSide: BorderSide.none,
             ),
             contentPadding: const EdgeInsets.symmetric(
@@ -452,9 +438,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
               vertical: 16,
             ),
           ),
-          style: TextStyle(
-            color: enabled ? Colors.white : Colors.grey,
-          ),
+          style: TextStyle(color: enabled ? Colors.white : Colors.grey),
           validator: validator,
         ),
       ],
@@ -471,21 +455,14 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Row(
         children: [
-          Icon(
-            icon,
-            color: Colors.grey,
-            size: 20,
-          ),
+          Icon(icon, color: Colors.grey, size: 20),
           const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  color: Colors.grey[400],
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey[400], fontSize: 14),
               ),
               const SizedBox(height: 4),
               Text(

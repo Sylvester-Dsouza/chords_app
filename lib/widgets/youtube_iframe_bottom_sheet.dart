@@ -136,7 +136,7 @@ class _YouTubeIframeBottomSheetState extends State<YouTubeIframeBottomSheet> {
             margin: const EdgeInsets.only(bottom: 8),
             decoration: BoxDecoration(
               color: Colors.grey[600],
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(5),
             ),
           ),
 
@@ -184,7 +184,7 @@ class _YouTubeIframeBottomSheetState extends State<YouTubeIframeBottomSheet> {
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8.0),
+                    borderRadius: BorderRadius.circular(5),
                     child: Container(
                       width: double.infinity,
                       height: double.infinity,
@@ -250,7 +250,7 @@ class _YouTubeIframeBottomSheetState extends State<YouTubeIframeBottomSheet> {
             margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(
               color: Colors.grey[600],
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(5),
             ),
           ),
           const Icon(

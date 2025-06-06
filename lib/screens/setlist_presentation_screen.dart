@@ -335,7 +335,7 @@ class _SetlistPresentationScreenState extends State<SetlistPresentationScreen> {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(5),
                 border: Border.all(
                   color: _currentTextColor.withValues(alpha: 0.3),
                   width: 1,
@@ -382,7 +382,7 @@ class _SetlistPresentationScreenState extends State<SetlistPresentationScreen> {
               height: 32,
               decoration: BoxDecoration(
                 color: Colors.grey[700],
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(5),
               ),
             ),
           ),
@@ -402,7 +402,7 @@ class _SetlistPresentationScreenState extends State<SetlistPresentationScreen> {
                     margin: const EdgeInsets.symmetric(horizontal: 40),
                     decoration: BoxDecoration(
                       color: Colors.grey[700],
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -498,14 +498,14 @@ class _SetlistPresentationScreenState extends State<SetlistPresentationScreen> {
                   color: Colors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                    color: AppTheme.primary.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
                 child: Text(
                   section.metadata!,
                   style: TextStyle(
-                    color: AppTheme.primaryColor,
+                    color: AppTheme.primary,
                     fontSize: _fontSize - 2,
                     fontFamily: AppTheme.primaryFontFamily,
                     fontWeight: FontWeight.w500,
@@ -531,16 +531,16 @@ class _SetlistPresentationScreenState extends State<SetlistPresentationScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(5),
                 border: Border.all(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.2),
+                  color: AppTheme.primary.withValues(alpha: 0.2),
                   width: 1,
                 ),
               ),
               child: Text(
                 section.title!,
                 style: TextStyle(
-                  color: AppTheme.primaryColor,
+                  color: AppTheme.primary,
                   fontSize: _fontSize - 6,
                   fontWeight: FontWeight.w500,
                   fontFamily: AppTheme.primaryFontFamily,
@@ -651,7 +651,7 @@ class _SetlistPresentationScreenState extends State<SetlistPresentationScreen> {
             IconButton(
               icon: Icon(
                 _showChords ? Icons.music_note : Icons.music_off,
-                color: _showChords ? AppTheme.primaryColor : Colors.white,
+                color: _showChords ? AppTheme.primary : Colors.white,
                 size: 24,
               ),
               onPressed: () {
@@ -721,12 +721,12 @@ class _SetlistPresentationScreenState extends State<SetlistPresentationScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
                           color: isActive
-                              ? AppTheme.primaryColor
+                              ? AppTheme.primary
                               : Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: isActive
-                                ? AppTheme.primaryColor
+                                ? AppTheme.primary
                                 : Colors.white.withValues(alpha: 0.3),
                             width: 1,
                           ),
@@ -767,7 +767,7 @@ class _SetlistPresentationScreenState extends State<SetlistPresentationScreen> {
 
                 // View current song button (just highlights, doesn't switch)
                 IconButton(
-                  icon: const Icon(Icons.visibility, color: AppTheme.primaryColor, size: 28),
+                  icon: const Icon(Icons.visibility, color: AppTheme.primary, size: 28),
                   onPressed: () {
                     // Just scroll to current song in the list, don't enter song view
                     // The user needs to tap on a specific song to enter song view
@@ -845,12 +845,12 @@ class _SetlistPresentationScreenState extends State<SetlistPresentationScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(
                           color: isActive
-                              ? AppTheme.primaryColor
+                              ? AppTheme.primary
                               : Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: isActive
-                                ? AppTheme.primaryColor
+                                ? AppTheme.primary
                                 : Colors.white.withValues(alpha: 0.3),
                             width: 1,
                           ),
@@ -891,7 +891,7 @@ class _SetlistPresentationScreenState extends State<SetlistPresentationScreen> {
 
                 // Back to setlist button
                 IconButton(
-                  icon: const Icon(Icons.list, color: AppTheme.primaryColor, size: 28),
+                  icon: const Icon(Icons.list, color: AppTheme.primary, size: 28),
                   onPressed: _returnToSetlistView,
                 ),
 
@@ -1002,7 +1002,7 @@ class _SetlistPresentationScreenState extends State<SetlistPresentationScreen> {
       spans.add(TextSpan(
         text: '[$chord]',
         style: TextStyle(
-          color: AppTheme.primaryColor,
+          color: AppTheme.primary,
           fontSize: _fontSize - 2,
           fontWeight: FontWeight.w600,
           fontFamily: AppTheme.primaryFontFamily,

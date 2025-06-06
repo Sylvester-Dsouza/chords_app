@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform;
 import 'package:firebase_auth/firebase_auth.dart';
+import '../utils/performance_tracker.dart';
 
 class ApiService {
   // For Android emulator, use 10.0.2.2 instead of localhost
@@ -230,29 +231,71 @@ class ApiService {
 
   // Override the get method to automatically add /api prefix
   Future<Response> get(String path, {Map<String, dynamic>? queryParameters, Options? options}) async {
-    final apiPath = _ensureApiPrefix(path);
-    debugPrint('GET request to $apiPath');
-    try {
-      final response = await _dio.get(apiPath, queryParameters: queryParameters, options: options);
-      debugPrint('GET response status: ${response.statusCode}');
-      debugPrint('GET response data type: ${response.data.runtimeType}');
-      return response;
-    } catch (e) {
-      debugPrint('Error in GET request to $path: $e');
-      rethrow;
-    }
+    return PerformanceTracker.trackApiCall(path, () async {
+      final apiPath = _ensureApiPrefix(path);
+      debugPrint('GET request to $apiPath');
+      try {
+        final response = await _dio.get(apiPath, queryParameters: queryParameters, options: options);
+        debugPrint('GET response status: ${response.statusCode}');
+        debugPrint('GET response data type: ${response.data.runtimeType}');
+        return response;
+      } catch (e) {
+        debugPrint('Error in GET request to $path: $e');
+        rethrow;
+      }
+    }, attributes: {
+      'method': 'GET',
+      'endpoint': path,
+    });
   }
 
   // Override the post method to automatically add /api prefix
   Future<Response> post(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) async {
-    final apiPath = _ensureApiPrefix(path);
-    debugPrint('POST request to $apiPath');
+    return PerformanceTracker.trackApiCall(path, () async {
+      final apiPath = _ensureApiPrefix(path);
+      debugPrint('POST request to $apiPath');
+      try {
+        final response = await _dio.post(apiPath, data: data, queryParameters: queryParameters, options: options);
+        debugPrint('POST response status: ${response.statusCode}');
+        return response;
+      } catch (e) {
+        debugPrint('Error in POST request to $path: $e');
+        rethrow;
+      }
+    }, attributes: {
+      'method': 'POST',
+      'endpoint': path,
+    });
+  }
+
+  // POST method without /api prefix (for endpoints excluded from global prefix)
+  Future<Response> postWithoutApiPrefix(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) async {
+    final fullUrl = '${_dio.options.baseUrl}$path';
+    debugPrint('🔍 POST request to $path (without /api prefix)');
+    debugPrint('🔍 Full URL: $fullUrl');
+    debugPrint('🔍 Base URL: ${_dio.options.baseUrl}');
+    debugPrint('🔍 Request path: $path');
+    debugPrint('🔍 Request data: $data');
+    debugPrint('🔍 Request headers: ${options?.headers ?? _dio.options.headers}');
+
     try {
-      final response = await _dio.post(apiPath, data: data, queryParameters: queryParameters, options: options);
-      debugPrint('POST response status: ${response.statusCode}');
+      final response = await _dio.post(path, data: data, queryParameters: queryParameters, options: options);
+      debugPrint('✅ POST response status: ${response.statusCode}');
+      debugPrint('✅ POST response data: ${response.data}');
       return response;
     } catch (e) {
-      debugPrint('Error in POST request to $path: $e');
+      debugPrint('❌ Error in POST request to $path: $e');
+      if (e is DioException) {
+        debugPrint('❌ DioException type: ${e.type}');
+        debugPrint('❌ DioException message: ${e.message}');
+        debugPrint('❌ Response status: ${e.response?.statusCode}');
+        debugPrint('❌ Response data: ${e.response?.data}');
+        debugPrint('❌ Response headers: ${e.response?.headers}');
+        debugPrint('❌ Request URL: ${e.requestOptions.uri}');
+        debugPrint('❌ Request method: ${e.requestOptions.method}');
+        debugPrint('❌ Request headers: ${e.requestOptions.headers}');
+        debugPrint('❌ Request data: ${e.requestOptions.data}');
+      }
       rethrow;
     }
   }

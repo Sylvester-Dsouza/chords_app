@@ -266,7 +266,7 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.black.withAlpha(50),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(5),
             ),
             child: Row(
               children: [
@@ -276,7 +276,7 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
                   height: 50,
                   decoration: BoxDecoration(
                     color: Colors.grey[800],
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                   child: const Icon(Icons.music_note, color: Colors.white),
                 ),
@@ -322,8 +322,8 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor,
-                        borderRadius: BorderRadius.circular(4),
+                        color: AppTheme.primary,
+                        borderRadius: BorderRadius.circular(5),
                       ),
                       child: const Icon(Icons.add, color: Colors.black),
                     ),
@@ -354,7 +354,7 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
                     filled: true,
                     fillColor: Colors.black.withAlpha(50),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(5),
                       borderSide: BorderSide.none,
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -373,10 +373,10 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
                     ElevatedButton(
                       onPressed: _isCreatingSetlist ? null : _createNewSetlist,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
+                        backgroundColor: AppTheme.primary,
                         foregroundColor: Colors.black,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(5),
                         ),
                       ),
                       child: _isCreatingSetlist
@@ -403,7 +403,7 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 24.0),
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+                  valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
                 ),
               ),
             ),
@@ -427,7 +427,7 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
                     ElevatedButton(
                       onPressed: _fetchSetlists,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
+                        backgroundColor: AppTheme.primary,
                         foregroundColor: Colors.black,
                       ),
                       child: const Text('Try Again'),
@@ -477,7 +477,7 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
                             height: 40,
                             decoration: BoxDecoration(
                               color: Colors.grey[800],
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(5),
                             ),
                             child: const Icon(Icons.queue_music, color: Colors.white),
                           ),
@@ -495,12 +495,12 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
                                 height: 24,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+                                  valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
                                 ),
                               )
                             : Checkbox(
                                 value: isInSetlist,
-                                activeColor: AppTheme.primaryColor,
+                                activeColor: AppTheme.primary,
                                 checkColor: Colors.black,
                                 onChanged: (_) => _toggleSongInSetlist(setlist.id),
                               ),
@@ -512,7 +512,7 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
                     ElevatedButton(
                       onPressed: _saveAndClose,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
+                        backgroundColor: AppTheme.primary,
                         foregroundColor: Colors.black,
                         minimumSize: const Size(double.infinity, 48),
                       ),

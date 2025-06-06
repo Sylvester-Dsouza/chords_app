@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../widgets/song_placeholder.dart';
 import '../models/song.dart';
 import '../models/artist.dart';
 import '../services/song_service.dart';
 import '../services/artist_service.dart';
 import '../services/liked_songs_service.dart';
+import '../providers/app_data_provider.dart';
 import '../widgets/memory_efficient_image.dart';
 import '../widgets/skeleton_loader.dart';
 import '../config/theme.dart';
@@ -12,10 +14,7 @@ import '../config/theme.dart';
 class ArtistDetailScreen extends StatefulWidget {
   final String artistName;
 
-  const ArtistDetailScreen({
-    super.key,
-    required this.artistName,
-  });
+  const ArtistDetailScreen({super.key, required this.artistName});
 
   @override
   State<ArtistDetailScreen> createState() => _ArtistDetailScreenState();
@@ -49,7 +48,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
     super.dispose();
   }
 
-  // Load artist data and songs
+  // Load artist data and songs with caching optimization
   Future<void> _loadArtistData() async {
     setState(() {
       _isLoading = true;
@@ -57,17 +56,48 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
     });
 
     try {
-      // Try to get artist by name
-      final artist = await _artistService.getArtistByName(widget.artistName);
+      final appDataProvider = Provider.of<AppDataProvider>(
+        context,
+        listen: false,
+      );
 
-      if (artist != null) {
-        // Get songs by artist ID
-        final songs = await _songService.getSongsByArtist(artist.id);
+      // Try to find artist in cached data first
+      Artist? artist = appDataProvider.artists.firstWhere(
+        (a) => a.name.toLowerCase() == widget.artistName.toLowerCase(),
+        orElse: () => Artist(id: '', name: '', songCount: 0),
+      );
 
-        // Get liked songs to update status
+      if (artist.id.isEmpty) {
+        // Fallback to API if not found in cache
+        debugPrint('Artist not found in cache, fetching from API');
+        artist = await _artistService.getArtistByName(widget.artistName);
+      } else {
+        debugPrint('Using cached artist data for: ${artist.name}');
+      }
+
+      List<Song> songs = [];
+
+      if (artist != null && artist.id.isNotEmpty) {
+        // Try to get songs from cached data first
+        songs =
+            appDataProvider.songs
+                .where(
+                  (song) =>
+                      song.artist.toLowerCase() ==
+                      widget.artistName.toLowerCase(),
+                )
+                .toList();
+
+        if (songs.isEmpty) {
+          // Fallback to API if no songs found in cache
+          debugPrint('Songs not found in cache, fetching from API');
+          songs = await _songService.getSongsByArtist(artist.id);
+        } else {
+          debugPrint('Using cached songs for artist: ${songs.length} songs');
+        }
+
+        // Get liked songs to update status (this is user-specific, so always fetch)
         final likedSongs = await _likedSongsService.getLikedSongs();
-
-        // Update liked status
         for (var song in songs) {
           song.isLiked = likedSongs.any((likedSong) => likedSong.id == song.id);
         }
@@ -80,13 +110,23 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
           });
         }
       } else {
-        // If artist not found by name, try to get songs by artist name
-        final songs = await _songService.getSongsByArtistName(widget.artistName);
+        // If artist not found, try to get songs by artist name from cache
+        songs =
+            appDataProvider.songs
+                .where(
+                  (song) =>
+                      song.artist.toLowerCase() ==
+                      widget.artistName.toLowerCase(),
+                )
+                .toList();
+
+        if (songs.isEmpty) {
+          // Fallback to API
+          songs = await _songService.getSongsByArtistName(widget.artistName);
+        }
 
         // Get liked songs to update status
         final likedSongs = await _likedSongsService.getLikedSongs();
-
-        // Update liked status
         for (var song in songs) {
           song.isLiked = likedSongs.any((likedSong) => likedSong.id == song.id);
         }
@@ -132,8 +172,8 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
           SnackBar(
             content: Text(
               wasLiked
-                ? 'Removed "${song.title}" from liked songs'
-                : 'Added "${song.title}" to liked songs'
+                  ? 'Removed "${song.title}" from liked songs'
+                  : 'Added "${song.title}" to liked songs',
             ),
             backgroundColor: wasLiked ? Colors.grey : Colors.green,
             duration: const Duration(seconds: 1),
@@ -165,9 +205,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
           child: ShimmerEffect(
             baseColor: Colors.grey[800]!,
             highlightColor: Colors.grey[600]!,
-            child: Container(
-              color: Colors.grey[800],
-            ),
+            child: Container(color: Colors.grey[800]),
           ),
         ),
 
@@ -186,7 +224,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                   height: 24,
                   decoration: BoxDecoration(
                     color: Colors.grey[700],
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -196,7 +234,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                   height: 16,
                   decoration: BoxDecoration(
                     color: Colors.grey[700],
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
               ],
@@ -205,11 +243,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
         ),
 
         // Divider
-        const Divider(
-          color: Color(0xFF333333),
-          thickness: 1,
-          height: 1,
-        ),
+        const Divider(color: Color(0xFF333333), thickness: 1, height: 1),
 
         // Songs list skeleton
         Expanded(
@@ -228,7 +262,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -249,66 +283,68 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
           },
         ),
       ),
-      body: _isLoading
-          ? _buildLoadingSkeleton()
-          : _hasError
+      body:
+          _isLoading
+              ? _buildLoadingSkeleton()
+              : _hasError
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        color: Colors.red,
-                        size: 48,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Failed to load artist data',
-                        style: const TextStyle(color: Colors.white, fontSize: 18),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _errorMessage,
-                        style: const TextStyle(color: Colors.grey),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryColor,
-                          foregroundColor: Colors.black,
-                        ),
-                        onPressed: _loadArtistData,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : Column(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Artist header with image
-                    _buildArtistHeader(),
-
-                    // Artist info
-                    _buildArtistInfo(),
-
-                    // Divider
-                    const Divider(
-                      color: Color(0xFF333333),
-                      thickness: 1,
-                      height: 1,
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 48,
                     ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Failed to load artist data',
+                      style: const TextStyle(color: Colors.white, fontSize: 18),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _errorMessage,
+                      style: const TextStyle(color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.black,
+                      ),
+                      onPressed: _loadArtistData,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              )
+              : Column(
+                children: [
+                  // Artist header with image
+                  _buildArtistHeader(),
 
-                    // Songs list
-                    Expanded(
-                      child: _songs.isEmpty
-                          ? Center(
+                  // Artist info
+                  _buildArtistInfo(),
+
+                  // Divider
+                  const Divider(
+                    color: Color(0xFF333333),
+                    thickness: 1,
+                    height: 1,
+                  ),
+
+                  // Songs list
+                  Expanded(
+                    child:
+                        _songs.isEmpty
+                            ? Center(
                               child: Text(
                                 'No songs found for ${_artist?.name ?? widget.artistName}',
                                 style: const TextStyle(color: Colors.grey),
                               ),
                             )
-                          : ListView.builder(
+                            : ListView.builder(
                               padding: EdgeInsets.zero,
                               itemCount: _songs.length,
                               itemBuilder: (context, index) {
@@ -322,9 +358,9 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                                 );
                               },
                             ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
       // Bottom navigation bar removed from inner screens
     );
   }
@@ -338,32 +374,24 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
           // Background image or fallback
           _artist?.imageUrl != null
               ? MemoryEfficientImage(
-                  imageUrl: _artist!.imageUrl!,
-                  width: 800, // Use reasonable fixed size instead of infinity
-                  height: 250,
-                  fit: BoxFit.cover,
-                  backgroundColor: Colors.grey[800]!,
-                  errorWidget: Container(
-                    color: Colors.grey[800],
-                    child: Center(
-                      child: Icon(
-                        Icons.person,
-                        color: Colors.white,
-                        size: 64,
-                      ),
-                    ),
-                  ),
-                )
-              : Container(
+                imageUrl: _artist!.imageUrl!,
+                width: 800, // Use reasonable fixed size instead of infinity
+                height: 250,
+                fit: BoxFit.cover,
+                backgroundColor: Colors.grey[800]!,
+                errorWidget: Container(
                   color: Colors.grey[800],
                   child: Center(
-                    child: Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: 64,
-                    ),
+                    child: Icon(Icons.person, color: Colors.white, size: 64),
                   ),
                 ),
+              )
+              : Container(
+                color: Colors.grey[800],
+                child: Center(
+                  child: Icon(Icons.person, color: Colors.white, size: 64),
+                ),
+              ),
           // Gradient overlay
           Container(
             decoration: BoxDecoration(
@@ -407,38 +435,39 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
               SizedBox(
                 width: 40,
                 height: 40,
-                child: _artist?.imageUrl != null
-                    ? ClipOval(
-                        child: MemoryEfficientImage(
-                          imageUrl: _artist!.imageUrl!,
-                          width: 40,
-                          height: 40,
-                          fit: BoxFit.cover,
-                          backgroundColor: Colors.grey[800]!,
-                          errorWidget: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.grey[800],
-                            ),
-                            child: Icon(
-                              Icons.person,
-                              color: Colors.white,
-                              size: 20,
+                child:
+                    _artist?.imageUrl != null
+                        ? ClipOval(
+                          child: MemoryEfficientImage(
+                            imageUrl: _artist!.imageUrl!,
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.cover,
+                            backgroundColor: Colors.grey[800]!,
+                            errorWidget: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.grey[800],
+                              ),
+                              child: Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                             ),
                           ),
+                        )
+                        : Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.grey[800],
+                          ),
+                          child: Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
-                      )
-                    : Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.grey[800],
-                        ),
-                        child: Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
               ),
               const SizedBox(width: 12),
               Column(
@@ -453,10 +482,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                   ),
                   Text(
                     '${_songs.length} ${_songs.length == 1 ? 'song' : 'songs'}',
-                    style: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
                   ),
                 ],
               ),
@@ -474,25 +500,27 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                 if (mounted) {
                   showDialog(
                     context: context,
-                    builder: (dialogContext) => AlertDialog(
-                      backgroundColor: const Color(0xFF1E1E1E),
-                      title: Text(
-                        _artist?.name ?? widget.artistName,
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      content: SingleChildScrollView(
-                        child: Text(
-                          _artist?.bio ?? '',
-                          style: const TextStyle(color: Colors.white),
+                    builder:
+                        (dialogContext) => AlertDialog(
+                          backgroundColor: const Color(0xFF1E1E1E),
+                          title: Text(
+                            _artist?.name ?? widget.artistName,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          content: SingleChildScrollView(
+                            child: Text(
+                              _artist?.bio ?? '',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              child: const Text('Close'),
+                              onPressed:
+                                  () => Navigator.of(dialogContext).pop(),
+                            ),
+                          ],
                         ),
-                      ),
-                      actions: [
-                        TextButton(
-                          child: const Text('Close'),
-                          onPressed: () => Navigator.of(dialogContext).pop(),
-                        ),
-                      ],
-                    ),
                   );
                 }
               },
@@ -510,7 +538,10 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                 onPressed: () {},
               ),
               IconButton(
-                icon: const Icon(Icons.alternate_email, color: Colors.white), // Using @ symbol as Twitter/X replacement
+                icon: const Icon(
+                  Icons.alternate_email,
+                  color: Colors.white,
+                ), // Using @ symbol as Twitter/X replacement
                 onPressed: () {},
               ),
             ],
@@ -520,18 +551,24 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
     );
   }
 
-  Widget _buildSongItem(String title, String artist, String key, bool isLiked, {Song? song}) {
+  Widget _buildSongItem(
+    String title,
+    String artist,
+    String key,
+    bool isLiked, {
+    Song? song,
+  }) {
     return Container(
       decoration: const BoxDecoration(
         border: Border(
-          bottom: BorderSide(
-            color: Color(0xFF333333),
-            width: 1.0,
-          ),
+          bottom: BorderSide(color: Color(0xFF333333), width: 1.0),
         ),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16.0,
+          vertical: 4.0,
+        ),
         leading: const SongPlaceholder(size: 40),
         title: Text(
           title,
@@ -545,10 +582,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
         ),
         subtitle: Text(
           artist,
-          style: const TextStyle(
-            color: Colors.grey,
-            fontSize: 13,
-          ),
+          style: const TextStyle(color: Colors.grey, fontSize: 13),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -557,10 +591,13 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
           children: [
             // Song Key
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 6.0,
+                vertical: 3.0,
+              ),
               decoration: BoxDecoration(
                 color: const Color(0xFF333333),
-                borderRadius: BorderRadius.circular(4.0),
+                borderRadius: BorderRadius.circular(5),
               ),
               child: Text(
                 key,
@@ -580,10 +617,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                 size: 20,
               ),
               padding: const EdgeInsets.all(8),
-              constraints: const BoxConstraints(
-                minWidth: 32,
-                minHeight: 32,
-              ),
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               onPressed: () {
                 if (song != null) {
                   _toggleLike(song);
@@ -595,11 +629,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
         onTap: () {
           // Navigate to song detail
           if (song != null) {
-            Navigator.pushNamed(
-              context,
-              '/song_detail',
-              arguments: song,
-            );
+            Navigator.pushNamed(context, '/song_detail', arguments: song);
           }
         },
       ),

@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 import '../services/auth_service.dart';
 import '../utils/toast_util.dart';
 import '../utils/page_transitions.dart';
+import '../config/theme.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -221,10 +222,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppTheme.appBar,
         elevation: 0,
+        scrolledUnderElevation: 0, // Prevents elevation change when scrolling
+        surfaceTintColor: Colors.transparent, // Prevents blue tinting from primary color
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
@@ -255,7 +258,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFF1E1E1E),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                   child: TextFormField(
                     controller: _nameController,
@@ -281,7 +284,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFF1E1E1E),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                   child: TextFormField(
                     controller: _emailController,
@@ -311,7 +314,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFF1E1E1E),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                   child: TextFormField(
                     controller: _passwordController,
@@ -348,7 +351,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFF1E1E1E),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                   child: TextFormField(
                     controller: _confirmPasswordController,
@@ -396,7 +399,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         },
                         activeColor: Colors.grey,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(5),
                         ),
                       ),
                     ),
@@ -435,7 +438,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                   ),
                   child: _isLoading

@@ -107,15 +107,15 @@ class _SectionNavigatorState extends State<SectionNavigator> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: Colors.grey[800],
-        borderRadius: BorderRadius.circular(2),
+        borderRadius: BorderRadius.circular(5),
       ),
       child: FractionallySizedBox(
         alignment: Alignment.centerLeft,
         widthFactor: progress,
         child: Container(
           decoration: BoxDecoration(
-            color: AppTheme.primaryColor,
-            borderRadius: BorderRadius.circular(2),
+            color: AppTheme.primary,
+            borderRadius: BorderRadius.circular(5),
           ),
         ),
       ),
@@ -140,16 +140,16 @@ class _SectionNavigatorState extends State<SectionNavigator> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isCurrentSection 
-              ? AppTheme.primaryColor
+              ? AppTheme.primary
               : Colors.grey[800],
           borderRadius: BorderRadius.circular(20),
           border: isLooping 
-              ? Border.all(color: AppTheme.primaryColor, width: 2)
+              ? Border.all(color: AppTheme.primary, width: 2)
               : null,
           boxShadow: isCurrentSection
               ? [
                   BoxShadow(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                    color: AppTheme.primary.withValues(alpha: 0.3),
                     blurRadius: 8,
                     spreadRadius: 2,
                   ),
@@ -166,7 +166,7 @@ class _SectionNavigatorState extends State<SectionNavigator> {
                 child: Icon(
                   Icons.repeat,
                   size: 14,
-                  color: isCurrentSection ? Colors.black : AppTheme.primaryColor,
+                  color: isCurrentSection ? Colors.black : AppTheme.primary,
                 ),
               ),
             
@@ -212,7 +212,7 @@ class _SectionNavigatorState extends State<SectionNavigator> {
             children: [
               Icon(
                 Icons.music_note,
-                color: AppTheme.primaryColor,
+                color: AppTheme.primary,
                 size: 24,
               ),
               const SizedBox(width: 12),
@@ -279,7 +279,7 @@ class _SectionNavigatorState extends State<SectionNavigator> {
     return ListTile(
       leading: Icon(
         icon,
-        color: AppTheme.primaryColor,
+        color: AppTheme.primary,
         size: 24,
       ),
       title: Text(
@@ -310,13 +310,13 @@ class _SectionNavigatorState extends State<SectionNavigator> {
       builder: (context) => AlertDialog(
         backgroundColor: Colors.grey[900],
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(5),
         ),
         title: Row(
           children: [
             Icon(
               Icons.info_outline,
-              color: AppTheme.primaryColor,
+              color: AppTheme.primary,
               size: 24,
             ),
             const SizedBox(width: 12),
@@ -366,7 +366,7 @@ class _SectionNavigatorState extends State<SectionNavigator> {
             child: Text(
               'Close',
               style: TextStyle(
-                color: AppTheme.primaryColor,
+                color: AppTheme.primary,
                 fontFamily: AppTheme.primaryFontFamily,
               ),
             ),
@@ -408,14 +408,14 @@ class _SectionNavigatorState extends State<SectionNavigator> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppTheme.primaryColor.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.5)),
+        color: AppTheme.primary.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.5)),
       ),
       child: Text(
         chord,
         style: TextStyle(
-          color: AppTheme.primaryColor,
+          color: AppTheme.primary,
           fontSize: 12,
           fontWeight: FontWeight.w500,
           fontFamily: AppTheme.primaryFontFamily,

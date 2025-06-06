@@ -155,7 +155,7 @@ class _SetlistSettingsDialogState extends State<SetlistSettingsDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(5),
       ),
       child: Container(
         padding: const EdgeInsets.all(16),

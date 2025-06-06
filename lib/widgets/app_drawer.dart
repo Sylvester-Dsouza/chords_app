@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
@@ -14,6 +15,7 @@ import '../screens/login_screen.dart';
 import '../screens/vocal_warmups_screen.dart';
 import '../screens/vocal_exercises_screen.dart';
 import '../screens/courses_screen.dart';
+import '../screens/crashlytics_test_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -24,7 +26,7 @@ class AppDrawer extends StatelessWidget {
     final bool isLoggedIn = userProvider.isLoggedIn;
 
     return Drawer(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: AppTheme.background,
       child: SafeArea(
         child: Column(
           children: [
@@ -111,6 +113,17 @@ class AppDrawer extends StatelessWidget {
                       routeName: '/support',
                     ),
 
+                    // Debug-only Crashlytics test (only show in debug mode)
+                    if (kDebugMode) ...[
+                      _buildSectionHeader(context, 'Debug'),
+                      _buildMenuItem(
+                        context,
+                        Icons.bug_report_outlined,
+                        'Crashlytics Test',
+                        routeName: '/crashlytics-test',
+                      ),
+                    ],
+
                     // Add some bottom padding to ensure there's enough space
                     const SizedBox(height: 20),
                   ],
@@ -150,7 +163,7 @@ class AppDrawer extends StatelessWidget {
                   Text(
                     'Stuthi',
                     style: TextStyle(
-                      color: AppTheme.primaryColor,
+                      color: AppTheme.primary,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
@@ -158,7 +171,7 @@ class AppDrawer extends StatelessWidget {
                   Text(
                     'Christian Chords & Lyrics',
                     style: TextStyle(
-                      color: AppTheme.subtitleColor,
+                      color: AppTheme.textMuted,
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
                     ),
@@ -172,7 +185,7 @@ class AppDrawer extends StatelessWidget {
             icon: const Icon(Icons.close, color: Colors.white),
             onPressed: () => Navigator.pop(context),
             style: IconButton.styleFrom(
-              backgroundColor: AppTheme.surfaceColor,
+              backgroundColor: AppTheme.surface,
               padding: const EdgeInsets.all(8),
             ),
           ),
@@ -190,7 +203,7 @@ class AppDrawer extends StatelessWidget {
           Text(
             title,
             style: TextStyle(
-              color: AppTheme.subtitleColor,
+              color: AppTheme.textMuted,
               fontSize: 14,
               fontWeight: FontWeight.w500,
               letterSpacing: 0.5,
@@ -214,7 +227,7 @@ class AppDrawer extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceColor,
+        color: AppTheme.surface,
         border: const Border(
           top: BorderSide(color: Color(0xFF333333), width: 1),
         ),
@@ -229,7 +242,7 @@ class AppDrawer extends StatelessWidget {
               foregroundColor: Colors.red,
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(5),
               ),
             ),
           )
@@ -241,11 +254,11 @@ class AppDrawer extends StatelessWidget {
             icon: const Icon(Icons.login, size: 18),
             label: const Text('Login'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
+              backgroundColor: AppTheme.primary,
               foregroundColor: Colors.black,
               padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(5),
               ),
             ),
           ),
@@ -264,8 +277,8 @@ class AppDrawer extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: AppTheme.surfaceColor,
-          borderRadius: BorderRadius.circular(8),
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(5),
         ),
         child: Icon(
           icon,
@@ -287,7 +300,7 @@ class AppDrawer extends StatelessWidget {
         size: 20,
       ),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(5),
       ),
       onTap: () {
         // Close the drawer
@@ -325,7 +338,7 @@ class AppDrawer extends StatelessWidget {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: const Text('Contact page coming soon!'),
-                  backgroundColor: AppTheme.primaryColor,
+                  backgroundColor: AppTheme.primary,
                   duration: const Duration(seconds: 2),
                 ),
               );
@@ -335,7 +348,7 @@ class AppDrawer extends StatelessWidget {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: const Text('Contribute page coming soon!'),
-                  backgroundColor: AppTheme.primaryColor,
+                  backgroundColor: AppTheme.primary,
                   duration: const Duration(seconds: 2),
                 ),
               );
@@ -358,9 +371,9 @@ class AppDrawer extends StatelessWidget {
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          backgroundColor: AppTheme.surfaceColor,
+          backgroundColor: AppTheme.surface,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(5),
           ),
           title: const Text(
             'Confirm Logout',
@@ -377,7 +390,7 @@ class AppDrawer extends StatelessWidget {
               },
               child: Text(
                 'Cancel',
-                style: TextStyle(color: AppTheme.primaryColor),
+                style: TextStyle(color: AppTheme.primary),
               ),
             ),
             TextButton(
@@ -447,6 +460,9 @@ class AppDrawer extends StatelessWidget {
         break;
       case '/vocal-courses':
         page = const VocalCoursesScreen();
+        break;
+      case '/crashlytics-test':
+        page = const CrashlyticsTestScreen();
         break;
       // Premium content removed to fix crashing issues
       // case '/premium-content':

@@ -296,7 +296,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                     onPressed: () => SystemNavigator.pop(),
                     child: const Text(
                       'Yes',
-                      style: TextStyle(color: AppTheme.primaryColor),
+                      style: TextStyle(color: AppTheme.primary),
                     ),
                   ),
                 ],
@@ -318,7 +318,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFF121212),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24.0, 60.0, 24.0, 24.0),
@@ -331,13 +331,11 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                   const SizedBox(height: 50),
 
                   // Login text
-                  const Center(
+                  Center(
                     child: Text(
                       'Login to your account',
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
                         color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
@@ -347,11 +345,11 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                   Container(
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E1E1E),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                     child: TextFormField(
                       controller: _emailController,
-                      style: const TextStyle(color: Colors.white),
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.white),
                       decoration: const InputDecoration(
                         hintText: 'Email',
                         hintStyle: TextStyle(color: Colors.grey),
@@ -382,11 +380,11 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                   Container(
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E1E1E),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                     child: TextFormField(
                       controller: _passwordController,
-                      style: const TextStyle(color: Colors.white),
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.white),
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
                         hintText: 'Password',
@@ -441,7 +439,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                               },
                               activeColor: Colors.grey,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(4),
+                                borderRadius: BorderRadius.circular(5),
                               ),
                             ),
                           ),
@@ -477,7 +475,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                       foregroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(5),
                       ),
                     ),
                     child:
@@ -558,7 +556,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                       side: const BorderSide(color: Colors.grey),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(5),
                       ),
                     ),
                   ),
@@ -591,7 +589,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                       side: const BorderSide(color: Colors.grey),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(5),
                       ),
                     ),
                   ),

@@ -43,8 +43,8 @@ class _ChordHighlighterState extends State<ChordHighlighter>
     );
     
     _highlightAnimation = ColorTween(
-      begin: AppTheme.primaryColor.withValues(alpha: 0.3),
-      end: AppTheme.primaryColor.withValues(alpha: 0.7),
+      begin: AppTheme.primary.withValues(alpha: 0.3),
+      end: AppTheme.primary.withValues(alpha: 0.7),
     ).animate(CurvedAnimation(
       parent: _highlightController,
       curve: Curves.easeInOut,
@@ -114,9 +114,9 @@ class _ChordHighlighterState extends State<ChordHighlighter>
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(5),
         border: Border.all(
-          color: AppTheme.primaryColor.withValues(alpha: 0.3),
+          color: AppTheme.primary.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -141,8 +141,8 @@ class _ChordHighlighterState extends State<ChordHighlighter>
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       color: _highlightAnimation.value,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppTheme.primaryColor),
+                      borderRadius: BorderRadius.circular(5),
+                      border: Border.all(color: AppTheme.primary),
                     ),
                     child: Text(
                       _currentHighlightedChord ?? '—',
@@ -178,12 +178,12 @@ class _ChordHighlighterState extends State<ChordHighlighter>
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.grey[800],
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                   child: Text(
                     widget.chordTimingService.getNextChord()!,
                     style: TextStyle(
-                      color: AppTheme.primaryColor,
+                      color: AppTheme.primary,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       fontFamily: AppTheme.primaryFontFamily,
@@ -209,7 +209,7 @@ class _ChordHighlighterState extends State<ChordHighlighter>
               Text(
                 '$_currentBeat',
                 style: TextStyle(
-                  color: AppTheme.primaryColor,
+                  color: AppTheme.primary,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   fontFamily: AppTheme.primaryFontFamily,
@@ -254,17 +254,17 @@ class _ChordHighlighterState extends State<ChordHighlighter>
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: isCurrentSection 
-            ? AppTheme.primaryColor.withValues(alpha: 0.2)
+            ? AppTheme.primary.withValues(alpha: 0.2)
             : Colors.grey[800],
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(5),
         border: isCurrentSection 
-            ? Border.all(color: AppTheme.primaryColor, width: 2)
+            ? Border.all(color: AppTheme.primary, width: 2)
             : null,
       ),
       child: Text(
         sectionName.toUpperCase(),
         style: TextStyle(
-          color: isCurrentSection ? AppTheme.primaryColor : Colors.white70,
+          color: isCurrentSection ? AppTheme.primary : Colors.white70,
           fontSize: widget.fontSize + 2,
           fontWeight: FontWeight.bold,
           fontFamily: AppTheme.primaryFontFamily,
@@ -306,9 +306,9 @@ class _ChordHighlighterState extends State<ChordHighlighter>
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: isCurrentChord 
-                  ? AppTheme.primaryColor
+                  ? AppTheme.primary
                   : Colors.grey[700],
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(5),
               border: isCurrentChord 
                   ? Border.all(color: Colors.white, width: 1)
                   : null,

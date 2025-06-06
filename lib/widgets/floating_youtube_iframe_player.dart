@@ -194,7 +194,7 @@ class _FloatingYoutubeIframePlayerState extends State<FloatingYoutubeIframePlaye
               height: _actualHeight,
               decoration: BoxDecoration(
                 color: Colors.black,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(5),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withAlpha(128),
@@ -298,7 +298,7 @@ class _FloatingYoutubeIframePlayerState extends State<FloatingYoutubeIframePlaye
                 height: _actualHeight,
                 decoration: BoxDecoration(
                   color: Colors.black.withAlpha(178),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(5),
                 ),
                 child: const Center(
                   child: CircularProgressIndicator(
@@ -321,7 +321,7 @@ class _FloatingYoutubeIframePlayerState extends State<FloatingYoutubeIframePlaye
         height: _actualHeight,
         decoration: BoxDecoration(
           color: const Color(0xFF121212),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(5),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withAlpha(128),

@@ -17,7 +17,7 @@ class SongPlaceholder extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         color: primaryColor.withAlpha(50),
-        borderRadius: BorderRadius.circular(4.0),
+        borderRadius: BorderRadius.circular(5),
       ),
       child: Center(
         child: Icon(

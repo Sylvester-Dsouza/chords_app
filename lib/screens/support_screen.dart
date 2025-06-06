@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import '../config/theme.dart';
 
 class SupportScreen extends StatefulWidget {
   const SupportScreen({super.key});
@@ -51,10 +52,12 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF121212),
+        backgroundColor: AppTheme.appBar,
         elevation: 0,
+        scrolledUnderElevation: 0, // Prevents elevation change when scrolling
+        surfaceTintColor: Colors.transparent, // Prevents blue tinting from primary color
         title: const Text(
           'Support Stuthi',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -132,7 +135,7 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
           Container(
             decoration: BoxDecoration(
               color: const Color(0xFF1E1E1E),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(5),
               border: Border.all(color: Colors.grey.withAlpha(40)),
             ),
             padding: const EdgeInsets.all(16),
@@ -174,7 +177,7 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
           Container(
             decoration: BoxDecoration(
               color: const Color(0xFF1E1E1E),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(5),
               border: Border.all(color: Colors.grey.withAlpha(40)),
             ),
             padding: const EdgeInsets.all(16),
@@ -200,7 +203,7 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
               height: _isQrExpanded ? 300 : 200,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(5),
               ),
               alignment: Alignment.center,
               child: Column(
@@ -267,7 +270,7 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
       margin: const EdgeInsets.only(bottom: 12),
       color: const Color(0xFF1E1E1E),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(5),
         side: BorderSide(color: Colors.grey.withAlpha(40)),
       ),
       child: ListTile(
@@ -343,7 +346,7 @@ class _SupportScreenState extends State<SupportScreen> with SingleTickerProvider
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primary.withAlpha(30),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(5),
         border: Border.all(
           color: Theme.of(context).colorScheme.primary.withAlpha(50),
         ),

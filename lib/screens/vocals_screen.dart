@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
-import '../widgets/inner_screen_app_bar.dart';
+
+import '../models/vocal.dart';
+import '../services/vocal_service.dart';
+import '../utils/page_transitions.dart';
 import 'vocal_warmups_screen.dart';
 import 'vocal_exercises_screen.dart';
 
@@ -11,89 +14,128 @@ class VocalsScreen extends StatefulWidget {
   State<VocalsScreen> createState() => _VocalsScreenState();
 }
 
-class _VocalsScreenState extends State<VocalsScreen> {
+class _VocalsScreenState extends State<VocalsScreen>
+    with TickerProviderStateMixin {
+  final VocalService _vocalService = VocalService();
+  late AnimationController _pulseController;
+  late AnimationController _fadeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    )..repeat();
+
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _initializeData();
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _fadeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initializeData() async {
+    await _vocalService.initialize();
+    _fadeController.forward();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
-      body: Column(
-        children: [
-          // Custom App Bar
-          InnerScreenAppBar(
-            title: 'Vocals',
-            showBackButton: false,
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        backgroundColor: AppTheme.appBar,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        title: Text(
+          'Vocals',
+          style: TextStyle(
+            fontFamily: AppTheme.primaryFontFamily,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.text,
+            fontSize: 20,
           ),
+        ),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 24),
 
-          // Main Content
-          Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Hero Section
-                    _buildHeroSection(),
+              // Hero Section
+              _buildHeroSection(),
 
-                    const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
-                    // Quick Stats
-                    _buildQuickStats(),
+              // Main Training Cards
+              _buildModernTrainingCards(),
+              const SizedBox(height: 24),
 
-                    const SizedBox(height: 20),
+              // Quick Stats
+              _buildModernStats(),
+              const SizedBox(height: 24),
 
-                    // Features Section
-                    _buildFeaturesSection(),
-
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
-            ),
+              // Downloaded Content Section
+              _buildDownloadedSection(),
+              const SizedBox(height: 24),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  // Compact Header Section
   Widget _buildHeroSection() {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(16),
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(5),
         border: Border.all(
-          color: AppTheme.primaryColor.withValues(alpha: 0.2),
+          color: AppTheme.primary.withValues(alpha: 0.2),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          // Compact Icon
+          // Icon
           Container(
-            width: 50,
-            height: 50,
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppTheme.primaryColor,
-                  AppTheme.primaryColor.withValues(alpha: 0.8),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(12),
+              color: AppTheme.primary.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(5),
             ),
             child: const Icon(
               Icons.record_voice_over_rounded,
-              color: Colors.black,
-              size: 24,
+              color: AppTheme.primary,
+              size: 32,
             ),
           ),
 
-          const SizedBox(width: 16),
+          const SizedBox(width: 20),
 
           // Content
           Expanded(
@@ -101,21 +143,23 @@ class _VocalsScreenState extends State<VocalsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Vocal Training Hub',
+                  'Vocal Training',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 20,
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                     fontFamily: AppTheme.primaryFontFamily,
+                    letterSpacing: -0.3,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   'Improve your voice with guided exercises and warmups',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontSize: 14,
                     fontFamily: AppTheme.primaryFontFamily,
+                    height: 1.4,
                   ),
                 ),
               ],
@@ -126,270 +170,250 @@ class _VocalsScreenState extends State<VocalsScreen> {
     );
   }
 
-  // Quick Stats Section
-  Widget _buildQuickStats() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard('12+', 'Exercises', Icons.fitness_center_rounded),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard('5-15', 'Minutes', Icons.timer_rounded),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard('All', 'Levels', Icons.trending_up_rounded),
-        ),
-      ],
-    );
-  }
+  Widget _buildModernTrainingCards() {
+    return ListenableBuilder(
+      listenable: _vocalService,
+      builder: (context, child) {
+        // Get categories to ensure the listener is active
+        _vocalService.getCategoriesByType(VocalType.warmup);
+        _vocalService.getCategoriesByType(VocalType.exercise);
 
-  Widget _buildStatCard(String value, String label, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            color: AppTheme.primaryColor,
-            size: 20,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              fontFamily: AppTheme.primaryFontFamily,
-            ),
-          ),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
-              fontSize: 11,
-              fontFamily: AppTheme.primaryFontFamily,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Features Section
-  Widget _buildFeaturesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Training Options',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            fontFamily: AppTheme.primaryFontFamily,
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
-        // Vocal Warmups Card
-        _buildFeatureCard(
-          title: 'Vocal Warmups',
-          description: 'Quick voice preparation',
-          details: '5-15 min sessions • 4 exercises',
-          emoji: '🎵',
-          gradient: [const Color(0xFF6366F1), const Color(0xFF8B5CF6)],
-          onTap: () => _navigateToWarmups(),
-          isAvailable: true,
-        ),
-
-        const SizedBox(height: 12),
-
-        // Vocal Exercises Card
-        _buildFeatureCard(
-          title: 'Vocal Exercises',
-          description: 'Technique & skill building',
-          details: 'Scales • Breathing • Range training',
-          emoji: '🎶',
-          gradient: [const Color(0xFF00D4AA), const Color(0xFF34D399)],
-          onTap: () => _navigateToExercises(),
-          isAvailable: true,
-        ),
-
-        const SizedBox(height: 12),
-
-        // Vocal Course Card
-        _buildFeatureCard(
-          title: '30-Day Course',
-          description: 'Complete vocal program',
-          details: 'Daily lessons • Professional guidance',
-          emoji: '🚀',
-          gradient: [const Color(0xFFEC4899), const Color(0xFFF472B6)],
-          onTap: () => _showComingSoon(),
-          isAvailable: false,
-          comingSoon: true,
-        ),
-      ],
-    );
-  }
-
-  // Feature Card Widget
-  Widget _buildFeatureCard({
-    required String title,
-    required String description,
-    required String details,
-    required String emoji,
-    required List<Color> gradient,
-    required VoidCallback onTap,
-    required bool isAvailable,
-    bool comingSoon = false,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: isAvailable
-            ? LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: gradient,
-              )
-            : LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.grey.withValues(alpha: 0.3),
-                  Colors.grey.withValues(alpha: 0.2),
-                ],
-              ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: isAvailable
-            ? [
-                BoxShadow(
-                  color: gradient[0].withValues(alpha: 0.2),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : null,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
+        return Column(
+          children: [
+            // Main Training Cards
+            Row(
               children: [
-                // Emoji Container
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: Text(
-                      emoji,
-                      style: const TextStyle(fontSize: 24),
-                    ),
+                // Vocal Warmups Card
+                Expanded(
+                  child: _buildModernTrainingCard(
+                    title: 'Vocal Warmups',
+                    description: 'Prepare your voice',
+                    icon: Icons.mic_rounded,
+                    color: AppTheme.primary.withValues(alpha: 0.9),
+                    onTap: () => _navigateToWarmups(),
                   ),
                 ),
 
                 const SizedBox(width: 16),
 
-                // Content
+                // Vocal Exercises Card
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Title Row
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              title,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: AppTheme.primaryFontFamily,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (comingSoon) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'Soon',
-                                style: TextStyle(
-                                  color: Colors.orange,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w600,
-                                  fontFamily: AppTheme.primaryFontFamily,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        description,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          fontSize: 13,
-                          fontFamily: AppTheme.primaryFontFamily,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        details,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.7),
-                          fontSize: 11,
-                          fontFamily: AppTheme.primaryFontFamily,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                  child: _buildModernTrainingCard(
+                    title: 'Vocal Exercises',
+                    description: 'Build technique',
+                    icon: Icons.fitness_center_rounded,
+                    color: AppTheme.primary.withValues(alpha: 0.8),
+                    onTap: () => _navigateToExercises(),
                   ),
                 ),
+              ],
+            ),
 
-                const SizedBox(width: 8),
+            const SizedBox(height: 16),
 
-                // Arrow Icon
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: Colors.white.withValues(alpha: 0.8),
-                  size: 16,
+            // Coming Soon Card
+            _buildComingSoonCard(),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildModernTrainingCard({
+    required String title,
+    required String description,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      height: 150,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(5),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Icon
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 22),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Content
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: AppTheme.primaryFontFamily,
+                        height: 1.2,
+                        letterSpacing: -0.3,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      description,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 13,
+                        fontFamily: AppTheme.primaryFontFamily,
+                        height: 1.3,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildModernStats() {
+    return ListenableBuilder(
+      listenable: _vocalService,
+      builder: (context, child) {
+        final warmupCategories = _vocalService.getCategoriesByType(
+          VocalType.warmup,
+        );
+        final exerciseCategories = _vocalService.getCategoriesByType(
+          VocalType.exercise,
+        );
+        final totalCategories =
+            warmupCategories.length + exerciseCategories.length;
+        final downloadedSize = _vocalService.getFormattedDownloadedSize();
+
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(5),
+            border: Border.all(
+              color: AppTheme.primary.withValues(alpha: 0.2),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: _buildModernStatItem(
+                  '$totalCategories',
+                  'Categories',
+                  Icons.library_music_rounded,
+                  AppTheme.primary,
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 40,
+                color: AppTheme.primary.withValues(alpha: 0.2),
+              ),
+              Expanded(
+                child: _buildModernStatItem(
+                  '${_vocalService.downloadedItems.length}',
+                  'Downloaded',
+                  Icons.download_done_rounded,
+                  AppTheme.primary,
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 40,
+                color: AppTheme.primary.withValues(alpha: 0.2),
+              ),
+              Expanded(
+                child: _buildModernStatItem(
+                  downloadedSize.isEmpty ? '0 MB' : downloadedSize,
+                  'Storage',
+                  Icons.storage_rounded,
+                  AppTheme.primary,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildModernStatItem(
+    String value,
+    String label,
+    IconData icon,
+    Color color,
+  ) {
+    return Column(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(5),
+          ),
+          child: Icon(icon, color: color, size: 22),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          value,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            fontFamily: AppTheme.primaryFontFamily,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            color: AppTheme.textMuted,
+            fontSize: 12,
+            fontFamily: AppTheme.primaryFontFamily,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 
@@ -397,32 +421,262 @@ class _VocalsScreenState extends State<VocalsScreen> {
   void _navigateToWarmups() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const VocalWarmupsScreen(),
-      ),
+      FadeSlidePageRoute(page: const VocalWarmupsScreen()),
     );
   }
 
   void _navigateToExercises() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const VocalExercisesScreen(),
-      ),
+      FadeSlidePageRoute(page: const VocalExercisesScreen()),
     );
   }
 
-  void _showComingSoon() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('30-Day Vocal Course coming soon! 🚀'),
-        backgroundColor: AppTheme.primaryColor,
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
+  // Coming Soon Card
+  Widget _buildComingSoonCard() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isSmallScreen = constraints.maxWidth < 300;
+        final iconSize = isSmallScreen ? 32.0 : 36.0;
+        final titleFontSize = isSmallScreen ? 14.0 : 16.0;
+        final descriptionFontSize = isSmallScreen ? 12.0 : 13.0;
+        final padding = isSmallScreen ? 16.0 : 20.0;
+
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(5),
+            border: Border.all(
+              color: AppTheme.primary.withValues(alpha: 0.2),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('30-Day Vocal Course coming soon! 🚀'),
+                    backgroundColor: AppTheme.primary,
+                    duration: const Duration(seconds: 2),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(5),
+              child: Padding(
+                padding: EdgeInsets.all(padding),
+                child: Row(
+                  children: [
+                    // Icon
+                    Container(
+                      width: iconSize,
+                      height: iconSize,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Icon(
+                        Icons.rocket_launch_rounded,
+                        color: AppTheme.primary,
+                        size: iconSize * 0.5,
+                      ),
+                    ),
+
+                    const SizedBox(width: 16),
+
+                    // Content
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Title and Badge Row
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                flex: 3,
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      '30-Day Vocal Course',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: titleFontSize,
+                                        fontWeight: FontWeight.w600,
+                                        fontFamily: AppTheme.primaryFontFamily,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.primary.withValues(
+                                          alpha: 0.2,
+                                        ),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        'Coming Soon',
+                                        style: TextStyle(
+                                          color: AppTheme.primary,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          fontFamily:
+                                              AppTheme.primaryFontFamily,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.clip,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          // Description
+                          const SizedBox(height: 4),
+                          Text(
+                            'Complete vocal training program with daily exercises and lessons',
+                            style: TextStyle(
+                              color: AppTheme.textMuted,
+                              fontSize: descriptionFontSize,
+                              fontFamily: AppTheme.primaryFontFamily,
+                              height: 1.3,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Arrow
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: AppTheme.textMuted,
+                      size: isSmallScreen ? 10 : 12,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Downloaded Content Section
+  Widget _buildDownloadedSection() {
+    return ListenableBuilder(
+      listenable: _vocalService,
+      builder: (context, child) {
+        final downloadedItems = _vocalService.downloadedItems;
+
+        if (downloadedItems.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Downloaded Content',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                fontFamily: AppTheme.primaryFontFamily,
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.green.withValues(alpha: 0.2),
+                    Colors.green.withValues(alpha: 0.1),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(
+                  color: Colors.green.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: const Icon(
+                      Icons.offline_bolt_rounded,
+                      color: Colors.green,
+                      size: 20,
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${downloadedItems.length} items ready offline',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: AppTheme.primaryFontFamily,
+                          ),
+                        ),
+                        Text(
+                          '${_vocalService.getFormattedDownloadedSize()} • No internet needed',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: 12,
+                            fontFamily: AppTheme.primaryFontFamily,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

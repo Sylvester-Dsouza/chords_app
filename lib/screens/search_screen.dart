@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/app_data_provider.dart';
 import '../providers/screen_state_provider.dart';
+import '../config/theme.dart';
 
 import '../widgets/song_placeholder.dart';
 import '../widgets/skeleton_loader.dart';
@@ -813,17 +814,19 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         }
 
         return Scaffold(
-          backgroundColor: const Color(0xFF121212),
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: Stack(
             children: [
               // Main content with custom scroll view
               CustomScrollView(
                 controller: _scrollController,
                 slivers: [
-                  // Animated app bar
+                  // Animated app bar - Fixed to prevent transparency and blue tinting
                   SliverAppBar(
-                    backgroundColor: const Color(0xFF121212),
+                    backgroundColor: AppTheme.appBar,
                     elevation: 0,
+                    scrolledUnderElevation: 0, // Prevents elevation change when scrolling
+                    surfaceTintColor: Colors.transparent, // Prevents blue tinting from primary color
                     floating: true,
                     snap: true,
                     pinned: false,
@@ -862,7 +865,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                 left: 0,
                 right: 0,
                 child: Container(
-                  color: const Color(0xFF121212),
+                  color: Theme.of(context).scaffoldBackgroundColor,
                   padding: EdgeInsets.only(
                     top: MediaQuery.of(context).padding.top,
                   ),
@@ -992,7 +995,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
               width: isSelected ? title.length * 6.0 : 0,
               decoration: BoxDecoration(
                 color: isSelected ? const Color(0xFFC19FFF) : Colors.transparent,
-                borderRadius: BorderRadius.circular(1),
+                borderRadius: BorderRadius.circular(5),
               ),
             ),
           ],
@@ -1100,56 +1103,59 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   }
 
   Widget _buildArtistItem(String name, String songCount) {
-    return Container(
-      decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: Color(0xFF333333),
-            width: 1.0,
-          ),
-        ),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        leading: const SongPlaceholder(),
-        title: Text(
-          name,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        subtitle: Row(
-          children: [
-            Icon(
-              Icons.music_note,
-              color: Colors.grey,
-              size: 14,
+    const double placeholderSize = 48.0;
+    const double horizontalPadding = 16.0;
+
+    return Column(
+      children: [
+        ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+          leading: const SongPlaceholder(size: placeholderSize),
+          title: Text(
+            name,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
             ),
-            SizedBox(width: 4),
-            Text(
-              songCount,
-              style: const TextStyle(
+          ),
+          subtitle: Row(
+            children: [
+              Icon(
+                Icons.music_note,
                 color: Colors.grey,
-                fontSize: 12,
+                size: 14,
               ),
-            ),
-          ],
+              const SizedBox(width: 4),
+              Text(
+                songCount,
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          trailing: const Icon(
+            Icons.chevron_right,
+            color: Colors.grey,
+          ),
+          onTap: () {
+            Navigator.pushNamed(
+              context,
+              '/artist_detail',
+              arguments: {
+                'artistName': name,
+              },
+            );
+          },
         ),
-        trailing: const Icon(
-          Icons.chevron_right,
-          color: Colors.grey,
+        // Custom divider that only extends to the image
+        Container(
+          height: 0.5,
+          margin: EdgeInsets.only(left: horizontalPadding + placeholderSize + 12, right: 0),
+          color: Colors.grey[700], // Lighter color
         ),
-        onTap: () {
-          Navigator.pushNamed(
-            context,
-            '/artist_detail',
-            arguments: {
-              'artistName': name,
-            },
-          );
-        },
-      ),
+      ],
     );
   }
 
@@ -1229,11 +1235,11 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           },
         );
       },
-      borderRadius: BorderRadius.circular(8.0),
+      borderRadius: BorderRadius.circular(5),
       child: Container(
         decoration: BoxDecoration(
           color: const Color(0xFF1E1E1E),
-          borderRadius: BorderRadius.circular(8.0),
+          borderRadius: BorderRadius.circular(5),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1332,17 +1338,11 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   Widget _buildSongItem(Song song) {
     // Get the song placeholder size
     const double placeholderSize = 48.0;
+    const double horizontalPadding = 16.0;
 
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: const Color(0xFF333333),
-            width: 1.0,
-          ),
-        ),
-      ),
-      child: ListTile(
+    return Column(
+      children: [
+        ListTile(
         // Reduce vertical padding to decrease space between items
         contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
         leading: const SongPlaceholder(size: placeholderSize),
@@ -1370,7 +1370,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
               padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
               decoration: BoxDecoration(
                 color: const Color(0xFF333333),
-                borderRadius: BorderRadius.circular(4.0),
+                borderRadius: BorderRadius.circular(5),
               ),
               child: Text(
                 song.key,
@@ -1425,6 +1425,13 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           );
         },
       ),
+        // Custom divider that only extends to the image
+        Container(
+          height: 0.5,
+          margin: EdgeInsets.only(left: horizontalPadding + placeholderSize + 12, right: 0),
+          color: Colors.grey[700], // Lighter color
+        ),
+      ],
     );
   }
 }

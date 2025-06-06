@@ -72,7 +72,7 @@ class _AnimatedBottomNavBarState extends State<AnimatedBottomNavBar> with Single
         ],
       ),
       child: BottomNavigationBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
         selectedItemColor: Theme.of(context).colorScheme.primary, // Use theme primary color
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,

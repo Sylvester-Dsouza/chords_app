@@ -99,7 +99,7 @@ class SongItemSkeleton extends StatelessWidget {
             height: 100,
             decoration: BoxDecoration(
               color: Colors.grey[800],
-              borderRadius: BorderRadius.circular(8.0),
+              borderRadius: BorderRadius.circular(5),
             ),
           ),
           const SizedBox(height: 8),
@@ -109,7 +109,7 @@ class SongItemSkeleton extends StatelessWidget {
             height: 14,
             decoration: BoxDecoration(
               color: Colors.grey[700],
-              borderRadius: BorderRadius.circular(4.0),
+              borderRadius: BorderRadius.circular(5),
             ),
           ),
         ],
@@ -146,7 +146,7 @@ class ArtistItemSkeleton extends StatelessWidget {
             height: 12,
             decoration: BoxDecoration(
               color: Colors.grey[700],
-              borderRadius: BorderRadius.circular(4.0),
+              borderRadius: BorderRadius.circular(5),
             ),
           ),
         ],
@@ -169,7 +169,7 @@ class CollectionItemSkeleton extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             color: Colors.grey[800],
-            borderRadius: BorderRadius.circular(8.0),
+            borderRadius: BorderRadius.circular(5),
           ),
         ),
       ),
@@ -205,7 +205,7 @@ class HomeSectionSkeleton extends StatelessWidget {
                   height: 20,
                   decoration: BoxDecoration(
                     color: Colors.grey[700],
-                    borderRadius: BorderRadius.circular(4.0),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
                 Container(
@@ -213,7 +213,7 @@ class HomeSectionSkeleton extends StatelessWidget {
                   height: 16,
                   decoration: BoxDecoration(
                     color: Colors.grey[700],
-                    borderRadius: BorderRadius.circular(4.0),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
               ],
@@ -262,7 +262,7 @@ class HomeSectionSkeleton extends StatelessWidget {
           height: 200,
           decoration: BoxDecoration(
             color: Colors.grey[800],
-            borderRadius: BorderRadius.circular(8.0),
+            borderRadius: BorderRadius.circular(5),
           ),
         );
     }
@@ -288,7 +288,7 @@ class SongListItemSkeleton extends StatelessWidget {
               height: 48,
               decoration: BoxDecoration(
                 color: Colors.grey[700],
-                borderRadius: BorderRadius.circular(8.0),
+                borderRadius: BorderRadius.circular(5),
               ),
             ),
             const SizedBox(width: 12),
@@ -302,7 +302,7 @@ class SongListItemSkeleton extends StatelessWidget {
                     height: 16,
                     decoration: BoxDecoration(
                       color: Colors.grey[700],
-                      borderRadius: BorderRadius.circular(4.0),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -311,7 +311,7 @@ class SongListItemSkeleton extends StatelessWidget {
                     height: 12,
                     decoration: BoxDecoration(
                       color: Colors.grey[700],
-                      borderRadius: BorderRadius.circular(4.0),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                   ),
                 ],
@@ -325,7 +325,7 @@ class SongListItemSkeleton extends StatelessWidget {
                   height: 20,
                   decoration: BoxDecoration(
                     color: Colors.grey[700],
-                    borderRadius: BorderRadius.circular(4.0),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
                 const SizedBox(width: 16),

@@ -47,7 +47,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           // Custom App Bar
@@ -118,7 +118,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: courseColor,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                     child: Text(
                       'Day ${widget.dayNumber}',
@@ -217,7 +217,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
                         Positioned.fill(
                           child: Container(
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(18),
+                              borderRadius: BorderRadius.circular(5),
                               gradient: RadialGradient(
                                 center: Alignment.center,
                                 radius: 1.0,
@@ -299,7 +299,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
                                 height: 4,
                                 decoration: BoxDecoration(
                                   color: Colors.white.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(2),
+                                  borderRadius: BorderRadius.circular(5),
                                 ),
                                 child: FractionallySizedBox(
                                   alignment: Alignment.centerLeft,
@@ -307,7 +307,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
                                   child: Container(
                                     decoration: BoxDecoration(
                                       color: courseColor,
-                                      borderRadius: BorderRadius.circular(2),
+                                      borderRadius: BorderRadius.circular(5),
                                     ),
                                   ),
                                 ),
@@ -336,7 +336,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.6),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(5),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -459,7 +459,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
     return Container(
       decoration: BoxDecoration(
         color: isSelected ? courseColor.withValues(alpha: 0.2) : const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(5),
         border: Border.all(
           color: isSelected ? courseColor.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.1),
           width: 1,
@@ -469,7 +469,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(5),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Row(
@@ -542,7 +542,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(5),
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.1),
           width: 1,
@@ -631,7 +631,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
           height: 40,
           decoration: BoxDecoration(
             color: _getCourseColor().withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(5),
           ),
           child: Icon(
             Icons.music_note_rounded,
@@ -684,7 +684,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -752,7 +752,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
   Widget _buildFloatingActionButton() {
     return FloatingActionButton.extended(
       onPressed: () => _toggleLessonCompletion(),
-      backgroundColor: isCompleted ? Colors.green : AppTheme.primaryColor,
+      backgroundColor: isCompleted ? Colors.green : AppTheme.primary,
       foregroundColor: Colors.black,
       icon: Icon(
         isCompleted ? Icons.check_rounded : Icons.play_arrow_rounded,
@@ -777,7 +777,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
       case 'advanced':
         return const Color(0xFFEC4899);
       default:
-        return AppTheme.primaryColor;
+        return AppTheme.primary;
     }
   }
 
@@ -798,7 +798,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
               height: 4,
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(5),
               ),
             ),
 
@@ -860,7 +860,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
       ),
       onTap: onTap,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(5),
       ),
     );
   }
@@ -883,7 +883,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
         content: Text(
           isCompleted ? 'Lesson marked as completed!' : 'Lesson marked as incomplete',
         ),
-        backgroundColor: isCompleted ? Colors.green : AppTheme.primaryColor,
+        backgroundColor: isCompleted ? Colors.green : AppTheme.primary,
       ),
     );
   }
@@ -892,7 +892,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Opening practice song: ${widget.lesson.practiceSongTitle}'),
-        backgroundColor: AppTheme.primaryColor,
+        backgroundColor: AppTheme.primary,
       ),
     );
   }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,6 +23,7 @@ class OfflineService {
 
   // Connectivity
   final Connectivity _connectivity = Connectivity();
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   bool _isOnline = true;
   bool _offlineModeEnabled = false;
 
@@ -37,8 +39,8 @@ class OfflineService {
     // Check initial connectivity
     await _checkConnectivity();
 
-    // Listen for connectivity changes
-    _connectivity.onConnectivityChanged.listen(_onConnectivityChanged);
+    // Listen for connectivity changes and store subscription
+    _connectivitySubscription = _connectivity.onConnectivityChanged.listen(_onConnectivityChanged);
 
     // Load offline mode preference
     await _loadOfflineModePreference();
@@ -276,7 +278,9 @@ class OfflineService {
 
   /// Dispose resources
   void dispose() {
-    // Cancel any subscriptions if needed
+    // Cancel connectivity subscription to prevent memory leaks
+    _connectivitySubscription?.cancel();
+    _connectivitySubscription = null;
     debugPrint('🔌 OfflineService disposed');
   }
 }

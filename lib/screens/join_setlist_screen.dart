@@ -3,6 +3,7 @@ import '../models/setlist.dart';
 import '../services/setlist_service.dart';
 import '../utils/ui_helpers.dart';
 import '../widgets/inner_screen_app_bar.dart';
+import '../config/theme.dart';
 
 /// Screen for joining a setlist via share code or link
 class JoinSetlistScreen extends StatefulWidget {
@@ -111,7 +112,7 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: AppTheme.background,
       appBar: const InnerScreenAppBar(
         title: 'Join Setlist',
         showBackButton: true,
@@ -127,15 +128,15 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    const Color(0xFFC19FFF).withValues(alpha: 0.1),
-                    const Color(0xFFC19FFF).withValues(alpha: 0.05),
+                    AppTheme.primary.withValues(alpha: 0.1),
+                    AppTheme.primary.withValues(alpha: 0.05),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(5),
                 border: Border.all(
-                  color: const Color(0xFFC19FFF).withValues(alpha: 0.3),
+                  color: AppTheme.primary.withValues(alpha: 0.3),
                 ),
               ),
               child: Column(
@@ -143,14 +144,15 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                   Icon(
                     Icons.group_add,
                     size: 48,
-                    color: const Color(0xFFC19FFF),
+                    color: AppTheme.primary,
                   ),
                   const SizedBox(height: 12),
                   Text(
                     'Join a Collaborative Setlist',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: Colors.white,
+                      color: AppTheme.text,
                       fontWeight: FontWeight.bold,
+                      fontFamily: AppTheme.primaryFontFamily,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -158,7 +160,8 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                   Text(
                     'Enter a 4-digit code or scan a QR code to join',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey[400],
+                      color: AppTheme.textMuted,
+                      fontFamily: AppTheme.primaryFontFamily,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -174,8 +177,9 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                   child: Text(
                     'Share Code',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
+                      color: AppTheme.text,
                       fontWeight: FontWeight.w600,
+                      fontFamily: AppTheme.primaryFontFamily,
                     ),
                   ),
                 ),
@@ -191,8 +195,8 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                   icon: const Icon(Icons.qr_code_scanner, size: 18),
                   label: const Text('Scan QR'),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFC19FFF)),
-                    foregroundColor: const Color(0xFFC19FFF),
+                    side: BorderSide(color: AppTheme.primary),
+                    foregroundColor: AppTheme.primary,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                 ),
@@ -203,19 +207,32 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
               controller: _shareCodeController,
               decoration: InputDecoration(
                 hintText: 'Enter 4-digit code (e.g., 1234)',
+                hintStyle: TextStyle(
+                  color: AppTheme.textMuted,
+                  fontFamily: AppTheme.primaryFontFamily,
+                ),
                 errorText: _errorMessage,
-                prefixIcon: const Icon(Icons.code),
+                prefixIcon: Icon(Icons.code, color: AppTheme.primary),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(5),
+                  borderSide: BorderSide(color: AppTheme.primary.withAlpha(80)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(5),
+                  borderSide: BorderSide(color: AppTheme.primary.withAlpha(80)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(5),
+                  borderSide: BorderSide(color: AppTheme.primary, width: 2),
                 ),
                 filled: true,
-                fillColor: const Color(0xFF1E1E1E),
+                fillColor: AppTheme.surface,
               ),
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: AppTheme.text,
                 fontSize: 18,
                 letterSpacing: 4,
-                fontFamily: 'monospace',
+                fontFamily: AppTheme.monospaceFontFamily,
               ),
               textAlign: TextAlign.center,
               keyboardType: TextInputType.number,
@@ -240,17 +257,23 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
               child: OutlinedButton.icon(
                 onPressed: _isLoading ? null : _previewSetlistData,
                 icon: _isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppTheme.primary,
+                        ),
                       )
                     : const Icon(Icons.preview),
-                label: Text(_isLoading ? 'Loading...' : 'Preview Setlist'),
+                label: Text(
+                  _isLoading ? 'Loading...' : 'Preview Setlist',
+                  style: TextStyle(fontFamily: AppTheme.primaryFontFamily),
+                ),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  side: BorderSide(color: const Color(0xFFC19FFF)),
-                  foregroundColor: const Color(0xFFC19FFF),
+                  side: BorderSide(color: AppTheme.primary),
+                  foregroundColor: AppTheme.primary,
                 ),
               ),
             ),
@@ -261,10 +284,10 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E1E1E),
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppTheme.surface,
+                  borderRadius: BorderRadius.circular(5),
                   border: Border.all(
-                    color: const Color(0xFFC19FFF).withValues(alpha: 0.3),
+                    color: AppTheme.primary.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Column(
@@ -274,7 +297,7 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                       children: [
                         Icon(
                           Icons.queue_music,
-                          color: const Color(0xFFC19FFF),
+                          color: AppTheme.primary,
                           size: 24,
                         ),
                         const SizedBox(width: 12),
@@ -285,8 +308,9 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                               Text(
                                 _previewSetlist!.name,
                                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  color: Colors.white,
+                                  color: AppTheme.text,
                                   fontWeight: FontWeight.bold,
+                                  fontFamily: AppTheme.primaryFontFamily,
                                 ),
                               ),
                               if (_previewSetlist!.description?.isNotEmpty == true) ...[
@@ -294,7 +318,8 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                                 Text(
                                   _previewSetlist!.description!,
                                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: Colors.grey[400],
+                                    color: AppTheme.textMuted,
+                                    fontFamily: AppTheme.primaryFontFamily,
                                   ),
                                 ),
                               ],
@@ -332,14 +357,17 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                                 height: 16,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white,
+                                  color: Colors.black,
                                 ),
                               )
                             : const Icon(Icons.group_add),
-                        label: Text(_isJoining ? 'Joining...' : 'Join Setlist'),
+                        label: Text(
+                          _isJoining ? 'Joining...' : 'Join Setlist',
+                          style: TextStyle(fontFamily: AppTheme.primaryFontFamily),
+                        ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFC19FFF),
-                          foregroundColor: Colors.white,
+                          backgroundColor: AppTheme.primary,
+                          foregroundColor: Colors.black,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                       ),
@@ -358,8 +386,12 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.grey[800],
-        borderRadius: BorderRadius.circular(6),
+        color: AppTheme.primary.withAlpha(20),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(
+          color: AppTheme.primary.withAlpha(60),
+          width: 0.5,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -367,14 +399,16 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
           Icon(
             icon,
             size: 14,
-            color: Colors.grey[400],
+            color: AppTheme.primary,
           ),
           const SizedBox(width: 4),
           Text(
             text,
             style: TextStyle(
-              color: Colors.grey[400],
+              color: AppTheme.primary,
               fontSize: 12,
+              fontFamily: AppTheme.primaryFontFamily,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],

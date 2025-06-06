@@ -90,22 +90,30 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       // If we have a collection ID, use it
       if (widget.collectionId != null && widget.collectionId != 'unknown') {
         try {
-          collection = await _collectionService.getCollectionById(widget.collectionId!);
+          collection = await _collectionService.getCollectionById(
+            widget.collectionId!,
+          );
           debugPrint('Loaded collection by ID: ${collection.title}');
         } catch (e) {
           debugPrint('Error loading collection by ID: $e');
           // Fall back to loading by name
-          collection = await _collectionService.getCollectionByName(widget.collectionName);
+          collection = await _collectionService.getCollectionByName(
+            widget.collectionName,
+          );
         }
       } else {
         // Try to get collection by name
-        collection = await _collectionService.getCollectionByName(widget.collectionName);
+        collection = await _collectionService.getCollectionByName(
+          widget.collectionName,
+        );
         debugPrint('Loaded collection by name: ${collection?.title}');
       }
 
       if (collection != null) {
         // Get songs in collection
-        final songsData = await _collectionService.getSongsInCollection(collection.id);
+        final songsData = await _collectionService.getSongsInCollection(
+          collection.id,
+        );
         final List<Song> songs = [];
 
         // Parse songs
@@ -175,8 +183,8 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
           SnackBar(
             content: Text(
               wasLiked
-                ? 'Removed "${song.title}" from liked songs'
-                : 'Added "${song.title}" to liked songs'
+                  ? 'Removed "${song.title}" from liked songs'
+                  : 'Added "${song.title}" to liked songs',
             ),
             backgroundColor: wasLiked ? Colors.grey : Colors.green,
             duration: const Duration(seconds: 1),
@@ -253,7 +261,9 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('You need to be logged in to like collections'),
+              content: const Text(
+                'You need to be logged in to like collections',
+              ),
               backgroundColor: Colors.orange,
               action: SnackBarAction(
                 label: 'Login',
@@ -277,7 +287,9 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
             title: _collection!.title,
             description: _collection!.description,
             songCount: _collection!.songCount,
-            likeCount: oldLikeCount + (wasLiked ? -1 : 1), // Optimistically update like count
+            likeCount:
+                oldLikeCount +
+                (wasLiked ? -1 : 1), // Optimistically update like count
             isLiked: !wasLiked, // Immediately toggle like status
             color: _collection!.color,
             imageUrl: _collection!.imageUrl,
@@ -292,8 +304,8 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         SnackBar(
           content: Text(
             wasLiked
-              ? 'Removed "${_collection!.title}" from liked collections'
-              : 'Added "${_collection!.title}" to liked collections'
+                ? 'Removed "${_collection!.title}" from liked collections'
+                : 'Added "${_collection!.title}" to liked collections',
           ),
           backgroundColor: wasLiked ? Colors.grey : Colors.green,
           duration: const Duration(seconds: 1),
@@ -331,7 +343,8 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       } else if (result['success'] == true && mounted) {
         // Update with the actual like count from the server if different
         final serverLikeCount = result['data']['likeCount'];
-        if (serverLikeCount != null && serverLikeCount != _collection!.likeCount) {
+        if (serverLikeCount != null &&
+            serverLikeCount != _collection!.likeCount) {
           setState(() {
             _collection = Collection(
               id: _collection!.id,
@@ -391,9 +404,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
           child: ShimmerEffect(
             baseColor: Colors.grey[800]!,
             highlightColor: Colors.grey[600]!,
-            child: Container(
-              color: Colors.grey[800],
-            ),
+            child: Container(color: Colors.grey[800]),
           ),
         ),
 
@@ -412,7 +423,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                   height: 24,
                   decoration: BoxDecoration(
                     color: Colors.grey[700],
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -422,7 +433,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                   height: 16,
                   decoration: BoxDecoration(
                     color: Colors.grey[700],
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -431,7 +442,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                   height: 16,
                   decoration: BoxDecoration(
                     color: Colors.grey[700],
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
               ],
@@ -440,11 +451,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         ),
 
         // Divider
-        const Divider(
-          color: Color(0xFF333333),
-          thickness: 1,
-          height: 1,
-        ),
+        const Divider(color: Color(0xFF333333), thickness: 1, height: 1),
 
         // Songs list skeleton
         Expanded(
@@ -463,7 +470,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       extendBodyBehindAppBar: true, // Ensures content goes behind the app bar
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -488,66 +495,68 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         // Title removed to make image more visible
         title: null,
       ),
-      body: _isLoading
-          ? _buildLoadingSkeleton()
-          : _hasError
+      body:
+          _isLoading
+              ? _buildLoadingSkeleton()
+              : _hasError
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        color: Colors.red,
-                        size: 48,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Failed to load collection data',
-                        style: const TextStyle(color: Colors.white, fontSize: 18),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _errorMessage,
-                        style: const TextStyle(color: Colors.grey),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryColor,
-                          foregroundColor: Colors.black,
-                        ),
-                        onPressed: _loadCollectionData,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : Column(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Collection header with image
-                    _buildCollectionHeader(),
-
-                    // Collection description
-                    _buildCollectionDescription(),
-
-                    // Divider
-                    const Divider(
-                      color: Color(0xFF333333),
-                      thickness: 1,
-                      height: 1,
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 48,
                     ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Failed to load collection data',
+                      style: const TextStyle(color: Colors.white, fontSize: 18),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _errorMessage,
+                      style: const TextStyle(color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.black,
+                      ),
+                      onPressed: _loadCollectionData,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              )
+              : Column(
+                children: [
+                  // Collection header with image
+                  _buildCollectionHeader(),
 
-                    // Songs list
-                    Expanded(
-                      child: _songs.isEmpty
-                          ? Center(
+                  // Collection description
+                  _buildCollectionDescription(),
+
+                  // Divider
+                  const Divider(
+                    color: Color(0xFF333333),
+                    thickness: 1,
+                    height: 1,
+                  ),
+
+                  // Songs list
+                  Expanded(
+                    child:
+                        _songs.isEmpty
+                            ? Center(
                               child: Text(
                                 'No songs found in this collection',
                                 style: const TextStyle(color: Colors.grey),
                               ),
                             )
-                          : ListView.builder(
+                            : ListView.builder(
                               padding: EdgeInsets.zero,
                               itemCount: _songs.length,
                               itemBuilder: (context, index) {
@@ -561,9 +570,9 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                                 );
                               },
                             ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
       // Bottom navigation bar removed from inner screens
     );
   }
@@ -577,23 +586,12 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
           // Background image or color
           _collection?.imageUrl != null
               ? MemoryEfficientImage(
-                  imageUrl: _collection!.imageUrl!,
-                  width: 800, // Use reasonable fixed size instead of infinity
-                  height: 200,
-                  fit: BoxFit.cover,
-                  backgroundColor: _collection?.color ?? Colors.grey[800]!,
-                  errorWidget: Container(
-                    color: _collection?.color ?? Colors.grey[800],
-                    child: Center(
-                      child: Icon(
-                        Icons.collections_bookmark,
-                        color: Colors.white,
-                        size: 64,
-                      ),
-                    ),
-                  ),
-                )
-              : Container(
+                imageUrl: _collection!.imageUrl!,
+                width: 800, // Use reasonable fixed size instead of infinity
+                height: 200,
+                fit: BoxFit.cover,
+                backgroundColor: _collection?.color ?? Colors.grey[800]!,
+                errorWidget: Container(
                   color: _collection?.color ?? Colors.grey[800],
                   child: Center(
                     child: Icon(
@@ -603,6 +601,17 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                     ),
                   ),
                 ),
+              )
+              : Container(
+                color: _collection?.color ?? Colors.grey[800],
+                child: Center(
+                  child: Icon(
+                    Icons.collections_bookmark,
+                    color: Colors.white,
+                    size: 64,
+                  ),
+                ),
+              ),
           // Gradient overlay
           Container(
             decoration: BoxDecoration(
@@ -623,10 +632,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                   left: 16,
                   child: Text(
                     "${_songs.length} ${_songs.length == 1 ? 'Song' : 'Songs'}",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                    ),
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
                   ),
                 ),
 
@@ -653,8 +659,13 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                           child: Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: Icon(
-                              _collection?.isLiked == true ? Icons.favorite : Icons.favorite_border,
-                              color: _collection?.isLiked == true ? Colors.red : Colors.white,
+                              _collection?.isLiked == true
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color:
+                                  _collection?.isLiked == true
+                                      ? Colors.red
+                                      : Colors.white,
                               size: 28, // Increased size
                             ),
                           ),
@@ -692,58 +703,56 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
           // Description
           Text(
             _collection?.description ?? 'No description available',
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: Colors.grey, fontSize: 14),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSongItem(String title, String artist, String key, bool isLiked, {Song? song}) {
+  Widget _buildSongItem(
+    String title,
+    String artist,
+    String key,
+    bool isLiked, {
+    Song? song,
+  }) {
     return Container(
       decoration: const BoxDecoration(
         border: Border(
-          bottom: BorderSide(
-            color: Color(0xFF333333),
-            width: 1.0,
-          ),
+          bottom: BorderSide(color: Color(0xFF333333), width: 1.0),
         ),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16.0,
+          vertical: 8.0,
+        ),
         leading: const SongPlaceholder(size: 48),
         title: Text(
           title,
           style: const TextStyle(
-            color: AppTheme.primaryColor,
+            color: AppTheme.primary,
             fontWeight: FontWeight.bold,
           ),
         ),
-        subtitle: Text(
-          artist,
-          style: const TextStyle(
-            color: Colors.grey,
-          ),
-        ),
+        subtitle: Text(artist, style: const TextStyle(color: Colors.grey)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             // Song Key
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8.0,
+                vertical: 4.0,
+              ),
               decoration: BoxDecoration(
                 color: const Color(0xFF333333),
-                borderRadius: BorderRadius.circular(4.0),
+                borderRadius: BorderRadius.circular(5),
               ),
               child: Text(
                 key,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                ),
+                style: const TextStyle(color: Colors.white, fontSize: 12),
               ),
             ),
             const SizedBox(width: 16),
@@ -764,11 +773,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         onTap: () {
           // Navigate to song detail
           if (song != null) {
-            Navigator.pushNamed(
-              context,
-              '/song_detail',
-              arguments: song,
-            );
+            Navigator.pushNamed(context, '/song_detail', arguments: song);
           }
         },
       ),

@@ -54,7 +54,7 @@ class _CreateSetlistDialogState extends State<CreateSetlistDialog> {
     return Dialog(
       backgroundColor: const Color(0xFF1E1E1E),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(5),
       ),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
@@ -88,13 +88,13 @@ class _CreateSetlistDialogState extends State<CreateSetlistDialog> {
                 filled: true,
                 fillColor: const Color(0xFF121212),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(5),
                   borderSide: BorderSide.none,
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(5),
                   borderSide: const BorderSide(
-                    color: AppTheme.primaryColor,
+                    color: AppTheme.primary,
                     width: 2,
                   ),
                 ),
@@ -126,13 +126,13 @@ class _CreateSetlistDialogState extends State<CreateSetlistDialog> {
                 filled: true,
                 fillColor: const Color(0xFF121212),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(5),
                   borderSide: BorderSide.none,
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(5),
                   borderSide: const BorderSide(
-                    color: AppTheme.primaryColor,
+                    color: AppTheme.primary,
                     width: 2,
                   ),
                 ),
@@ -164,7 +164,7 @@ class _CreateSetlistDialogState extends State<CreateSetlistDialog> {
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                   ),
                   child: _isCreating

@@ -50,7 +50,7 @@ class ToastUtil {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       elevation: 6,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(5),
       ),
       action: SnackBarAction(
         label: 'DISMISS',

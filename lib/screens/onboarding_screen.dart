@@ -60,7 +60,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -137,7 +137,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8.0),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
                 child: Text(
@@ -303,7 +303,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       width: isActive ? 24.0 : 8.0,
       decoration: BoxDecoration(
         color: isActive ? Theme.of(context).colorScheme.primary : Colors.grey,
-        borderRadius: BorderRadius.circular(4.0),
+        borderRadius: BorderRadius.circular(5),
       ),
     );
   }

@@ -67,7 +67,7 @@ class OptimizedListItem extends StatelessWidget {
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(5),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,7 +145,7 @@ class OptimizedListItem extends StatelessWidget {
       margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
         color: Colors.grey[800],
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,7 +174,7 @@ class OptimizedListItem extends StatelessWidget {
                   width: 120,
                   decoration: BoxDecoration(
                     color: Colors.grey[700],
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -183,7 +183,7 @@ class OptimizedListItem extends StatelessWidget {
                   width: 80,
                   decoration: BoxDecoration(
                     color: Colors.grey[700],
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
               ],

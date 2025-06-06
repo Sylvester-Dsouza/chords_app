@@ -134,44 +134,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildProfileHeader(bool isLoggedIn, Map<String, dynamic>? userData) {
     final profilePictureUrl = isLoggedIn ? _getProfilePictureUrl(userData) : null;
+    final displayName = isLoggedIn ? (userData?['name'] ?? 'User') : 'Guest User';
+    final displayEmail = isLoggedIn ? (userData?['email'] ?? 'No email') : 'Not logged in';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Row(
         children: [
-          // Profile Image
+          // Profile Image - Made smaller
           Container(
-            width: 85,
-            height: 85,
+            width: 65,
+            height: 65,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.grey[800],
               border: Border.all(
-                color: AppTheme.primaryColor,
-                width: 2,
+                color: AppTheme.primary,
+                width: 1.5,
               ),
             ),
             child: profilePictureUrl != null
                 ? ClipOval(
                     child: Image.network(
                       profilePictureUrl,
-                      width: 85,
-                      height: 85,
+                      width: 65,
+                      height: 65,
                       fit: BoxFit.cover,
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
                         return const Center(
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                            ),
                           ),
                         );
                       },
                       errorBuilder: (context, error, stackTrace) {
-                        // Fallback to default icon if image fails to load
                         return const Icon(
                           Icons.person,
                           color: Colors.white,
-                          size: 42,
+                          size: 32,
                         );
                       },
                     ),
@@ -179,10 +184,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 : const Icon(
                     Icons.person,
                     color: Colors.white,
-                    size: 42,
+                    size: 32,
                   ),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 16),
 
           // User Info
           Expanded(
@@ -191,22 +196,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 // User Name
                 Text(
-                  isLoggedIn ? (userData?['name'] ?? 'User') : 'Guest User',
+                  displayName,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
 
                 // Email
                 Text(
-                  isLoggedIn ? (userData?['email'] ?? 'No email') : 'Not logged in',
+                  displayEmail,
                   style: TextStyle(
-                    color: AppTheme.subtitleColor,
+                    color: Colors.grey[400],
                     fontSize: 14,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 8),
 
@@ -217,13 +226,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Icon(
                           Icons.calendar_today,
                           size: 14,
-                          color: AppTheme.subtitleColor,
+                          color: AppTheme.textMuted,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           'Joined January 2023',
                           style: TextStyle(
-                            color: AppTheme.subtitleColor,
+                            color: AppTheme.textMuted,
                             fontSize: 12,
                           ),
                         ),
@@ -246,7 +255,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             label: const Text('Login'),
                             style: TextButton.styleFrom(
-                              foregroundColor: AppTheme.primaryColor,
+                              foregroundColor: AppTheme.primary,
                               padding: const EdgeInsets.symmetric(horizontal: 12),
                               textStyle: const TextStyle(
                                 fontSize: 14,
@@ -353,13 +362,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+      padding: const EdgeInsets.only(left: 4.0, bottom: 6.0, top: 4.0),
       child: Text(
-        title,
+        title.toUpperCase(),
         style: TextStyle(
-          color: AppTheme.primaryColor,
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
+          color: Colors.grey[500],
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.8,
         ),
       ),
     );
@@ -369,17 +379,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.grey[850]!,
+          width: 1,
+        ),
       ),
       child: Column(
-        children: items,
+        children: items.asMap().entries.map((entry) {
+          final index = entry.key;
+          final item = entry.value;
+          
+          return Column(
+            children: [
+              item,
+              if (index < items.length - 1) 
+                Divider(
+                  height: 1,
+                  color: Colors.grey[850],
+                  indent: 60,
+                ),
+            ],
+          );
+        }).toList(),
       ),
     );
   }
 
   Widget _buildLogoutButton(UserProvider userProvider) {
-    return SizedBox(
+    return Container(
       width: double.infinity,
+      margin: const EdgeInsets.only(top: 8, bottom: 24),
       child: ElevatedButton.icon(
         onPressed: () async {
           // Show confirmation dialog
@@ -393,7 +423,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(false),
-                    child: Text('Cancel', style: TextStyle(color: AppTheme.primaryColor)),
+                    child: Text('Cancel', style: TextStyle(color: AppTheme.primary)),
                   ),
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(true),
@@ -405,19 +435,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           );
 
           if (confirm == true) {
-            // Use a separate method to handle logout to avoid BuildContext issues
             _handleLogout(userProvider);
           }
         },
-        icon: const Icon(Icons.logout),
-        label: const Text('Logout'),
+        icon: const Icon(Icons.logout, size: 18),
+        label: const Text('Logout', style: TextStyle(fontSize: 14)),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red.withAlpha(51), // 0.2 * 255 = 51
-          foregroundColor: Colors.red,
+          backgroundColor: Colors.red.withAlpha(30),
+          foregroundColor: Colors.red[300],
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(6),
+            side: BorderSide(color: Colors.red.withAlpha(100), width: 1),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
         ),
       ),
     );
@@ -482,47 +513,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(4),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
         child: Row(
           children: [
-            // Icon
+            // Icon - Smaller and more compact
             Container(
-              width: 40,
-              height: 40,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 color: isHighlighted
-                    ? AppTheme.primaryColor.withAlpha(51) // 0.2 * 255 = 51
+                    ? AppTheme.primary.withAlpha(40)
                     : Colors.grey[800],
-                borderRadius: BorderRadius.circular(10.0),
+                borderRadius: BorderRadius.circular(4),
               ),
               child: Icon(
                 icon,
-                color: isHighlighted
-                    ? AppTheme.primaryColor
-                    : Colors.white,
-                size: 20,
+                color: isHighlighted ? AppTheme.primary : Colors.grey[300],
+                size: 18,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
 
-            // Title
+            // Title - Smaller font
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
+                style: TextStyle(
+                  color: Colors.grey[200],
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
 
-            // Arrow
-            const Icon(
+            // Arrow - Smaller
+            Icon(
               Icons.chevron_right,
-              color: Colors.grey,
-              size: 20,
+              color: Colors.grey[500],
+              size: 18,
             ),
           ],
         ),

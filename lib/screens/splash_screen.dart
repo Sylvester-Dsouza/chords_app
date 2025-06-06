@@ -13,7 +13,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
   // Animation controllers
   late AnimationController _fadeAnimationController;
   late AnimationController _pulseAnimationController;
@@ -32,17 +33,22 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     super.initState();
 
     // Set status bar to match splash screen
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-    ));
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+      ),
+    );
 
     // Set up fade animation
     _fadeAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(_fadeAnimationController);
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(_fadeAnimationController);
 
     // Set up pulse animation
     _pulseAnimationController = AnimationController(
@@ -120,8 +126,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     debugPrint('SplashScreen: Loading status: $status ($progress)');
   }
 
-
-
   Future<void> _navigateToNextScreen() async {
     if (!mounted) return;
 
@@ -129,7 +133,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
     try {
       // Check if onboarding has been completed (using persistent storage)
-      final bool onboardingCompleted = await PreferencesUtil.isOnboardingCompleted();
+      final bool onboardingCompleted =
+          await PreferencesUtil.isOnboardingCompleted();
       debugPrint('SplashScreen: Onboarding completed: $onboardingCompleted');
 
       // Get the UserProvider (safe to use context here as we've checked mounted)
@@ -145,7 +150,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
       // If not logged in from memory, check with the server
       if (!isLoggedIn) {
-        debugPrint('SplashScreen: Not logged in from memory, checking with server...');
+        debugPrint(
+          'SplashScreen: Not logged in from memory, checking with server...',
+        );
         try {
           // Add a shorter timeout to prevent getting stuck
           isLoggedIn = await Future.any([
@@ -155,7 +162,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
               return false;
             }),
           ]);
-          debugPrint('SplashScreen: Server authentication check result: $isLoggedIn');
+          debugPrint(
+            'SplashScreen: Server authentication check result: $isLoggedIn',
+          );
         } catch (e) {
           debugPrint('SplashScreen: Error checking authentication: $e');
           isLoggedIn = false;
@@ -169,10 +178,14 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
         debugPrint('SplashScreen: Navigating to onboarding screen');
         if (mounted) Navigator.of(context).pushReplacementNamed('/onboarding');
       } else if (isLoggedIn) {
-        debugPrint('SplashScreen: Navigating to home screen (user is logged in)');
+        debugPrint(
+          'SplashScreen: Navigating to home screen (user is logged in)',
+        );
         if (mounted) Navigator.of(context).pushReplacementNamed('/home');
       } else {
-        debugPrint('SplashScreen: Navigating to login screen (user is not logged in)');
+        debugPrint(
+          'SplashScreen: Navigating to login screen (user is not logged in)',
+        );
         if (mounted) Navigator.of(context).pushReplacementNamed('/login');
       }
     } catch (e) {
@@ -183,8 +196,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       }
     }
   }
-
-
 
   @override
   void dispose() {
@@ -198,28 +209,14 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212), // Dark background
+      backgroundColor: const Color(0xFF101010), // Use #101010 background color
       body: Stack(
         children: [
-          // Background pattern with subtle animation
-          AnimatedBuilder(
-            animation: _rotateAnimationController,
-            builder: (context, child) {
-              return Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF121212),
-                  image: DecorationImage(
-                    image: const AssetImage('assets/images/pattern_bg.png'),
-                    fit: BoxFit.cover,
-                    opacity: 0.1,
-                    // Apply subtle rotation to the background
-                    alignment: Alignment.center,
-                    scale: 1.0 + (_rotateAnimationController.value * 0.05),
-                    onError: (exception, stackTrace) {}, // Ignore if pattern image doesn't exist
-                  ),
-                ),
-              );
-            },
+          // Solid background
+          Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFF101010),
+            ),
           ),
 
           // Main content
@@ -240,8 +237,8 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     },
                     child: Image.asset(
                       AppLogos.getSplashLogo(),
-                      width: 200,
-                      height: 200,
+                      width: 180,
+                      height: 180,
                       fit: BoxFit.contain,
                     ),
                   ),
@@ -250,10 +247,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                   // Loading status text
                   Text(
                     _loadingStatus,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                   const SizedBox(height: 16),
 
@@ -262,13 +256,15 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     width: 240,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.grey[800],
-                      borderRadius: BorderRadius.circular(2),
+                      color: const Color(0xFF202020),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                     child: LinearProgressIndicator(
                       backgroundColor: Colors.transparent,
                       value: _loadingProgress, // Use actual progress value
-                      valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Color(0xFFE91E63), // Use a pink accent color
+                      ),
                     ),
                   ),
 

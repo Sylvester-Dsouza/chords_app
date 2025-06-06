@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/song.dart';
 import '../models/artist.dart';
 import '../models/collection.dart';
@@ -6,18 +7,17 @@ import '../services/song_service.dart';
 import '../services/artist_service.dart';
 import '../services/collection_service.dart';
 import '../services/home_section_service.dart';
+import '../providers/app_data_provider.dart';
 import '../widgets/song_placeholder.dart';
+import '../config/theme.dart';
 
-enum ListType {
-  songs,
-  artists,
-  collections,
-}
+enum ListType { songs, artists, collections }
 
 class ListScreen extends StatefulWidget {
   final String title;
   final ListType listType;
-  final String? filterType; // Optional filter type (e.g., "trending", "new", "seasonal")
+  final String?
+  filterType; // Optional filter type (e.g., "trending", "new", "seasonal")
   final String? sectionId; // Optional section ID for fetching specific items
   final SectionType? sectionType; // Optional section type
 
@@ -118,7 +118,9 @@ class _ListScreenState extends State<ListScreen> {
           _isLoading = false;
         });
 
-        debugPrint('Loaded ${items.length} items from section ${widget.sectionId}');
+        debugPrint(
+          'Loaded ${items.length} items from section ${widget.sectionId}',
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -132,20 +134,26 @@ class _ListScreenState extends State<ListScreen> {
 
   Future<void> _loadSongs() async {
     try {
+      final appDataProvider = Provider.of<AppDataProvider>(
+        context,
+        listen: false,
+      );
       List<Song> songs;
 
-      // Apply filter if specified
-      if (widget.filterType == 'trending') {
-        // For trending songs, we'll just get all songs for now
-        // In a real app, you'd have a specific API endpoint for trending songs
-        songs = await _songService.getAllSongs();
-      } else if (widget.filterType == 'new') {
-        // For new songs, we'll just get all songs for now
-        // In a real app, you'd have a specific API endpoint for new songs
-        songs = await _songService.getAllSongs();
+      // Try to get from cache first
+      if (appDataProvider.songs.isNotEmpty) {
+        songs = appDataProvider.songs;
+        debugPrint('Using cached songs: ${songs.length} items');
       } else {
-        // Default: get all songs
-        songs = await _songService.getAllSongs();
+        // Fallback to API if cache is empty
+        debugPrint('Cache miss - fetching songs from API');
+        if (widget.filterType == 'trending') {
+          songs = await _songService.getAllSongs();
+        } else if (widget.filterType == 'new') {
+          songs = await _songService.getAllSongs();
+        } else {
+          songs = await _songService.getAllSongs();
+        }
       }
 
       if (mounted) {
@@ -166,16 +174,24 @@ class _ListScreenState extends State<ListScreen> {
 
   Future<void> _loadArtists() async {
     try {
+      final appDataProvider = Provider.of<AppDataProvider>(
+        context,
+        listen: false,
+      );
       List<Artist> artists;
 
-      // Apply filter if specified
-      if (widget.filterType == 'top') {
-        // For top artists, we'll just get all artists for now
-        // In a real app, you'd have a specific API endpoint for top artists
-        artists = await _artistService.getAllArtists();
+      // Try to get from cache first
+      if (appDataProvider.artists.isNotEmpty) {
+        artists = appDataProvider.artists;
+        debugPrint('Using cached artists: ${artists.length} items');
       } else {
-        // Default: get all artists
-        artists = await _artistService.getAllArtists();
+        // Fallback to API if cache is empty
+        debugPrint('Cache miss - fetching artists from API');
+        if (widget.filterType == 'top') {
+          artists = await _artistService.getAllArtists();
+        } else {
+          artists = await _artistService.getAllArtists();
+        }
       }
 
       if (mounted) {
@@ -196,16 +212,56 @@ class _ListScreenState extends State<ListScreen> {
 
   Future<void> _loadCollections() async {
     try {
+      final appDataProvider = Provider.of<AppDataProvider>(
+        context,
+        listen: false,
+      );
       List<Collection> collections;
 
-      // Apply filter if specified
-      if (widget.filterType == 'seasonal') {
-        collections = await _collectionService.getSeasonalCollections();
-      } else if (widget.filterType == 'beginner') {
-        collections = await _collectionService.getBeginnerFriendlyCollections();
+      // Try to get from cache first
+      if (appDataProvider.collections.isNotEmpty) {
+        collections = appDataProvider.collections;
+        debugPrint('Using cached collections: ${collections.length} items');
+
+        // Apply filter if specified (for now, just return all collections)
+        // TODO: Add proper filtering based on collection metadata
+        if (widget.filterType == 'seasonal') {
+          // Filter by title/description containing seasonal keywords
+          collections =
+              collections
+                  .where(
+                    (c) =>
+                        c.title.toLowerCase().contains('christmas') ||
+                        c.title.toLowerCase().contains('easter') ||
+                        c.title.toLowerCase().contains('seasonal') ||
+                        c.description?.toLowerCase().contains('seasonal') ==
+                            true,
+                  )
+                  .toList();
+        } else if (widget.filterType == 'beginner') {
+          // Filter by title/description containing beginner keywords
+          collections =
+              collections
+                  .where(
+                    (c) =>
+                        c.title.toLowerCase().contains('beginner') ||
+                        c.title.toLowerCase().contains('easy') ||
+                        c.description?.toLowerCase().contains('beginner') ==
+                            true,
+                  )
+                  .toList();
+        }
       } else {
-        // Default: get all collections
-        collections = await _collectionService.getAllCollections();
+        // Fallback to API if cache is empty
+        debugPrint('Cache miss - fetching collections from API');
+        if (widget.filterType == 'seasonal') {
+          collections = await _collectionService.getSeasonalCollections();
+        } else if (widget.filterType == 'beginner') {
+          collections =
+              await _collectionService.getBeginnerFriendlyCollections();
+        } else {
+          collections = await _collectionService.getAllCollections();
+        }
       }
 
       if (mounted) {
@@ -227,13 +283,16 @@ class _ListScreenState extends State<ListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF121212),
+        backgroundColor: AppTheme.appBar,
         elevation: 0,
         title: Text(
           widget.title,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -248,7 +307,9 @@ class _ListScreenState extends State<ListScreen> {
     if (_isLoading) {
       return Center(
         child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+          valueColor: AlwaysStoppedAnimation<Color>(
+            Theme.of(context).colorScheme.primary,
+          ),
         ),
       );
     }
@@ -260,11 +321,7 @@ class _ListScreenState extends State<ListScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.error_outline,
-                color: Colors.red,
-                size: 48,
-              ),
+              const Icon(Icons.error_outline, color: Colors.red, size: 48),
               const SizedBox(height: 16),
               Text(
                 'Error loading data',
@@ -350,15 +407,15 @@ class _ListScreenState extends State<ListScreen> {
     return Container(
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(
-            color: const Color(0xFF333333),
-            width: 1.0,
-          ),
+          bottom: BorderSide(color: const Color(0xFF333333), width: 1.0),
         ),
       ),
       child: ListTile(
         // Reduce vertical padding to decrease space between items
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16.0,
+          vertical: 4.0,
+        ),
         leading: SongPlaceholder(size: placeholderSize),
         title: Text(
           song.title,
@@ -371,9 +428,7 @@ class _ListScreenState extends State<ListScreen> {
         ),
         subtitle: Text(
           song.artist,
-          style: const TextStyle(
-            color: Colors.grey,
-          ),
+          style: const TextStyle(color: Colors.grey),
           overflow: TextOverflow.ellipsis,
         ),
         trailing: Row(
@@ -381,17 +436,17 @@ class _ListScreenState extends State<ListScreen> {
           children: [
             // Song Key
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8.0,
+                vertical: 4.0,
+              ),
               decoration: BoxDecoration(
                 color: const Color(0xFF333333),
-                borderRadius: BorderRadius.circular(4.0),
+                borderRadius: BorderRadius.circular(5),
               ),
               child: Text(
                 song.key,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                ),
+                style: const TextStyle(color: Colors.white, fontSize: 12),
               ),
             ),
             const SizedBox(width: 8),
@@ -402,11 +457,7 @@ class _ListScreenState extends State<ListScreen> {
         onTap: () {
           // Navigate to song detail
           if (mounted) {
-            Navigator.pushNamed(
-              context,
-              '/song_detail',
-              arguments: song,
-            );
+            Navigator.pushNamed(context, '/song_detail', arguments: song);
           }
         },
       ),
@@ -445,9 +496,7 @@ class _ListScreenState extends State<ListScreen> {
         Navigator.pushNamed(
           context,
           '/artist_detail',
-          arguments: {
-            'artistName': artist.name,
-          },
+          arguments: {'artistName': artist.name},
         );
       },
       child: Column(
@@ -457,19 +506,27 @@ class _ListScreenState extends State<ListScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.grey[800],
-                image: artist.imageUrl != null
-                    ? DecorationImage(
-                        image: NetworkImage(artist.imageUrl!),
-                        fit: BoxFit.cover,
-                        onError: (exception, stackTrace) {
-                          debugPrint('Error loading artist image: ${artist.name} - ${artist.imageUrl}');
-                        },
-                      )
-                    : null,
+                image:
+                    artist.imageUrl != null
+                        ? DecorationImage(
+                          image: NetworkImage(artist.imageUrl!),
+                          fit: BoxFit.cover,
+                          onError: (exception, stackTrace) {
+                            debugPrint(
+                              'Error loading artist image: ${artist.name} - ${artist.imageUrl}',
+                            );
+                          },
+                        )
+                        : null,
               ),
-              child: artist.imageUrl == null
-                  ? const Icon(Icons.person, color: Colors.white70, size: 40)
-                  : null,
+              child:
+                  artist.imageUrl == null
+                      ? const Icon(
+                        Icons.person,
+                        color: Colors.white70,
+                        size: 40,
+                      )
+                      : null,
             ),
           ),
           const SizedBox(height: 8.0),
@@ -514,7 +571,10 @@ class _ListScreenState extends State<ListScreen> {
         // Collections list
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             itemCount: _collections.length,
             itemBuilder: (context, index) {
               final collection = _collections[index];
@@ -541,11 +601,11 @@ class _ListScreenState extends State<ListScreen> {
           },
         );
       },
-      borderRadius: BorderRadius.circular(8.0),
+      borderRadius: BorderRadius.circular(5),
       child: Container(
         decoration: BoxDecoration(
           color: const Color(0xFF1E1E1E),
-          borderRadius: BorderRadius.circular(8.0),
+          borderRadius: BorderRadius.circular(5),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -560,25 +620,29 @@ class _ListScreenState extends State<ListScreen> {
                   topRight: Radius.circular(8.0),
                 ),
                 // Use image if available, otherwise use gradient
-                image: collection.imageUrl != null
-                    ? DecorationImage(
-                        image: NetworkImage(collection.imageUrl!),
-                        fit: BoxFit.cover,
-                        onError: (exception, stackTrace) {
-                          debugPrint('Error loading collection image: ${collection.title} - ${collection.imageUrl}');
-                        },
-                      )
-                    : null,
-                gradient: collection.imageUrl == null
-                    ? LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          collection.color,
-                          collection.color.withAlpha(150),
-                        ],
-                      )
-                    : null,
+                image:
+                    collection.imageUrl != null
+                        ? DecorationImage(
+                          image: NetworkImage(collection.imageUrl!),
+                          fit: BoxFit.cover,
+                          onError: (exception, stackTrace) {
+                            debugPrint(
+                              'Error loading collection image: ${collection.title} - ${collection.imageUrl}',
+                            );
+                          },
+                        )
+                        : null,
+                gradient:
+                    collection.imageUrl == null
+                        ? LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            collection.color,
+                            collection.color.withAlpha(150),
+                          ],
+                        )
+                        : null,
               ),
             ),
 
@@ -627,8 +691,11 @@ class _ListScreenState extends State<ListScreen> {
                           ),
                           const SizedBox(width: 4),
                           Icon(
-                            collection.isLiked ? Icons.favorite : Icons.favorite_border,
-                            color: collection.isLiked ? Colors.red : Colors.grey,
+                            collection.isLiked
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color:
+                                collection.isLiked ? Colors.red : Colors.grey,
                             size: 14,
                           ),
                         ],

@@ -7,7 +7,9 @@ class HelpSupportScreen extends StatelessWidget {
   const HelpSupportScreen({super.key});
 
   Future<void> _launchWhatsApp() async {
-    final Uri whatsappUrl = Uri.parse('https://wa.me/+919876543210?text=Hello,%20I%20need%20help%20with%20the%20Christian%20Chords%20app.');
+    final Uri whatsappUrl = Uri.parse(
+      'https://wa.me/+919876543210?text=Hello,%20I%20need%20help%20with%20the%20Christian%20Chords%20app.',
+    );
 
     try {
       if (await canLaunchUrl(whatsappUrl)) {
@@ -21,7 +23,9 @@ class HelpSupportScreen extends StatelessWidget {
   }
 
   Future<void> _launchEmail() async {
-    final Uri emailUrl = Uri.parse('mailto:support@christianchords.com?subject=App%20Support%20Request&body=Hello,%20I%20need%20help%20with%20the%20Christian%20Chords%20app.');
+    final Uri emailUrl = Uri.parse(
+      'mailto:support@christianchords.com?subject=App%20Support%20Request&body=Hello,%20I%20need%20help%20with%20the%20Christian%20Chords%20app.',
+    );
 
     try {
       if (await canLaunchUrl(emailUrl)) {
@@ -37,10 +41,8 @@ class HelpSupportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      appBar: const InnerScreenAppBar(
-        title: 'Help & Support',
-      ),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: const InnerScreenAppBar(title: 'Help & Support'),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -59,10 +61,7 @@ class HelpSupportScreen extends StatelessWidget {
               const SizedBox(height: 8),
               const Text(
                 'Get in touch with our support team for any questions or issues.',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 16,
-                ),
+                style: TextStyle(color: Colors.grey, fontSize: 16),
               ),
               const SizedBox(height: 32),
 
@@ -71,7 +70,8 @@ class HelpSupportScreen extends StatelessWidget {
                 context,
                 icon: Icons.message,
                 title: 'WhatsApp Support',
-                description: 'Chat with our support team directly via WhatsApp for quick assistance.',
+                description:
+                    'Chat with our support team directly via WhatsApp for quick assistance.',
                 buttonText: 'Chat Now',
                 iconColor: const Color(0xFF25D366),
                 onTap: _launchWhatsApp,
@@ -84,7 +84,8 @@ class HelpSupportScreen extends StatelessWidget {
                 context,
                 icon: Icons.email,
                 title: 'Email Support',
-                description: 'Send us an email with your query and we\'ll get back to you within 24 hours.',
+                description:
+                    'Send us an email with your query and we\'ll get back to you within 24 hours.',
                 buttonText: 'Send Email',
                 iconColor: const Color(0xFF4285F4),
                 onTap: _launchEmail,
@@ -106,25 +107,29 @@ class HelpSupportScreen extends StatelessWidget {
               _buildFaqItem(
                 context,
                 question: 'How do I create a setlist?',
-                answer: 'To create a setlist, go to the Setlist tab, tap on the "+" button, enter a name for your setlist, and tap "Create".',
+                answer:
+                    'To create a setlist, go to the Setlist tab, tap on the "+" button, enter a name for your setlist, and tap "Create".',
               ),
 
               _buildFaqItem(
                 context,
                 question: 'How do I transpose a song?',
-                answer: 'On the song detail screen, use the transpose controls at the bottom to change the key of the song.',
+                answer:
+                    'On the song detail screen, use the transpose controls at the bottom to change the key of the song.',
               ),
 
               _buildFaqItem(
                 context,
                 question: 'Can I use the app offline?',
-                answer: 'Yes, once you\'ve viewed a song, it will be cached for offline use. Your setlists and liked songs will also be available offline.',
+                answer:
+                    'Yes, once you\'ve viewed a song, it will be cached for offline use. Your setlists and liked songs will also be available offline.',
               ),
 
               _buildFaqItem(
                 context,
                 question: 'How do I report an issue with a song?',
-                answer: 'On the song detail screen, tap the menu icon and select "Report Issue" to send feedback about any problems with the song.',
+                answer:
+                    'On the song detail screen, tap the menu icon and select "Report Issue" to send feedback about any problems with the song.',
               ),
 
               const SizedBox(height: 32),
@@ -134,7 +139,7 @@ class HelpSupportScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E1E1E),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(5),
                 ),
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,10 +155,7 @@ class HelpSupportScreen extends StatelessWidget {
                     SizedBox(height: 8),
                     Text(
                       'Monday - Friday: 9:00 AM - 6:00 PM IST\nSaturday: 10:00 AM - 2:00 PM IST\nSunday: Closed',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                   ],
                 ),
@@ -180,7 +182,7 @@ class HelpSupportScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,13 +193,9 @@ class HelpSupportScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: iconColor.withAlpha(26), // 0.1 * 255 ≈ 26
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(5),
                 ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: 28,
-                ),
+                child: Icon(icon, color: iconColor, size: 28),
               ),
               const SizedBox(width: 16),
               Text(
@@ -213,10 +211,7 @@ class HelpSupportScreen extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             description,
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: Colors.grey, fontSize: 14),
           ),
           const SizedBox(height: 16),
           SizedBox(
@@ -228,7 +223,7 @@ class HelpSupportScreen extends StatelessWidget {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(5),
                 ),
               ),
               child: Text(buttonText),
@@ -253,17 +248,14 @@ class HelpSupportScreen extends StatelessWidget {
           fontWeight: FontWeight.w500,
         ),
       ),
-      iconColor: AppTheme.primaryColor,
+      iconColor: AppTheme.primary,
       collapsedIconColor: Colors.grey,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: Text(
             answer,
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: Colors.grey, fontSize: 14),
           ),
         ),
       ],

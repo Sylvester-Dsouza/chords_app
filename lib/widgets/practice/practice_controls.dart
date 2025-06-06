@@ -129,7 +129,7 @@ class _PracticeControlsState extends State<PracticeControls> {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.grey[800],
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                     child: Text(
                       '♩ = ${widget.metronomeService.bpm}',
@@ -164,7 +164,7 @@ class _PracticeControlsState extends State<PracticeControls> {
                         onChanged: (value) {
                           widget.metronomeService.useCountIn = value;
                         },
-                        activeColor: AppTheme.primaryColor,
+                        activeColor: AppTheme.primary,
                         inactiveThumbColor: Colors.grey[600],
                         inactiveTrackColor: Colors.grey[800],
                       ),
@@ -194,12 +194,12 @@ class _PracticeControlsState extends State<PracticeControls> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: isPrimary 
-              ? AppTheme.primaryColor
+              ? AppTheme.primary
               : isActive 
-                  ? AppTheme.primaryColor.withValues(alpha: 0.3)
+                  ? AppTheme.primary.withValues(alpha: 0.3)
                   : Colors.grey[800],
           border: isActive && !isPrimary
-              ? Border.all(color: AppTheme.primaryColor, width: 2)
+              ? Border.all(color: AppTheme.primary, width: 2)
               : null,
         ),
         child: IconButton(
@@ -232,7 +232,7 @@ class _PracticeControlsState extends State<PracticeControls> {
             Text(
               '${(_tempoPercentage * 100).round()}%',
               style: TextStyle(
-                color: AppTheme.primaryColor,
+                color: AppTheme.primary,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 fontFamily: AppTheme.primaryFontFamily,
@@ -259,10 +259,10 @@ class _PracticeControlsState extends State<PracticeControls> {
             Expanded(
               child: SliderTheme(
                 data: SliderTheme.of(context).copyWith(
-                  activeTrackColor: AppTheme.primaryColor,
+                  activeTrackColor: AppTheme.primary,
                   inactiveTrackColor: Colors.grey[700],
-                  thumbColor: AppTheme.primaryColor,
-                  overlayColor: AppTheme.primaryColor.withValues(alpha: 0.2),
+                  thumbColor: AppTheme.primary,
+                  overlayColor: AppTheme.primary.withValues(alpha: 0.2),
                   trackHeight: 4,
                   thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
                 ),
@@ -320,8 +320,8 @@ class _PracticeControlsState extends State<PracticeControls> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryColor : Colors.grey[800],
-          borderRadius: BorderRadius.circular(16),
+          color: isSelected ? AppTheme.primary : Colors.grey[800],
+          borderRadius: BorderRadius.circular(5),
           border: isSelected ? null : Border.all(color: Colors.grey[600]!),
         ),
         child: Text(

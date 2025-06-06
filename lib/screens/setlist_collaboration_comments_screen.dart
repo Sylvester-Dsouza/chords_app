@@ -203,7 +203,7 @@ class _SetlistCollaborationCommentsScreenState extends State<SetlistCollaboratio
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: const Color(0xFFC19FFF).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                   child: Text(
                     'SHARED',
@@ -350,7 +350,7 @@ class _SetlistCollaborationCommentsScreenState extends State<SetlistCollaboratio
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(5),
         border: Border.all(
           color: const Color(0xFF333333),
           width: 1,
@@ -368,7 +368,7 @@ class _SetlistCollaborationCommentsScreenState extends State<SetlistCollaboratio
                 height: 32,
                 decoration: BoxDecoration(
                   color: const Color(0xFFC19FFF).withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(5),
                 ),
                 child: Icon(
                   Icons.person,
