@@ -196,7 +196,7 @@ class _VocalWarmupsContentState extends State<_VocalWarmupsContent> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: errorColor.withOpacity(0.1),
+                color: errorColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(5),
               ),
               child: Icon(
@@ -398,7 +398,8 @@ class _VocalCategoryCard extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => VocalWarmupCategoryDetailScreen(category: category),
+        builder:
+            (context) => VocalWarmupCategoryDetailScreen(category: category),
       ),
     );
   }

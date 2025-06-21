@@ -58,8 +58,90 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
       final instrument = GuitarChordLibrary.instrument(InstrumentType.guitar);
 
       // Try to get chord positions with the original root note first
-      debugPrint('Loading chord data for: $rootNote${chordType ?? 'major'} (original: ${widget.chordName})');
+      debugPrint('🎸 Loading chord data for: $rootNote${chordType ?? 'major'} (original: ${widget.chordName})');
+      debugPrint('🎸 Parsed chord parts: rootNote=$rootNote, chordType=$chordType');
+
+      // Special debug for Cadd9
+      if (widget.chordName.toLowerCase() == 'cadd9') {
+        debugPrint('🔍 DEBUGGING CADD9 SPECIFICALLY:');
+        debugPrint('   - Root note: "$rootNote"');
+        debugPrint('   - Chord type: "$chordType"');
+
+        // Test direct library call
+        final testPositions = instrument.getChordPositions('C', 'add9');
+        debugPrint('   - Direct C+add9 call: ${testPositions?.length ?? 0} positions');
+        if (testPositions != null && testPositions.isNotEmpty) {
+          debugPrint('   - First position: ${testPositions.first.frets}');
+        }
+      }
+
       var chordPositions = instrument.getChordPositions(rootNote, chordType ?? 'major');
+
+      // If chord not found, try comprehensive fallbacks
+      if (chordPositions == null || chordPositions.isEmpty) {
+        debugPrint('🚨 Chord not found, trying fallbacks for: ${widget.chordName}');
+        debugPrint('🚨 Original request: $rootNote + $chordType');
+
+        // Special handling for add9 chords - they might not exist in library
+        if (chordType == 'add9') {
+          debugPrint('🎸 add9 chord not found, trying alternatives...');
+
+          // Try major9 as fallback for add9
+          chordPositions = instrument.getChordPositions(rootNote, 'maj9');
+          if (chordPositions != null && chordPositions.isNotEmpty) {
+            debugPrint('✅ Using maj9 as fallback for add9: ${chordPositions.length} positions found');
+          } else {
+            // Try 9 as fallback
+            chordPositions = instrument.getChordPositions(rootNote, '9');
+            if (chordPositions != null && chordPositions.isNotEmpty) {
+              debugPrint('✅ Using 9 as fallback for add9: ${chordPositions.length} positions found');
+            } else {
+              // Try sus2 as it has similar sound
+              chordPositions = instrument.getChordPositions(rootNote, 'sus2');
+              if (chordPositions != null && chordPositions.isNotEmpty) {
+                debugPrint('✅ Using sus2 as fallback for add9: ${chordPositions.length} positions found');
+              }
+            }
+          }
+        }
+
+        // Handle slash chords - try the main chord without bass note
+        if (chordParts['isSlashChord'] == 'true') {
+          final mainChord = chordParts['mainChord'];
+          final mainChordParts = _parseChordName(mainChord!);
+          final mainRootNote = mainChordParts['rootNote'];
+          final mainChordType = mainChordParts['chordType'];
+
+          if (mainRootNote != null && mainChordType != null) {
+            chordPositions = instrument.getChordPositions(mainRootNote, mainChordType);
+            debugPrint('Trying main chord fallback for slash chord: $mainChord -> ${chordPositions?.length ?? 0} positions found');
+          }
+        }
+
+        // Try sus -> sus4 fallback
+        if ((chordPositions == null || chordPositions.isEmpty) && chordType == 'sus') {
+          chordPositions = instrument.getChordPositions(rootNote, 'sus4');
+          debugPrint('Trying sus4 fallback: ${chordPositions?.length ?? 0} positions found');
+        }
+
+        // Try removing complex suffixes and default to major
+        if ((chordPositions == null || chordPositions.isEmpty) && chordType != 'major') {
+          chordPositions = instrument.getChordPositions(rootNote, 'major');
+          debugPrint('Trying major fallback: ${chordPositions?.length ?? 0} positions found');
+        }
+
+        // Try minor fallback for complex minor chords
+        if ((chordPositions == null || chordPositions.isEmpty) && chordType?.contains('m') == true) {
+          chordPositions = instrument.getChordPositions(rootNote, 'minor');
+          debugPrint('Trying minor fallback: ${chordPositions?.length ?? 0} positions found');
+        }
+
+        // Try 7th fallback for complex 7th chords
+        if ((chordPositions == null || chordPositions.isEmpty) && chordType?.contains('7') == true) {
+          chordPositions = instrument.getChordPositions(rootNote, '7');
+          debugPrint('Trying 7th fallback: ${chordPositions?.length ?? 0} positions found');
+        }
+      }
 
       // If no positions found and we have an enharmonic equivalent, try that
       if ((chordPositions == null || chordPositions.isEmpty) && enharmonicEquivalent != null) {
@@ -76,7 +158,14 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
       if (chordPositions == null || chordPositions.isEmpty) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'No chord data found for ${widget.chordName}${enharmonicEquivalent != null ? ' or $enharmonicEquivalent' : ''}';
+          // Provide helpful error message for slash chords
+          if (chordParts['isSlashChord'] == 'true') {
+            final mainChord = chordParts['mainChord'];
+            final bassNote = chordParts['bassNote'];
+            _errorMessage = 'Slash chord "$mainChord/$bassNote" not available.\n\nNote: Play $mainChord with $bassNote in the bass.';
+          } else {
+            _errorMessage = 'No chord data found for ${widget.chordName}${enharmonicEquivalent != null ? ' or $enharmonicEquivalent' : ''}.\n\nTry: ${widget.chordName}maj, ${widget.chordName}m, ${widget.chordName}7';
+          }
         });
         return;
       }
@@ -93,6 +182,13 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
         });
       }
 
+      // Debug the final chord variations being displayed
+      debugPrint('🎸 Final chord variations for ${widget.chordName}: ${variations.length} variations');
+      for (int i = 0; i < variations.length; i++) {
+        final variation = variations[i];
+        debugPrint('   Variation $i: baseFret=${variation['baseFret']}, frets=${variation['frets']}, fingers=${variation['fingers']}');
+      }
+
       setState(() {
         _chordVariations = variations;
         _isLoading = false;
@@ -107,6 +203,37 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
 
   // Helper method to parse chord name into root note and chord type
   Map<String, String?> _parseChordName(String chordName) {
+    // Handle slash chords (e.g., C/E, Am/C, G7/B, Ab/C)
+    if (chordName.contains('/')) {
+      final parts = chordName.split('/');
+      if (parts.length == 2) {
+        final mainChord = parts[0].trim();
+        final bassNote = parts[1].trim();
+
+        debugPrint('🎸 Parsing slash chord: $mainChord over $bassNote');
+
+        // For now, we'll try to find the main chord and ignore the bass note
+        // since the guitar_chord_library has limited slash chord support
+        final mainChordParts = _parseChordName(mainChord);
+
+        // Check if the library has this specific slash chord
+        final slashChordSuffix = '/$bassNote';
+        final rootNote = mainChordParts['rootNote'];
+
+        if (rootNote != null) {
+          // Try to find if this slash chord exists in the library
+          return {
+            'rootNote': rootNote,
+            'chordType': (mainChordParts['chordType'] ?? 'major') + slashChordSuffix,
+            'enharmonicEquivalent': mainChordParts['enharmonicEquivalent'],
+            'isSlashChord': 'true',
+            'bassNote': bassNote,
+            'mainChord': mainChord,
+          };
+        }
+      }
+    }
+
     // Enharmonic equivalents mapping - ensures both sharp and flat notations work
     final enharmonicMap = {
       // Flats to sharps (library might prefer sharps)
@@ -123,31 +250,156 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
       'A#': 'Bb',
     };
 
-    // Common chord types and their mappings
+    // Complete chord types mapping based on guitar_chord_library dataset
     final chordTypeMap = {
+      // Basic triads
       '': 'major',
       'maj': 'major',
       'min': 'minor',
       'm': 'minor',
-      '7': 'dominant7',
-      'maj7': 'major7',
-      'm7': 'minor7',
-      'dim': 'diminished',
-      'aug': 'augmented',
+      'dim': 'dim',
+      'aug': 'aug',
+
+      // Suspended chords
+      'sus': 'sus4', // Default sus to sus4
       'sus2': 'sus2',
       'sus4': 'sus4',
-      '6': 'major6',
-      'm6': 'minor6',
-      '9': 'dominant9',
-      'maj9': 'major9',
-      'm9': 'minor9',
+      'sus2sus4': 'sus2sus4',
+
+      // Seventh chords
+      '7': '7',
+      'maj7': 'maj7',
+      'm7': 'm7',
+      'dim7': 'dim7',
+      'aug7': 'aug7',
+      '7b5': '7b5',
+      '7sus4': '7sus4',
+      'm7b5': 'm7b5',
+      'mmaj7': 'mmaj7',
+      'mmaj7b5': 'mmaj7b5',
+
+      // Ninth chords
+      '9': '9',
+      'maj9': 'maj9',
+      'm9': 'm9',
+      '9b5': '9b5',
+      'aug9': 'aug9',
+      '7b9': '7b9',
+      '7#9': '7#9',
+      'mmaj9': 'mmaj9',
+
+      // Extended chords
+      '11': '11',
+      '9#11': '9#11',
+      '13': '13',
+      'maj11': 'maj11',
+      'maj13': 'maj13',
+      'm11': 'm11',
+      'mmaj11': 'mmaj11',
+
+      // Sixth chords
+      '6': '6',
+      'm6': 'm6',
+      '69': '69',
+      'm69': 'm69',
+
+      // Add chords
       'add9': 'add9',
-      '5': 'power',
+      'madd9': 'madd9',
+
+      // Power chords
+      '5': '5',
+
+      // Slash chords (bass note inversions) - Based on guitar_chord_library dataset
+      '/E': '/E', // First inversion
+      '/F': '/F', // Bass note F
+      '/G': '/G', // Bass note G
+      '/B': '/B', // Bass note B
+      '/C': '/C', // Bass note C
+      '/D': '/D', // Bass note D
+      '/A': '/A', // Bass note A
+
+      // Altered chords
+      'alt': 'alt',
+      'maj7#5': 'maj7#5',
+
+      // Additional common chord variations
+      'add2': 'add9', // add2 is same as add9
+      'add4': 'sus4', // add4 often treated as sus4
+      '2': 'sus2', // Sometimes written as just "2"
+      '4': 'sus4', // Sometimes written as just "4"
+
+      // Diminished variations
+      'o': 'dim', // Circle symbol alternative
+      'o7': 'dim7', // Circle with 7
+      '°': 'dim', // Degree symbol
+      '°7': 'dim7', // Degree with 7
+
+      // Half-diminished variations
+      'ø': 'm7b5', // Half-diminished symbol
+      'ø7': 'm7b5', // Half-diminished with 7
+      '-7b5': 'm7b5', // Alternative notation
+
+      // Augmented variations
+      '+': 'aug', // Plus symbol
+      '#5': 'aug', // Sharp 5
+      'aug5': 'aug', // Augmented 5
+      '+5': 'aug', // Plus 5
+
+      // Power chord variations
+      'no3': '5', // No third (power chord)
+
+      // Major variations
+      'M': 'major', // Capital M
+      'M7': 'maj7', // Capital M7
+      'Maj7': 'maj7', // Capital Maj7
+      'MA7': 'maj7', // Capital MA7
+      '△': 'maj7', // Triangle symbol
+      '△7': 'maj7', // Triangle with 7
+
+      // Minor variations
+      '-': 'minor', // Dash for minor
+      'mi': 'minor', // Short minor
+
+      // Seventh variations
+      'dom7': '7', // Dominant 7
+      'dominant7': '7', // Full dominant 7
+
+      // Extended chord variations
+      'add11': '11', // Add 11
+      'add13': '13', // Add 13
+      '7add11': '11', // 7 add 11
+      '7add13': '13', // 7 add 13
+
+      // Jazz chord variations
+      '6/9': '69', // Six nine
+      '6add9': '69', // Six add nine
+      'm6/9': 'm69', // Minor six nine
+      'm6add9': 'm69', // Minor six add nine
+
+      // Altered dominant variations
+      '7alt': 'alt', // 7 altered
+      '7#5': 'aug7', // 7 sharp 5
+      '7+5': 'aug7', // 7 plus 5
+      '7b13': '7b5', // 7 flat 13 (enharmonic with b5)
+      '7#11': '7', // 7 sharp 11 (often just played as 7)
+
+      // Complex alterations
+      '7b5b9': '7b9', // Multiple alterations - use simpler version
+      '7#5#9': '7#9', // Multiple alterations - use simpler version
+      '7b5#9': '7#9', // Multiple alterations - use simpler version
+      '7#5b9': '7b9', // Multiple alterations - use simpler version
     };
 
     // Regular expression to match root note and chord type
     final regex = RegExp(r'^([A-G][#b]?)(.*)$');
     final match = regex.firstMatch(chordName);
+
+    debugPrint('🎸 Parsing chord: $chordName');
+    if (match != null) {
+      debugPrint('🎸 Root note: ${match.group(1)}');
+      debugPrint('🎸 Chord suffix: "${match.group(2)}"');
+    }
 
     if (match == null) {
       return {'rootNote': null, 'chordType': null};
@@ -158,6 +410,11 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
 
     // Map the chord type suffix to the library's expected format
     final chordType = chordTypeMap[chordTypeSuffix] ?? 'major';
+
+    debugPrint('🎸 Chord suffix "$chordTypeSuffix" mapped to: "$chordType"');
+    if (chordTypeSuffix.isNotEmpty && !chordTypeMap.containsKey(chordTypeSuffix)) {
+      debugPrint('⚠️ WARNING: Chord suffix "$chordTypeSuffix" not found in mapping, using default "major"');
+    }
 
     // Return both original and enharmonic equivalent for fallback
     return {

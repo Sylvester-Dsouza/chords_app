@@ -17,12 +17,9 @@ class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
   // Animation controllers
   late AnimationController _fadeAnimationController;
-  late AnimationController _pulseAnimationController;
-  late AnimationController _rotateAnimationController;
 
   // Animations
   late Animation<double> _fadeAnimation;
-  late Animation<double> _pulseAnimation;
 
   // Data loading progress
   double _loadingProgress = 0.0;
@@ -49,25 +46,6 @@ class _SplashScreenState extends State<SplashScreen>
       begin: 0.0,
       end: 1.0,
     ).animate(_fadeAnimationController);
-
-    // Set up pulse animation
-    _pulseAnimationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-      reverseDuration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
-      CurvedAnimation(
-        parent: _pulseAnimationController,
-        curve: Curves.easeInOut,
-      ),
-    );
-
-    // Set up rotation animation
-    _rotateAnimationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 10),
-    )..repeat();
 
     // Start fade animation
     _fadeAnimationController.forward();
@@ -199,10 +177,8 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
-    // Dispose all animation controllers
+    // Dispose animation controller
     _fadeAnimationController.dispose();
-    _pulseAnimationController.dispose();
-    _rotateAnimationController.dispose();
     super.dispose();
   }
 
@@ -226,21 +202,12 @@ class _SplashScreenState extends State<SplashScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo image with pulse animation
-                  AnimatedBuilder(
-                    animation: _pulseAnimationController,
-                    builder: (context, child) {
-                      return Transform.scale(
-                        scale: _pulseAnimation.value,
-                        child: child,
-                      );
-                    },
-                    child: Image.asset(
-                      AppLogos.getSplashLogo(),
-                      width: 180,
-                      height: 180,
-                      fit: BoxFit.contain,
-                    ),
+                  // Logo image (static, smaller size)
+                  Image.asset(
+                    AppLogos.getSplashLogo(),
+                    width: 120,
+                    height: 120,
+                    fit: BoxFit.contain,
                   ),
                   const SizedBox(height: 60),
 
@@ -262,8 +229,8 @@ class _SplashScreenState extends State<SplashScreen>
                     child: LinearProgressIndicator(
                       backgroundColor: Colors.transparent,
                       value: _loadingProgress, // Use actual progress value
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Color(0xFFE91E63), // Use a pink accent color
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Theme.of(context).colorScheme.primary, // Use primary color
                       ),
                     ),
                   ),

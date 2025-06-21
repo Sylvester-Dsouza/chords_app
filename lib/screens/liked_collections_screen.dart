@@ -94,76 +94,77 @@ class _LikedCollectionsScreenState extends State<LikedCollectionsScreen> {
     return ListView.builder(
       padding: const EdgeInsets.all(16.0),
       itemCount: 6, // Show 6 skeleton items
-      itemBuilder: (context, index) => Padding(
-        padding: const EdgeInsets.only(bottom: 16.0),
-        child: ShimmerEffect(
-          baseColor: Colors.grey[800]!,
-          highlightColor: Colors.grey[600]!,
-          child: Container(
-            height: 120,
-            decoration: BoxDecoration(
-              color: Colors.grey[700],
-              borderRadius: BorderRadius.circular(5),
-            ),
-            child: Row(
-              children: [
-                // Collection image skeleton
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[600],
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(12),
-                      bottomLeft: Radius.circular(12),
-                    ),
-                  ),
+      itemBuilder:
+          (context, index) => Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: ShimmerEffect(
+              baseColor: Colors.grey[800]!,
+              highlightColor: Colors.grey[600]!,
+              child: Container(
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.grey[700],
+                  borderRadius: BorderRadius.circular(5),
                 ),
-                // Collection info skeleton
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Title skeleton
-                        Container(
-                          width: double.infinity,
-                          height: 18,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[600],
-                            borderRadius: BorderRadius.circular(5),
-                          ),
+                child: Row(
+                  children: [
+                    // Collection image skeleton
+                    Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[600],
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                          bottomLeft: Radius.circular(12),
                         ),
-                        const SizedBox(height: 8),
-                        // Description skeleton
-                        Container(
-                          width: 150,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[600],
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                        ),
-                        const Spacer(),
-                        // Song count skeleton
-                        Container(
-                          width: 80,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[600],
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                    // Collection info skeleton
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Title skeleton
+                            Container(
+                              width: double.infinity,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[600],
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            // Description skeleton
+                            Container(
+                              width: 150,
+                              height: 14,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[600],
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                            ),
+                            const Spacer(),
+                            // Song count skeleton
+                            Container(
+                              width: 80,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[600],
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
     );
   }
 
@@ -209,7 +210,7 @@ class _LikedCollectionsScreenState extends State<LikedCollectionsScreen> {
       padding: const EdgeInsets.all(16.0),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 16/9, // 16:9 aspect ratio for collection items
+        childAspectRatio: 16 / 9, // 16:9 aspect ratio for collection items
         crossAxisSpacing: 16.0,
         mainAxisSpacing: 16.0,
       ),
@@ -240,28 +241,32 @@ class _LikedCollectionsScreenState extends State<LikedCollectionsScreen> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(5),
               color: Colors.grey[800],
-              image: collection.imageUrl != null
-                  ? DecorationImage(
-                      image: NetworkImage(collection.imageUrl!),
-                      fit: BoxFit.cover,
-                      onError: (exception, stackTrace) {
-                        debugPrint('Error loading collection image: ${collection.title} - ${collection.imageUrl}');
-                      },
-                    )
-                  : null,
+              image:
+                  collection.imageUrl != null
+                      ? DecorationImage(
+                        image: NetworkImage(collection.imageUrl!),
+                        fit: BoxFit.contain,
+                        onError: (exception, stackTrace) {
+                          debugPrint(
+                            'Error loading collection image: ${collection.title} - ${collection.imageUrl}',
+                          );
+                        },
+                      )
+                      : null,
             ),
-            child: collection.imageUrl == null
-                ? Center(
-                    child: Text(
-                      collection.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+            child:
+                collection.imageUrl == null
+                    ? Center(
+                      child: Text(
+                        collection.title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                  )
-                : null,
+                    )
+                    : null,
           ),
 
           // Gradient overlay for text visibility
@@ -313,17 +318,10 @@ class _LikedCollectionsScreenState extends State<LikedCollectionsScreen> {
                 children: [
                   Text(
                     "${collection.likeCount}",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                    ),
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
                   ),
                   const SizedBox(width: 2),
-                  const Icon(
-                    Icons.favorite,
-                    color: Colors.red,
-                    size: 14,
-                  ),
+                  const Icon(Icons.favorite, color: Colors.red, size: 14),
                 ],
               ),
             ),

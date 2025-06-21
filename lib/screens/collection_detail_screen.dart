@@ -691,7 +691,9 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         children: [
           // Collection name (moved from image)
           Text(
-            (_collection?.title ?? widget.collectionName).toUpperCase(),
+            (_collection?.title ?? widget.collectionName).isNotEmpty
+                ? '${(_collection?.title ?? widget.collectionName)[0].toUpperCase()}${(_collection?.title ?? widget.collectionName).substring(1).toLowerCase()}'
+                : '',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 24,
@@ -732,7 +734,8 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         title: Text(
           title,
           style: const TextStyle(
-            color: AppTheme.primary,
+            color: Colors.white,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),

@@ -51,7 +51,7 @@ class ArtistService {
           ? 'Forcing refresh of artists from API...'
           : 'No cached artists found, fetching from API...');
 
-      final response = await _apiService.get('/api/artists');
+      final response = await _apiService.get('/artists');
 
       debugPrint('Artist API response data type: ${response.data.runtimeType}');
 
@@ -97,6 +97,8 @@ class ArtistService {
                 name: artist.name,
                 bio: artist.bio,
                 imageUrl: artist.imageUrl,
+                website: artist.website,
+                socialLinks: artist.socialLinks,
                 songCount: _artistSongCounts[artistNameLower]!,
                 isFeatured: artist.isFeatured,
               );
@@ -397,7 +399,7 @@ class ArtistService {
       }
 
       debugPrint('Fetching artist with ID: $id');
-      final response = await _apiService.get('/api/artists/$id');
+      final response = await _apiService.get('/artists/$id');
 
       debugPrint('Artist by ID API response: ${response.toString()}');
       debugPrint('Artist by ID API response data type: ${response.data.runtimeType}');
@@ -468,7 +470,7 @@ class ArtistService {
       }
 
       debugPrint('Searching for artist with name: $name');
-      final response = await _apiService.get('/api/artists', queryParameters: {'search': name});
+      final response = await _apiService.get('/artists', queryParameters: {'search': name});
 
       debugPrint('Artist by name API response: ${response.toString()}');
       debugPrint('Artist by name API response data type: ${response.data.runtimeType}');

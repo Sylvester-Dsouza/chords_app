@@ -1,4 +1,4 @@
-# Banner Images for Christian Chords App
+# Banner Images for Stuthi App
 
 This directory contains the banner images used in the app's home screen auto-sliding banner.
 

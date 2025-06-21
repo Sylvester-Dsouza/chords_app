@@ -137,11 +137,11 @@ class ConnectivityService extends ChangeNotifier {
     }
 
     try {
-      // Try to reach a reliable internet service
+      // Try to reach a reliable internet service with longer timeout
       final response = await http.get(
         Uri.parse('https://www.google.com'),
         headers: {'Cache-Control': 'no-cache'},
-      ).timeout(const Duration(seconds: 5));
+      ).timeout(const Duration(seconds: 10)); // Increased timeout for mobile networks
 
       final hadInternetAccess = _hasInternetAccess;
       _hasInternetAccess = response.statusCode == 200;

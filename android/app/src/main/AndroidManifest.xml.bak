@@ -11,7 +11,7 @@
     <!-- Microphone permission for Guitar Tuner -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
-        android:label="Christian Chords"
+        android:label="Stuthi"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         tools:replace="android:label">

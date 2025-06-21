@@ -20,6 +20,7 @@ class HomeSection {
   final SectionType type;
   final List<dynamic> items;
   final bool isActive;
+  final int? itemCount; // Number of items to display (from admin panel)
 
   HomeSection({
     required this.id,
@@ -27,6 +28,7 @@ class HomeSection {
     required this.type,
     required this.items,
     this.isActive = true,
+    this.itemCount,
   });
 
   factory HomeSection.fromJson(Map<String, dynamic> json) {
@@ -74,6 +76,7 @@ class HomeSection {
       type: type,
       items: items,
       isActive: json['isActive'] ?? true,
+      itemCount: json['itemCount'] as int?,
     );
   }
 
@@ -94,6 +97,7 @@ class HomeSection {
         }
       }).toList(),
       'isActive': isActive,
+      'itemCount': itemCount,
     };
   }
 }

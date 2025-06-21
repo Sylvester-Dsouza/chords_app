@@ -13,7 +13,8 @@ class VocalExercisesScreen extends StatefulWidget {
   State<VocalExercisesScreen> createState() => _VocalExercisesScreenState();
 }
 
-class _VocalExercisesScreenState extends State<VocalExercisesScreen> with TickerProviderStateMixin {
+class _VocalExercisesScreenState extends State<VocalExercisesScreen>
+    with TickerProviderStateMixin {
   // Use service locator instead of creating new instance
   VocalService get _vocalService => serviceLocator.vocalService;
   late AnimationController _fadeController;
@@ -68,7 +69,9 @@ class _VocalExercisesScreenState extends State<VocalExercisesScreen> with Ticker
         child: ListenableBuilder(
           listenable: _vocalService,
           builder: (context, child) {
-            final exerciseCategories = _vocalService.getCategoriesByType(VocalType.exercise);
+            final exerciseCategories = _vocalService.getCategoriesByType(
+              VocalType.exercise,
+            );
 
             if (_vocalService.isLoading) {
               return _buildLoadingState();
@@ -106,8 +109,6 @@ class _VocalExercisesScreenState extends State<VocalExercisesScreen> with Ticker
     );
   }
 
-
-
   Widget _buildLoadingState() {
     return const Center(
       child: CircularProgressIndicator(
@@ -119,7 +120,7 @@ class _VocalExercisesScreenState extends State<VocalExercisesScreen> with Ticker
   Widget _buildErrorState() {
     final theme = Theme.of(context);
     final errorColor = theme.colorScheme.error;
-    
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
@@ -130,7 +131,7 @@ class _VocalExercisesScreenState extends State<VocalExercisesScreen> with Ticker
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: errorColor.withOpacity(0.1),
+                color: errorColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(5),
               ),
               child: Icon(
@@ -162,11 +163,15 @@ class _VocalExercisesScreenState extends State<VocalExercisesScreen> with Ticker
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => _vocalService.fetchCategories(forceRefresh: true),
+                onPressed:
+                    () => _vocalService.fetchCategories(forceRefresh: true),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: theme.colorScheme.primary,
                   foregroundColor: theme.colorScheme.onPrimary,
-                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 14,
+                    horizontal: 24,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(5),
                   ),
@@ -187,7 +192,6 @@ class _VocalExercisesScreenState extends State<VocalExercisesScreen> with Ticker
     );
   }
 
-
   // Categories List Section
   Widget _buildCategoriesGrid(List<VocalCategory> categories) {
     return ListView.separated(
@@ -206,18 +210,18 @@ class _VocalExercisesScreenState extends State<VocalExercisesScreen> with Ticker
     final theme = Theme.of(context);
     final primaryColor = theme.primaryColor;
     final onSurface = theme.colorScheme.onSurface;
-    
+
     return Container(
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(5),
         border: Border.all(
-          color: primaryColor.withOpacity(0.1),
+          color: primaryColor.withValues(alpha: 0.1),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 6,
             offset: const Offset(0, 3),
           ),
@@ -241,8 +245,8 @@ class _VocalExercisesScreenState extends State<VocalExercisesScreen> with Ticker
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        primaryColor.withOpacity(0.8),
-                        primaryColor.withOpacity(0.6),
+                        primaryColor.withValues(alpha: 0.8),
+                        primaryColor.withValues(alpha: 0.6),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(5),
@@ -277,7 +281,9 @@ class _VocalExercisesScreenState extends State<VocalExercisesScreen> with Ticker
                       Text(
                         '${category.itemCount ?? 0} exercises',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.primary.withOpacity(0.8),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.8,
+                          ),
                           fontWeight: FontWeight.w500,
                           fontFamily: AppTheme.primaryFontFamily,
                           fontSize: 16,
@@ -298,7 +304,7 @@ class _VocalExercisesScreenState extends State<VocalExercisesScreen> with Ticker
   Widget _buildEmptyState() {
     final theme = Theme.of(context);
     final primaryColor = theme.primaryColor;
-    
+
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -307,7 +313,7 @@ class _VocalExercisesScreenState extends State<VocalExercisesScreen> with Ticker
             width: 96,
             height: 96,
             decoration: BoxDecoration(
-              color: primaryColor.withOpacity(0.1),
+              color: primaryColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(5),
             ),
             child: Icon(
@@ -348,7 +354,8 @@ class _VocalExercisesScreenState extends State<VocalExercisesScreen> with Ticker
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => VocalExerciseCategoryDetailScreen(category: category),
+        builder:
+            (context) => VocalExerciseCategoryDetailScreen(category: category),
       ),
     );
   }

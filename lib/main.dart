@@ -43,6 +43,7 @@ import 'config/theme.dart';
 import 'providers/user_provider.dart';
 import 'models/song.dart';
 import 'utils/performance_tracker.dart';
+import 'services/image_cache_manager.dart';
 
 // Removed flutter_local_notifications due to compatibility issues
 
@@ -79,11 +80,16 @@ void main() async {
   try {
     debugPrint('🔗 Testing API connection...');
     final isConnected = await ApiService.testApiConnection();
-    debugPrint('API connection test result: ${isConnected ? 'Connected ✅' : 'Failed to connect ❌'}');
+    debugPrint(
+      'API connection test result: ${isConnected ? 'Connected ✅' : 'Failed to connect ❌'}',
+    );
   } catch (e) {
     debugPrint('❌ Error testing API connection: $e');
     // Continue anyway
   }
+
+  // Initialize image cache manager for memory efficiency
+  ImageCacheManager().initialize();
 
   // Initialize UserProvider before running the app
   final userProvider = UserProvider();
@@ -115,10 +121,12 @@ void main() async {
   );
 
   // Complete app startup tracking (non-blocking)
-  PerformanceTracker.completeAppStartup(attributes: {
-    'platform': Platform.operatingSystem,
-    'app_version': AppConstants.appName,
-  }).catchError((e) {
+  PerformanceTracker.completeAppStartup(
+    attributes: {
+      'platform': Platform.operatingSystem,
+      'app_version': AppConstants.appName,
+    },
+  ).catchError((e) {
     debugPrint('⚠️ Performance tracking completion error: $e');
   });
 
@@ -128,16 +136,21 @@ void main() async {
       serviceLocator.performanceService.printStatus();
 
       // Test a simple trace to verify it's working
-      PerformanceTracker.track('test_trace', () async {
-        await Future.delayed(const Duration(milliseconds: 100));
-        debugPrint('🧪 Test trace completed - this should appear in Firebase Performance');
-      }, attributes: {
-        'test_type': 'startup_verification',
-        'platform': Platform.operatingSystem,
-      }).catchError((e) {
+      PerformanceTracker.track(
+        'test_trace',
+        () async {
+          await Future.delayed(const Duration(milliseconds: 100));
+          debugPrint(
+            '🧪 Test trace completed - this should appear in Firebase Performance',
+          );
+        },
+        attributes: {
+          'test_type': 'startup_verification',
+          'platform': Platform.operatingSystem,
+        },
+      ).catchError((e) {
         debugPrint('⚠️ Test trace failed: $e');
       });
-
     } catch (e) {
       debugPrint('⚠️ Could not print performance status: $e');
     }
@@ -181,9 +194,14 @@ class _MyAppState extends State<MyApp> {
       case '/vocals':
       case '/profile':
         // For main navigation tabs, use the MainNavigation widget
-        final navigationProvider = Provider.of<NavigationProvider>(navigatorKey.currentContext!, listen: false);
+        final navigationProvider = Provider.of<NavigationProvider>(
+          navigatorKey.currentContext!,
+          listen: false,
+        );
         // Set the correct index based on the route
-        navigationProvider.updateIndex(navigationProvider.getIndexForRoute(routeName!));
+        navigationProvider.updateIndex(
+          navigationProvider.getIndexForRoute(routeName!),
+        );
         return const MainNavigation();
       case '/onboarding':
         return const OnboardingScreen();
@@ -212,149 +230,127 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        title: 'Christian Chords',
-        debugShowCheckedModeBanner: false,
-        navigatorKey: navigatorKey,
-        home: const SplashScreen(),
-        // Add a navigation observer to handle back button presses
-        navigatorObservers: [NavigatorObserver()],
-        routes: {
-          '/home': (context) => const MainNavigation(),
-          '/onboarding': (context) => const OnboardingScreen(),
-          '/login': (context) => const LoginScreen(),
-          '/register': (context) => const RegisterScreen(),
-          '/forgot-password': (context) => const ForgotPasswordScreen(),
-          '/setlist': (context) => const MainNavigation(),
-          '/search': (context) => const MainNavigation(),
-          '/vocals': (context) => const MainNavigation(),
-          '/profile': (context) => const MainNavigation(),
-          '/song_request': (context) => const SongRequestScreen(),
-          '/comments': (context) => CommentsScreen(song: ModalRoute.of(context)!.settings.arguments as Song),
-          '/about_us': (context) => const AboutUsScreen(),
-          '/notifications': (context) => const NotificationScreen(),
-          '/vocal-warmups': (context) => const VocalWarmupsScreen(),
-          '/vocal-exercises': (context) => const VocalExercisesScreen(),
-          '/vocal-courses': (context) => const VocalCoursesScreen(),
-        },
-        onGenerateRoute: (settings) {
-          // Import our custom page transitions
-          if (settings.name == '/setlist_detail') {
-            final args = settings.arguments as Map<String, dynamic>;
-            return FadeSlidePageRoute(
-              page: SetlistDetailScreen(
-                setlistId: args['setlistId'] ?? '',
-                setlistName: args['setlistName'],
-              ),
-            );
-          } else if (settings.name == '/setlist_presentation') {
-            final args = settings.arguments as Map<String, dynamic>;
-            return FadeSlidePageRoute(
-              page: SetlistPresentationScreen(
-                setlistName: args['setlistName'] ?? 'Setlist',
-                songs: List<Map<String, dynamic>>.from(args['songs'] ?? []),
-              ),
-            );
-          } else if (settings.name == '/artist_detail') {
-            final args = settings.arguments as Map<String, dynamic>;
-            return FadeSlidePageRoute(
-              page: ArtistDetailScreen(
-                artistName: args['artistName'],
-              ),
-            );
-          } else if (settings.name == '/collection_detail') {
-            final args = settings.arguments as Map<String, dynamic>;
-            return FadeSlidePageRoute(
-              page: CollectionDetailScreen(
-                collectionName: args['collectionName'],
-                collectionId: args['collectionId'],
-              ),
-            );
+      title: 'Stuthi',
+      debugShowCheckedModeBanner: false,
+      navigatorKey: navigatorKey,
+      home: const SplashScreen(),
+      // Add a navigation observer to handle back button presses
+      navigatorObservers: [NavigatorObserver()],
+      routes: {
+        '/home': (context) => const MainNavigation(),
+        '/onboarding': (context) => const OnboardingScreen(),
+        '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
+        '/forgot-password': (context) => const ForgotPasswordScreen(),
+        '/setlist': (context) => const MainNavigation(),
+        '/search': (context) => const MainNavigation(),
+        '/vocals': (context) => const MainNavigation(),
+        '/profile': (context) => const MainNavigation(),
+        '/song_request': (context) => const SongRequestScreen(),
+        '/comments':
+            (context) => CommentsScreen(
+              song: ModalRoute.of(context)!.settings.arguments as Song,
+            ),
+        '/about_us': (context) => const AboutUsScreen(),
+        '/notifications': (context) => const NotificationScreen(),
+        '/vocal-warmups': (context) => const VocalWarmupsScreen(),
+        '/vocal-exercises': (context) => const VocalExercisesScreen(),
+        '/vocal-courses': (context) => const VocalCoursesScreen(),
+      },
+      onGenerateRoute: (settings) {
+        // Import our custom page transitions
+        if (settings.name == '/setlist_detail') {
+          final args = settings.arguments as Map<String, dynamic>;
+          return FadeSlidePageRoute(
+            page: SetlistDetailScreen(
+              setlistId: args['setlistId'] ?? '',
+              setlistName: args['setlistName'],
+            ),
+          );
+        } else if (settings.name == '/setlist_presentation') {
+          final args = settings.arguments as Map<String, dynamic>;
+          return FadeSlidePageRoute(
+            page: SetlistPresentationScreen(
+              setlistName: args['setlistName'] ?? 'Setlist',
+              songs: List<Map<String, dynamic>>.from(args['songs'] ?? []),
+            ),
+          );
+        } else if (settings.name == '/artist_detail') {
+          final args = settings.arguments as Map<String, dynamic>;
+          return FadeSlidePageRoute(
+            page: ArtistDetailScreen(artistName: args['artistName']),
+          );
+        } else if (settings.name == '/collection_detail') {
+          final args = settings.arguments as Map<String, dynamic>;
+          return FadeSlidePageRoute(
+            page: CollectionDetailScreen(
+              collectionName: args['collectionName'],
+              collectionId: args['collectionId'],
+            ),
+          );
           // Tools routes removed
-          } else if (settings.name == '/help-support') {
-            return FadeSlidePageRoute(
-              page: const HelpSupportScreen(),
-            );
-          } else if (settings.name == '/privacy-policy') {
-            return FadeSlidePageRoute(
-              page: const PrivacyPolicyScreen(),
-            );
-          } else if (settings.name == '/personal-details') {
-            return FadeSlidePageRoute(
-              page: const PersonalDetailsScreen(),
-            );
-          } else if (settings.name == '/rate-app') {
-            return FadeSlidePageRoute(
-              page: const RateAppScreen(),
-            );
-          } else if (settings.name == '/support') {
-            return FadeSlidePageRoute(
-              page: const SupportScreen(),
-            );
-          } else if (settings.name == '/liked-collections') {
-            return FadeSlidePageRoute(
-              page: const LikedCollectionsScreen(),
-            );
-          } else if (settings.name == '/join-setlist') {
-            final args = settings.arguments as Map<String, dynamic>?;
-            return FadeSlidePageRoute(
-              page: JoinSetlistScreen(
-                shareCode: args?['shareCode'],
-              ),
-            );
-          } else if (settings.name == '/qr-scanner') {
-            return FadeSlidePageRoute(
-              page: const QRScannerScreen(),
-            );
-          } else if (settings.name == '/vocal-warmups') {
-            return FadeSlidePageRoute(
-              page: const VocalWarmupsScreen(),
-            );
-          } else if (settings.name == '/vocal-exercises') {
-            return FadeSlidePageRoute(
-              page: const VocalExercisesScreen(),
-            );
-          } else if (settings.name == '/course_detail') {
-            final args = settings.arguments as Map<String, dynamic>;
-            return FadeSlidePageRoute(
-              page: CourseDetailScreen(
-                courseId: args['courseId'],
-              ),
-            );
+        } else if (settings.name == '/help-support') {
+          return FadeSlidePageRoute(page: const HelpSupportScreen());
+        } else if (settings.name == '/privacy-policy') {
+          return FadeSlidePageRoute(page: const PrivacyPolicyScreen());
+        } else if (settings.name == '/personal-details') {
+          return FadeSlidePageRoute(page: const PersonalDetailsScreen());
+        } else if (settings.name == '/rate-app') {
+          return FadeSlidePageRoute(page: const RateAppScreen());
+        } else if (settings.name == '/support') {
+          return FadeSlidePageRoute(page: const SupportScreen());
+        } else if (settings.name == '/liked-collections') {
+          return FadeSlidePageRoute(page: const LikedCollectionsScreen());
+        } else if (settings.name == '/join-setlist') {
+          final args = settings.arguments as Map<String, dynamic>?;
+          return FadeSlidePageRoute(
+            page: JoinSetlistScreen(shareCode: args?['shareCode']),
+          );
+        } else if (settings.name == '/qr-scanner') {
+          return FadeSlidePageRoute(page: const QRScannerScreen());
+        } else if (settings.name == '/vocal-warmups') {
+          return FadeSlidePageRoute(page: const VocalWarmupsScreen());
+        } else if (settings.name == '/vocal-exercises') {
+          return FadeSlidePageRoute(page: const VocalExercisesScreen());
+        } else if (settings.name == '/course_detail') {
+          final args = settings.arguments as Map<String, dynamic>;
+          return FadeSlidePageRoute(
+            page: CourseDetailScreen(courseId: args['courseId']),
+          );
           // Premium content screen removed to fix crashing issues
           // } else if (settings.name == '/premium-content') {
           //   return FadeSlidePageRoute(
           //     page: const PremiumContentScreen(),
           //   );
-          } else if (settings.name == '/song_detail') {
-            final args = settings.arguments;
-            if (args is Song) {
-              // If a Song object is passed directly
-              return FadeSlidePageRoute(
-                page: SongDetailScreen(song: args),
-              );
-            } else if (args is Map<String, dynamic>) {
-              // If a map with songId is passed
-              return FadeSlidePageRoute(
-                page: SongDetailScreen(songId: args['songId']),
-              );
-            } else {
-              // Fallback
-              return FadeSlidePageRoute(
-                page: const SongDetailScreen(),
-              );
-            }
+        } else if (settings.name == '/song_detail') {
+          final args = settings.arguments;
+          if (args is Song) {
+            // If a Song object is passed directly
+            return FadeSlidePageRoute(page: SongDetailScreen(song: args));
+          } else if (args is Map<String, dynamic>) {
+            // If a map with songId is passed
+            return FadeSlidePageRoute(
+              page: SongDetailScreen(songId: args['songId']),
+            );
+          } else {
+            // Fallback
+            return FadeSlidePageRoute(page: const SongDetailScreen());
           }
+        }
 
-          // For standard named routes, also use the transition
-          final Widget? page = _getPageForRouteName(settings.name, settings.arguments);
-          if (page != null) {
-            return FadeSlidePageRoute(page: page);
-          }
+        // For standard named routes, also use the transition
+        final Widget? page = _getPageForRouteName(
+          settings.name,
+          settings.arguments,
+        );
+        if (page != null) {
+          return FadeSlidePageRoute(page: page);
+        }
 
-          return null;
-        },
-        // Use our custom theme from AppTheme class
-        theme: AppTheme.getTheme(),
+        return null;
+      },
+      // Use our custom theme from AppTheme class
+      theme: AppTheme.getTheme(),
     );
   }
 }

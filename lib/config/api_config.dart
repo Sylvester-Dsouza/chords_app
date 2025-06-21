@@ -8,7 +8,7 @@ class ApiConfig {
   /// For physical devices, use your computer's IP address
   static String get baseUrl {
     if (kIsWeb) {
-      return 'http://192.168.1.3:3001/api';
+      return 'http://192.168.1.6:3001/api';
     } else if (const bool.fromEnvironment('dart.vm.product')) {
       // Release mode - use production server
       return 'https://chords-api-jl8n.onrender.com/api';
@@ -16,10 +16,10 @@ class ApiConfig {
       // Debug mode
       if (Platform.isAndroid) {
         // For Android emulator and devices, use the actual IP address
-        return 'http://192.168.1.3:3001/api';
+        return 'http://192.168.1.6:3001/api';
       } else {
         // For iOS simulator or physical devices
-        return 'http://192.168.1.3.155:3001/api';
+        return 'http://192.168.1.6:3001/api';
       }
     }
   }

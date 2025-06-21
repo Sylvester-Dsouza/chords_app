@@ -14,6 +14,6 @@
  
 -    <application
 +    <application tools:replace="android:label"
-         android:label="Christian Chords"
+         android:label="Stuthi"
          android:name="${applicationName}"
          android:icon="@mipmap/ic_launcher">

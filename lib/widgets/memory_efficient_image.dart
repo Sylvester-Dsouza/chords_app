@@ -52,8 +52,10 @@ class MemoryEfficientImage extends StatelessWidget {
       // Aggressive memory management options
       memCacheWidth: _calculateMemCacheSize(width),
       memCacheHeight: _calculateMemCacheSize(height),
-      maxWidthDiskCache: 400, // Reduced disk cache size for memory efficiency
-      maxHeightDiskCache: 400, // Reduced disk cache size for memory efficiency
+      maxWidthDiskCache: 300, // Further reduced for memory efficiency
+      maxHeightDiskCache: 300, // Further reduced for memory efficiency
+      // Add cache key for better memory management
+      cacheKey: _generateCacheKey(imageUrl!, width, height),
     );
 
     // Apply border radius if needed
@@ -112,13 +114,20 @@ class MemoryEfficientImage extends StatelessWidget {
 
     // Handle infinity values
     if (size.isInfinite || size.isNaN) {
-      return 300; // Reduced default size for memory efficiency
+      return 200; // Further reduced default size for memory efficiency
     }
 
     // Get device pixel ratio (default to 2.0 if not available)
     final pixelRatio = WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
 
-    // Calculate size based on pixel ratio, with a maximum of 400 pixels (reduced from 1000)
-    return (size * pixelRatio).round().clamp(0, 400);
+    // Calculate size based on pixel ratio, with a maximum of 300 pixels (further reduced)
+    return (size * pixelRatio).round().clamp(0, 300);
+  }
+
+  // Generate cache key for better memory management
+  String _generateCacheKey(String url, double? width, double? height) {
+    final w = width?.round() ?? 0;
+    final h = height?.round() ?? 0;
+    return '${url}_${w}x$h';
   }
 }

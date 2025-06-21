@@ -85,34 +85,34 @@ class AppTheme {
       textTheme: GoogleFonts.interTextTheme(
         const TextTheme(
           displayLarge: TextStyle(
-            fontSize: 32.0,
+            fontSize: 28.0, // Reduced from 32.0
             fontWeight: FontWeight.bold,
             color: text,
           ),
           displayMedium: TextStyle(
-            fontSize: 28.0,
+            fontSize: 24.0, // Reduced from 28.0
             fontWeight: FontWeight.bold,
             color: text,
           ),
           displaySmall: TextStyle(
-            fontSize: 24.0,
+            fontSize: 20.0, // Reduced from 24.0
             fontWeight: FontWeight.bold,
             color: text,
           ),
           headlineMedium: TextStyle(
-            fontSize: 20.0,
+            fontSize: 18.0, // Reduced from 20.0
             fontWeight: FontWeight.w600,
             color: text,
           ),
           titleLarge: TextStyle(
-            fontSize: 18.0,
+            fontSize: 16.0, // Reduced from 18.0
             fontWeight: FontWeight.w500,
             color: text,
           ),
-          bodyLarge: TextStyle(fontSize: 16.0, color: text),
-          bodyMedium: TextStyle(fontSize: 14.0, color: text),
+          bodyLarge: TextStyle(fontSize: 14.0, color: text), // Reduced from 16.0
+          bodyMedium: TextStyle(fontSize: 13.0, color: text), // Reduced from 14.0
           labelLarge: TextStyle(
-            fontSize: 14.0,
+            fontSize: 13.0, // Reduced from 14.0
             fontWeight: FontWeight.w500,
             color: text,
           ),
@@ -150,7 +150,7 @@ class AppTheme {
         surfaceTintColor:
             Colors.transparent, // Prevents blue tinting from primary color
         titleTextStyle: GoogleFonts.inter(
-          fontSize: 18.0,
+          fontSize: 16.0, // Reduced from 18.0
           fontWeight: FontWeight.w600,
           color: text,
         ),
@@ -164,7 +164,7 @@ class AppTheme {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
           textStyle: GoogleFonts.inter(
-            fontSize: 14.0,
+            fontSize: 13.0, // Reduced from 14.0
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -175,7 +175,7 @@ class AppTheme {
         style: TextButton.styleFrom(
           foregroundColor: primary,
           textStyle: GoogleFonts.inter(
-            fontSize: 14.0,
+            fontSize: 13.0, // Reduced from 14.0
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -226,49 +226,49 @@ class AppTheme {
   // ============================================================================
 
   static TextStyle songTitleStyle = GoogleFonts.inter(
-    fontSize: 24.0,
+    fontSize: 20.0, // Reduced from 24.0
     fontWeight: FontWeight.bold,
     color: text,
   );
 
   static TextStyle artistNameStyle = GoogleFonts.inter(
-    fontSize: 16.0,
+    fontSize: 14.0, // Reduced from 16.0
     fontWeight: FontWeight.w400,
     color: textMuted,
   );
 
   static TextStyle sectionTitleStyle = GoogleFonts.inter(
-    fontSize: 16.0,
+    fontSize: 14.0, // Reduced from 16.0
     fontWeight: FontWeight.w600,
     color: text,
   );
 
   static TextStyle chordSheetStyle = GoogleFonts.jetBrainsMono(
-    fontSize: 14.0,
+    fontSize: 13.0, // Reduced from 14.0
     height: 1.5,
     color: text,
   );
 
   static TextStyle chordStyle = GoogleFonts.jetBrainsMono(
-    fontSize: 14.0,
+    fontSize: 13.0, // Reduced from 14.0
     fontWeight: FontWeight.w600,
     color: primary,
   );
 
   static TextStyle sectionHeaderStyle = GoogleFonts.jetBrainsMono(
-    fontSize: 14.0,
+    fontSize: 13.0, // Reduced from 14.0
     fontWeight: FontWeight.bold,
     color: textMuted,
     letterSpacing: 0.5,
   );
 
   static TextStyle tabLabelStyle = GoogleFonts.inter(
-    fontSize: 14.0,
+    fontSize: 13.0, // Reduced from 14.0
     fontWeight: FontWeight.w500,
   );
 
   static TextStyle bottomNavLabelStyle = GoogleFonts.inter(
-    fontSize: 12.0,
+    fontSize: 11.0, // Reduced from 12.0
     fontWeight: FontWeight.w500,
   );
 }

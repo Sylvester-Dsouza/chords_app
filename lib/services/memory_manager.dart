@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
+import 'image_cache_manager.dart';
 
 /// Memory management service to monitor and optimize app memory usage
 class MemoryManager {
@@ -12,13 +13,15 @@ class MemoryManager {
   Timer? _memoryMonitorTimer;
   bool _isMonitoring = false;
   
-  // Memory thresholds (in MB)
-  static const double _warningThreshold = 200.0; // 200MB
-  static const double _criticalThreshold = 300.0; // 300MB
+  // Memory thresholds (in MB) - Mobile-appropriate limits
+  static const double _warningThreshold = 100.0; // 100MB warning
+  static const double _criticalThreshold = 150.0; // 150MB critical
+  static const double _emergencyThreshold = 200.0; // 200MB emergency
   
   // Callbacks for memory pressure
   final List<VoidCallback> _memoryPressureCallbacks = [];
   final List<VoidCallback> _criticalMemoryCallbacks = [];
+  final List<VoidCallback> _emergencyMemoryCallbacks = [];
 
   /// Start monitoring memory usage
   void startMonitoring() {
@@ -26,7 +29,7 @@ class MemoryManager {
     
     _isMonitoring = true;
     _memoryMonitorTimer = Timer.periodic(
-      const Duration(seconds: 30), // Check every 30 seconds
+      const Duration(minutes: 2), // Check every 2 minutes to reduce overhead
       (_) => _checkMemoryUsage(),
     );
     
@@ -51,6 +54,11 @@ class MemoryManager {
     _criticalMemoryCallbacks.add(callback);
   }
 
+  /// Add callback for emergency memory events
+  void addEmergencyMemoryCallback(VoidCallback callback) {
+    _emergencyMemoryCallbacks.add(callback);
+  }
+
   /// Remove memory pressure callback
   void removeMemoryPressureCallback(VoidCallback callback) {
     _memoryPressureCallbacks.remove(callback);
@@ -71,7 +79,10 @@ class MemoryManager {
       
       debugPrint('🧠 Memory usage: ${usedMemoryMB.toStringAsFixed(1)} MB');
 
-      if (usedMemoryMB > _criticalThreshold) {
+      if (usedMemoryMB > _emergencyThreshold) {
+        debugPrint('🆘 EMERGENCY memory usage: ${usedMemoryMB.toStringAsFixed(1)} MB - IMMEDIATE ACTION REQUIRED');
+        _triggerEmergencyMemoryCallbacks();
+      } else if (usedMemoryMB > _criticalThreshold) {
         debugPrint('🚨 CRITICAL memory usage: ${usedMemoryMB.toStringAsFixed(1)} MB');
         _triggerCriticalMemoryCallbacks();
       } else if (usedMemoryMB > _warningThreshold) {
@@ -127,22 +138,71 @@ class MemoryManager {
     }
   }
 
+  /// Trigger emergency memory callbacks
+  void _triggerEmergencyMemoryCallbacks() {
+    for (final callback in _emergencyMemoryCallbacks) {
+      try {
+        callback();
+      } catch (e) {
+        debugPrint('Error in emergency memory callback: $e');
+      }
+    }
+  }
+
   /// Force garbage collection and cleanup
   void forceCleanup() {
     debugPrint('🧹 Forcing memory cleanup...');
-    
-    // Clear image cache
+
+    // Use image cache manager for better cleanup
     try {
-      PaintingBinding.instance.imageCache.clear();
-      debugPrint('🧹 Cleared image cache');
+      ImageCacheManager().forceCleanup();
+      debugPrint('🧹 Image cache manager cleanup completed');
     } catch (e) {
-      debugPrint('Error clearing image cache: $e');
+      debugPrint('Error during image cache cleanup: $e');
+      // Fallback to direct cache clear
+      try {
+        PaintingBinding.instance.imageCache.clear();
+        debugPrint('🧹 Fallback image cache clear completed');
+      } catch (e2) {
+        debugPrint('Error clearing image cache: $e2');
+      }
     }
 
     // Trigger memory pressure callbacks
     _triggerMemoryPressureCallbacks();
-    
+
     debugPrint('🧹 Memory cleanup completed');
+  }
+
+  /// Get current memory status for debugging
+  Future<String> getMemoryStatus() async {
+    try {
+      final memoryInfo = await _getMemoryInfo();
+      if (memoryInfo == null) return 'Memory info unavailable';
+
+      final usedMemoryMB = memoryInfo['usedMemory'] ?? 0.0;
+      final imageCacheStats = ImageCacheManager().getCacheStats();
+
+      String status = 'Normal';
+      if (usedMemoryMB > _emergencyThreshold) {
+        status = 'EMERGENCY';
+      } else if (usedMemoryMB > _criticalThreshold) {
+        status = 'CRITICAL';
+      } else if (usedMemoryMB > _warningThreshold) {
+        status = 'WARNING';
+      }
+
+      return '''
+🧠 Memory Status: $status
+📊 Used Memory: ${usedMemoryMB.toStringAsFixed(1)} MB
+⚠️ Warning Threshold: ${_warningThreshold.toStringAsFixed(1)} MB
+🚨 Critical Threshold: ${_criticalThreshold.toStringAsFixed(1)} MB
+🆘 Emergency Threshold: ${_emergencyThreshold.toStringAsFixed(1)} MB
+🖼️ Image Cache: ${imageCacheStats['currentSize']} objects, ${imageCacheStats['currentSizeMB'].toStringAsFixed(1)} MB
+''';
+    } catch (e) {
+      return 'Error getting memory status: $e';
+    }
   }
 
   /// Get current memory usage as a string

@@ -70,7 +70,7 @@ dependencies:
   intl: ^0.20.2
   timeago: ^3.7.1
   flutter_guitar_chord: ^0.0.3
-  guitar_chord_library: ^0.0.2
+  guitar_chord_library: ^0.0.4
   google_fonts: ^6.1.0
   url_launcher: ^6.3.1
   flutter_cache_manager: ^3.4.1

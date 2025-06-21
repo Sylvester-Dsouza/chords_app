@@ -24,10 +24,10 @@ class SecureApiService {
       // Debug mode
       if (Platform.isAndroid) {
         // For Android emulator and devices, use the actual IP address
-        return 'http://192.168.249.155:3001/api';
+        return 'http://192.168.1.6:3001/api';
       } else {
         // For iOS simulator or physical devices
-        return 'http://192.168.249.155:3001/api';
+        return 'http://192.168.1.6:3001/api';
       }
     }
   }

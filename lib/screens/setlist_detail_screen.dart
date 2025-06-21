@@ -6,6 +6,7 @@ import '../models/setlist.dart';
 import '../models/song.dart';
 import '../services/setlist_service.dart';
 import '../services/liked_songs_service.dart';
+import '../services/incremental_sync_service.dart';
 import '../config/theme.dart';
 import '../utils/ui_helpers.dart';
 import '../widgets/enhanced_setlist_share_dialog.dart';
@@ -34,6 +35,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
 
   final SetlistService _setlistService = SetlistService();
   final LikedSongsService _likedSongsService = LikedSongsService();
+  final IncrementalSyncService _syncService = IncrementalSyncService();
   List<Song> _likedSongs = [];
 
   Setlist? _setlist;
@@ -121,8 +123,14 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
         return;
       }
 
-      debugPrint('📡 Calling setlist service to refresh setlist details');
-      final setlist = await _setlistService.getSetlist(widget.setlistId);
+      debugPrint('📡 Refreshing setlist details from cache/API');
+      final setlist = await _syncService.getSetlistById(widget.setlistId, forceRefresh: true);
+
+      if (setlist == null) {
+        debugPrint('❌ Setlist not found during refresh');
+        return;
+      }
+
       debugPrint('✅ Setlist details refreshed: ${setlist.name}');
       debugPrint('🎵 Songs count: ${setlist.songs?.length ?? 0}');
 
@@ -176,8 +184,13 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
         return;
       }
 
-      debugPrint('Calling setlist service to get setlist details');
-      final setlist = await _setlistService.getSetlist(widget.setlistId);
+      debugPrint('Getting setlist details from cache/API');
+      final setlist = await _syncService.getSetlistById(widget.setlistId);
+
+      if (setlist == null) {
+        throw Exception('Setlist not found');
+      }
+
       debugPrint('Setlist details received: ${setlist.name}');
       debugPrint('Songs count: ${setlist.songs?.length ?? 0}');
 

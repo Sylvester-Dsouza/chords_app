@@ -169,7 +169,7 @@ class _RateAppScreenState extends State<RateAppScreen> {
             const SizedBox(height: 24),
 
             const Text(
-              'Christian Chords',
+              'Stuthi',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 24,

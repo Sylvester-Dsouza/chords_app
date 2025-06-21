@@ -48,30 +48,6 @@ class AppDrawer extends StatelessWidget {
                       'Request a Song',
                       routeName: '/song_request',
                     ),
-                    _buildMenuItem(
-                      context,
-                      Icons.favorite_border_outlined,
-                      'Liked Collections',
-                      routeName: '/liked-collections',
-                    ),
-                    _buildMenuItem(
-                      context,
-                      Icons.mic_outlined,
-                      'Vocal Warm-ups',
-                      routeName: '/vocal-warmups',
-                    ),
-                    _buildMenuItem(
-                      context,
-                      Icons.music_note_outlined,
-                      'Vocal Exercises',
-                      routeName: '/vocal-exercises',
-                    ),
-                    _buildMenuItem(
-                      context,
-                      Icons.school_outlined,
-                      'Vocal Courses',
-                      routeName: '/vocal-courses',
-                    ),
 
                     const SizedBox(height: 16),
 
@@ -89,42 +65,10 @@ class AppDrawer extends StatelessWidget {
                       'About Us',
                       routeName: '/about_us',
                     ),
-                    _buildMenuItem(
-                      context,
-                      Icons.mail_outline,
-                      'Contact Us',
-                      routeName: '/contact-us',
-                    ),
 
                     const SizedBox(height: 16),
 
-                    // Contribute Section
-                    _buildSectionHeader(context, 'Contribute'),
-                    _buildMenuItem(
-                      context,
-                      Icons.handshake_outlined,
-                      'Contribute Songs',
-                      routeName: '/contribute',
-                    ),
-                    _buildMenuItem(
-                      context,
-                      Icons.volunteer_activism_outlined,
-                      'Support Us',
-                      routeName: '/support',
-                    ),
-
-                    // Debug-only Crashlytics test (only show in debug mode)
-                    if (kDebugMode) ...[
-                      _buildSectionHeader(context, 'Debug'),
-                      _buildMenuItem(
-                        context,
-                        Icons.bug_report_outlined,
-                        'Crashlytics Test',
-                        routeName: '/crashlytics-test',
-                      ),
-                    ],
-
-                    // Add some bottom padding to ensure there's enough space
+                    // Bottom padding
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -169,7 +113,7 @@ class AppDrawer extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'Christian Chords & Lyrics',
+                    'Christian Chord & Lyrics',
                     style: TextStyle(
                       color: AppTheme.textMuted,
                       fontSize: 12,
@@ -210,19 +154,18 @@ class AppDrawer extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Expanded(
-            child: Container(
-              height: 1,
-              color: const Color(0xFF333333),
-            ),
-          ),
+          Expanded(child: Container(height: 1, color: const Color(0xFF333333))),
         ],
       ),
     );
   }
 
   // Bottom section with login/logout
-  Widget _buildBottomSection(BuildContext context, bool isLoggedIn, UserProvider userProvider) {
+  Widget _buildBottomSection(
+    BuildContext context,
+    bool isLoggedIn,
+    UserProvider userProvider,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -232,45 +175,46 @@ class AppDrawer extends StatelessWidget {
           top: BorderSide(color: Color(0xFF333333), width: 1),
         ),
       ),
-      child: isLoggedIn
-        ? ElevatedButton.icon(
-            onPressed: () => _showLogoutConfirmationDialog(context),
-            icon: const Icon(Icons.logout, size: 18),
-            label: const Text('Logout'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.withAlpha(51), // 0.2 * 255 = 51
-              foregroundColor: Colors.red,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(5),
+      child:
+          isLoggedIn
+              ? ElevatedButton.icon(
+                onPressed: () => _showLogoutConfirmationDialog(context),
+                icon: const Icon(Icons.logout, size: 18),
+                label: const Text('Logout'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.withAlpha(51), // 0.2 * 255 = 51
+                  foregroundColor: Colors.red,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                ),
+              )
+              : ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pushReplacementNamed(context, '/login');
+                },
+                icon: const Icon(Icons.login, size: 18),
+                label: const Text('Login'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                ),
               ),
-            ),
-          )
-        : ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pushReplacementNamed(context, '/login');
-            },
-            icon: const Icon(Icons.login, size: 18),
-            label: const Text('Login'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(5),
-              ),
-            ),
-          ),
     );
   }
 
   Widget _buildMenuItem(
     BuildContext context,
     IconData icon,
-    String title,
-    {String? routeName}
-  ) {
+    String title, {
+    String? routeName,
+  }) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       leading: Container(
@@ -280,11 +224,7 @@ class AppDrawer extends StatelessWidget {
           color: AppTheme.surface,
           borderRadius: BorderRadius.circular(5),
         ),
-        child: Icon(
-          icon,
-          color: Colors.white,
-          size: 20,
-        ),
+        child: Icon(icon, color: Colors.white, size: 20),
       ),
       title: Text(
         title,
@@ -294,14 +234,8 @@ class AppDrawer extends StatelessWidget {
           fontWeight: FontWeight.w400,
         ),
       ),
-      trailing: const Icon(
-        Icons.chevron_right,
-        color: Colors.grey,
-        size: 20,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(5),
-      ),
+      trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
       onTap: () {
         // Close the drawer
         Navigator.pop(context);
@@ -372,9 +306,7 @@ class AppDrawer extends StatelessWidget {
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           backgroundColor: AppTheme.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(5),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
           title: const Text(
             'Confirm Logout',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -388,20 +320,14 @@ class AppDrawer extends StatelessWidget {
               onPressed: () {
                 Navigator.of(dialogContext).pop(); // Close dialog
               },
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: AppTheme.primary),
-              ),
+              child: Text('Cancel', style: TextStyle(color: AppTheme.primary)),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop(); // Close dialog
                 _performLogout(context);
               },
-              child: const Text(
-                'Logout',
-                style: TextStyle(color: Colors.red),
-              ),
+              child: const Text('Logout', style: TextStyle(color: Colors.red)),
             ),
           ],
         );
@@ -426,7 +352,11 @@ class AppDrawer extends StatelessWidget {
   }
 
   // Helper method to navigate with a smooth transition
-  void _navigateWithTransition(BuildContext context, String routeName, {Object? arguments}) {
+  void _navigateWithTransition(
+    BuildContext context,
+    String routeName, {
+    Object? arguments,
+  }) {
     // Get the page widget for the route
     Widget? page;
 

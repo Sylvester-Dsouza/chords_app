@@ -17,6 +17,9 @@ class SmartDataManager {
   final PersistentCacheManager _cache = PersistentCacheManager();
   final ApiService _apiService = ApiService();
 
+  // Rate limiting for background updates
+  final Map<String, DateTime> _lastBackgroundUpdate = {};
+
   // Cache keys
   static const String _homeSectionsKey = 'home_sections';
   static const String _songsKey = 'songs';
@@ -151,20 +154,30 @@ class SmartDataManager {
     }
   }
 
-  /// Check for updates in background without blocking UI
+  /// Check for updates in background without blocking UI - Rate limited
   void _checkForUpdatesInBackground(String cacheKey, Future<dynamic> Function() fetchFunction) {
-    Timer(const Duration(seconds: 2), () async {
+    // Rate limit background updates to prevent API overload
+    final now = DateTime.now();
+    final lastUpdate = _lastBackgroundUpdate[cacheKey];
+    if (lastUpdate != null && now.difference(lastUpdate).inMinutes < 10) {
+      debugPrint('🔄 Background update rate limited for $cacheKey');
+      return;
+    }
+
+    _lastBackgroundUpdate[cacheKey] = now;
+
+    Timer(const Duration(seconds: 5), () async { // Increased delay to reduce load
       try {
         debugPrint('🔄 Checking for updates in background for $cacheKey...');
-        
+
         // Get current cache metadata
         final metadata = _cache.getMetadata(cacheKey);
         if (metadata == null) return;
-        
+
         // Make a lightweight API call to check if data has changed
         // This could be a HEAD request or a checksum endpoint
         final hasUpdates = await _checkIfDataHasUpdates(cacheKey, metadata.lastUpdated);
-        
+
         if (hasUpdates) {
           debugPrint('🔄 Updates found for $cacheKey, fetching new data...');
           await fetchFunction();

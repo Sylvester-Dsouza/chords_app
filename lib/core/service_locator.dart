@@ -35,7 +35,7 @@ Future<void> setupServiceLocator() async {
   serviceLocator.registerLazySingleton<ErrorHandler>(() => ErrorHandler());
   serviceLocator.registerLazySingleton<RetryService>(() => RetryService());
 
-  // Core services (no dependencies)
+  // Core services (no dependencies) - Using lazy singletons for memory efficiency
   serviceLocator.registerLazySingleton<ApiService>(() => ApiService());
   serviceLocator.registerLazySingleton<CacheService>(() => CacheService());
   serviceLocator.registerLazySingleton<CrashlyticsService>(() => CrashlyticsService());
@@ -139,30 +139,37 @@ Future<void> initializeDeferredServices() async {
   }
 }
 
-/// Dispose all services properly
+/// Dispose all services properly with memory cleanup
 Future<void> disposeServices() async {
   try {
+    debugPrint('🧹 Disposing all services and cleaning memory...');
+
+    // Stop memory monitoring first
+    if (serviceLocator.isRegistered<MemoryManager>()) {
+      serviceLocator<MemoryManager>().stopMonitoring();
+    }
+
     // Dispose services in reverse order of initialization
-    
+
     // Audio services
     if (serviceLocator.isRegistered<MetronomeAudioService>()) {
       await serviceLocator<MetronomeAudioService>().dispose();
     }
-    
+
     if (serviceLocator.isRegistered<SimpleMetronomeService>()) {
       serviceLocator<SimpleMetronomeService>().dispose();
     }
-    
+
     // Vocal service
     if (serviceLocator.isRegistered<VocalService>()) {
       serviceLocator<VocalService>().dispose();
     }
-    
+
     // Deep link service
     if (serviceLocator.isRegistered<DeepLinkService>()) {
       serviceLocator<DeepLinkService>().dispose();
     }
-    
+
     // Offline service
     if (serviceLocator.isRegistered<OfflineService>()) {
       serviceLocator<OfflineService>().dispose();
@@ -180,8 +187,8 @@ Future<void> disposeServices() async {
 
     // Reset the service locator
     await serviceLocator.reset();
-    
-    debugPrint('✅ All services disposed successfully');
+
+    debugPrint('✅ All services disposed and memory cleaned successfully');
   } catch (e) {
     debugPrint('❌ Error disposing services: $e');
   }
@@ -236,6 +243,8 @@ bool areServicesReady() {
     return false;
   }
 }
+
+
 
 /// Get service safely with error handling
 T? getServiceSafely<T extends Object>() {

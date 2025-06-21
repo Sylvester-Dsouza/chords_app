@@ -13,10 +13,10 @@ class CacheService {
   // In-memory cache for faster access during app session
   final Map<String, dynamic> _memoryCache = {};
 
-  // Cache expiration times (in minutes)
-  static const int _defaultExpirationMinutes = 5; // Reduced from 30 to ensure fresh data
-  static const int _songExpirationMinutes = 10; // Reduced from 60 to ensure fresh data
-  static const int _artistExpirationMinutes = 15; // Reduced from 120 to ensure fresh data
+  // Cache expiration times (in minutes) - Standardized for consistency
+  static const int _defaultExpirationMinutes = 60; // Standardized to 1 hour
+  static const int _songExpirationMinutes = 60; // Standardized to 1 hour
+  static const int _artistExpirationMinutes = 60; // Standardized to 1 hour
 
   // Cache keys
   static const String _keySongs = 'cache_songs';

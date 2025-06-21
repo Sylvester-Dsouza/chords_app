@@ -772,11 +772,9 @@ class _HomeScreenNewState extends State<HomeScreenNew>
           );
         }
       },
-      child: Container(
-        width: 260, // Optimal width for rectangular collection items
-        margin: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: Container(        margin: const EdgeInsets.symmetric(horizontal: 8.0),
         child: AspectRatio(
-          aspectRatio: 16 / 9, // 16:9 aspect ratio
+          aspectRatio: 16 / 9, // 16:9 aspect ratio - this will automatically calculate height
           child: Container(
             decoration: BoxDecoration(
               color: _getColorWithOpacity(color, 0.3),
@@ -787,10 +785,7 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                 collection?.imageUrl != null
                     ? MemoryEfficientImage(
                       imageUrl: collection!.imageUrl!,
-                      width:
-                          400, // Use reasonable fixed size instead of infinity
-                      height: 225, // 16:9 aspect ratio (400 * 9/16 = 225)
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       borderRadius: BorderRadius.circular(5),
                       placeholder: Center(
                         child: CircularProgressIndicator(
@@ -1447,12 +1442,12 @@ class _HomeScreenNewState extends State<HomeScreenNew>
 
         return songs.isEmpty
             ? _buildEmptyState('No songs available')
-            : _buildSongListSection(songs);
+            : _buildSongListSection(songs, section);
     }
   }
 
   // Build a compact song list section
-  Widget _buildSongListSection(List<Song> songs) {
+  Widget _buildSongListSection(List<Song> songs, HomeSection section) {
     debugPrint('Building song list section with ${songs.length} songs');
     if (songs.isEmpty) {
       return _buildEmptyState('No songs available');
@@ -1480,9 +1475,9 @@ class _HomeScreenNewState extends State<HomeScreenNew>
         physics: const NeverScrollableScrollPhysics(),
         shrinkWrap: true,
         itemCount:
-            validSongs.length > 8
-                ? 8
-                : validSongs.length, // Limit to 8 songs for a compact view
+            section.itemCount != null && validSongs.length > section.itemCount!
+                ? section.itemCount!
+                : validSongs.length, // Respect admin-configured item count
         itemBuilder: (context, index) {
           final song = validSongs[index];
           debugPrint('Building song item $index: ${song.title}');

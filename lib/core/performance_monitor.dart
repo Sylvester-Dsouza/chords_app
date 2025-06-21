@@ -47,9 +47,9 @@ class PerformanceMonitor {
       timestamp: DateTime.now(),
     ));
 
-    // Keep only recent metrics to prevent memory bloat
-    if (_metrics.length > 1000) {
-      _metrics.removeRange(0, _metrics.length - 1000);
+    // Keep only recent metrics to prevent memory bloat - Reduced for mobile
+    if (_metrics.length > 100) {
+      _metrics.removeRange(0, _metrics.length - 100);
     }
 
     if (EnvironmentConstants.enableLogging) {

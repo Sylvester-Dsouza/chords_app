@@ -32,8 +32,8 @@ class OptimizedCacheService {
   // Memory cache with weak references to prevent memory leaks
   final Map<String, dynamic> _memoryCache = {};
 
-  // Maximum memory cache size (number of items)
-  static const int _maxMemoryCacheSize = 100;
+  // Maximum memory cache size (number of items) - Reduced for memory efficiency
+  static const int _maxMemoryCacheSize = 25;
 
   // Initialize the cache service
   Future<void> initialize() async {

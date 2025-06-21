@@ -39,7 +39,7 @@ class AppConstants {
   // ============================================================================
   // API CONFIGURATION
   // ============================================================================
-  static const String devIpAddress = '192.168.1.3';
+  static const String devIpAddress = '192.168.1.6';
   static const int apiPort = 3001;
   static const String productionApiUrl = 'https://chords-api-jl8n.onrender.com';
   static const Duration apiTimeout = Duration(seconds: 30);

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../widgets/song_placeholder.dart';
 import '../models/song.dart';
 import '../models/artist.dart';
@@ -108,6 +109,20 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
             _songs = songs;
             _isLoading = false;
           });
+
+          // Debug the loaded artist data
+          debugPrint('=== LOADED ARTIST DATA ===');
+          debugPrint('Artist: ${artist.name}');
+          debugPrint('Bio: ${artist.bio}');
+          debugPrint('Website: ${artist.website}');
+          debugPrint('SocialLinks object: ${artist.socialLinks}');
+          if (artist.socialLinks != null) {
+            debugPrint('Facebook: ${artist.socialLinks!.facebook}');
+            debugPrint('Instagram: ${artist.socialLinks!.instagram}');
+            debugPrint('Twitter: ${artist.socialLinks!.twitter}');
+            debugPrint('YouTube: ${artist.socialLinks!.youtube}');
+          }
+          debugPrint('========================');
         }
       } else {
         // If artist not found, try to get songs by artist name from cache
@@ -282,6 +297,49 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
             Navigator.pop(context);
           },
         ),
+        actions: [
+          // Bio info icon in top right app bar
+          if (_artist?.bio != null && _artist!.bio!.isNotEmpty)
+            IconButton(
+              icon: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(100),
+                  shape: BoxShape.circle,
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.all(4.0),
+                  child: Icon(Icons.info_outline, color: Colors.white),
+                ),
+              ),
+              onPressed: () {
+                // Show artist bio
+                if (mounted) {
+                  showDialog(
+                    context: context,
+                    builder: (dialogContext) => AlertDialog(
+                      backgroundColor: const Color(0xFF1E1E1E),
+                      title: Text(
+                        _artist?.name ?? widget.artistName,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      content: SingleChildScrollView(
+                        child: Text(
+                          _artist?.bio ?? '',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          child: const Text('Close'),
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              },
+            ),
+        ],
       ),
       body:
           _isLoading
@@ -491,64 +549,148 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
 
           const Spacer(),
 
-          // Bio button if available
-          if (_artist?.bio != null && _artist!.bio!.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.info_outline, color: Colors.white),
-              onPressed: () {
-                // Show artist bio
-                if (mounted) {
-                  showDialog(
-                    context: context,
-                    builder:
-                        (dialogContext) => AlertDialog(
-                          backgroundColor: const Color(0xFF1E1E1E),
-                          title: Text(
-                            _artist?.name ?? widget.artistName,
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                          content: SingleChildScrollView(
-                            child: Text(
-                              _artist?.bio ?? '',
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              child: const Text('Close'),
-                              onPressed:
-                                  () => Navigator.of(dialogContext).pop(),
-                            ),
-                          ],
-                        ),
-                  );
-                }
-              },
-            ),
-
-          // Social media icons
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.facebook, color: Colors.white),
-                onPressed: () {},
-              ),
-              IconButton(
-                icon: const Icon(Icons.camera_alt, color: Colors.white),
-                onPressed: () {},
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons.alternate_email,
-                  color: Colors.white,
-                ), // Using @ symbol as Twitter/X replacement
-                onPressed: () {},
-              ),
-            ],
-          ),
+          // Dynamic social media icons and website
+          _buildSocialMediaIcons(),
         ],
       ),
     );
+  }
+
+  // Launch URL helper method
+  Future<void> _launchUrl(String url) async {
+    try {
+      final Uri uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        debugPrint('Could not launch $url');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Could not open $url'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error launching URL: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error opening link'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Build dynamic social media icons
+  Widget _buildSocialMediaIcons() {
+    List<Widget> socialIcons = [];
+
+    // Debug logging
+    debugPrint('=== SOCIAL MEDIA DEBUG ===');
+    debugPrint('Artist: ${_artist?.name}');
+    debugPrint('Artist ID: ${_artist?.id}');
+    debugPrint('Website: ${_artist?.website}');
+    debugPrint('Social Links: ${_artist?.socialLinks}');
+    if (_artist?.socialLinks != null) {
+      debugPrint('Facebook: ${_artist!.socialLinks!.facebook}');
+      debugPrint('Instagram: ${_artist!.socialLinks!.instagram}');
+      debugPrint('Twitter: ${_artist!.socialLinks!.twitter}');
+      debugPrint('YouTube: ${_artist!.socialLinks!.youtube}');
+    }
+    debugPrint('========================');
+
+    if (_artist?.socialLinks != null) {
+      final socialLinks = _artist!.socialLinks!;
+
+      // Facebook
+      if (socialLinks.facebook != null && socialLinks.facebook!.isNotEmpty) {
+        debugPrint('Adding Facebook icon for: ${socialLinks.facebook}');
+        socialIcons.add(
+          IconButton(
+            icon: const Text('f', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+            onPressed: () => _launchUrl(socialLinks.facebook!),
+            tooltip: 'Facebook',
+            iconSize: 24,
+            padding: const EdgeInsets.all(4),
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          ),
+        );
+      }
+
+      // Instagram
+      if (socialLinks.instagram != null && socialLinks.instagram!.isNotEmpty) {
+        debugPrint('Adding Instagram icon for: ${socialLinks.instagram}');
+        socialIcons.add(
+          IconButton(
+            icon: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+            onPressed: () => _launchUrl(socialLinks.instagram!),
+            tooltip: 'Instagram',
+            iconSize: 24,
+            padding: const EdgeInsets.all(4),
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          ),
+        );
+      }
+
+      // Twitter/X
+      if (socialLinks.twitter != null && socialLinks.twitter!.isNotEmpty) {
+        debugPrint('Adding Twitter/X icon for: ${socialLinks.twitter}');
+        socialIcons.add(
+          IconButton(
+            icon: const Text('𝕏', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+            onPressed: () => _launchUrl(socialLinks.twitter!),
+            tooltip: 'Twitter/X',
+            iconSize: 24,
+            padding: const EdgeInsets.all(4),
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          ),
+        );
+      }
+
+      // YouTube
+      if (socialLinks.youtube != null && socialLinks.youtube!.isNotEmpty) {
+        debugPrint('Adding YouTube icon for: ${socialLinks.youtube}');
+        socialIcons.add(
+          IconButton(
+            icon: const Icon(Icons.play_arrow, color: Colors.white, size: 16),
+            onPressed: () => _launchUrl(socialLinks.youtube!),
+            tooltip: 'YouTube',
+            iconSize: 24,
+            padding: const EdgeInsets.all(4),
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          ),
+        );
+      }
+    }
+
+    // Website
+    if (_artist?.website != null && _artist!.website!.isNotEmpty) {
+      debugPrint('Adding Website icon for: ${_artist!.website}');
+      socialIcons.add(
+        IconButton(
+          icon: const Icon(Icons.language, color: Colors.white, size: 16),
+          onPressed: () => _launchUrl(_artist!.website!),
+          tooltip: 'Website',
+          iconSize: 24,
+          padding: const EdgeInsets.all(4),
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+        ),
+      );
+    }
+
+    // Return row with social icons or empty container if no links
+    if (socialIcons.isNotEmpty) {
+      return Row(children: socialIcons);
+    } else {
+      // Show a debug message if no social icons are found
+      debugPrint('No social icons to display - check if backend data is being parsed correctly');
+      return const SizedBox.shrink();
+    }
   }
 
   Widget _buildSongItem(

@@ -18,7 +18,6 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
-  late TextEditingController _locationController;
 
   bool _isEditing = false;
   bool _isLoading = false;
@@ -31,7 +30,6 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
     _nameController = TextEditingController();
     _emailController = TextEditingController();
     _phoneController = TextEditingController();
-    _locationController = TextEditingController();
 
     // Load user data
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -44,7 +42,6 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _locationController.dispose();
     super.dispose();
   }
 
@@ -56,7 +53,6 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
       _nameController.text = userData['name'] ?? '';
       _emailController.text = userData['email'] ?? '';
       _phoneController.text = userData['phone'] ?? '';
-      _locationController.text = userData['location'] ?? '';
     }
   }
 
@@ -74,7 +70,6 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
           'name': _nameController.text,
           'email': _emailController.text,
           'phone': _phoneController.text,
-          'location': _locationController.text,
         };
 
         // Simulate API call
@@ -206,10 +201,7 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: Colors.grey[800],
-                      border: Border.all(
-                        color: AppTheme.primary,
-                        width: 2,
-                      ),
+                      border: Border.all(color: AppTheme.primary, width: 2),
                     ),
                     child: const Icon(
                       Icons.person,
@@ -314,17 +306,6 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
               },
             ),
 
-            const SizedBox(height: 16),
-
-            // Location
-            _buildTextField(
-              controller: _locationController,
-              label: 'Location',
-              icon: Icons.location_on,
-              enabled: _isEditing,
-              validator: null,
-            ),
-
             const SizedBox(height: 32),
 
             // Account Information
@@ -340,21 +321,27 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
               const SizedBox(height: 16),
 
               _buildInfoItem(
-                icon: Icons.calendar_today,
-                label: 'Member Since',
-                value: 'January 2023',
+                icon: Icons.email,
+                label: 'Email',
+                value:
+                    _emailController.text.isNotEmpty
+                        ? _emailController.text
+                        : 'Not provided',
               ),
 
               _buildInfoItem(
-                icon: Icons.access_time,
-                label: 'Last Login',
-                value: 'Today, 10:30 AM',
+                icon: Icons.phone,
+                label: 'Phone',
+                value:
+                    _phoneController.text.isNotEmpty
+                        ? _phoneController.text
+                        : 'Not provided',
               ),
 
               _buildInfoItem(
                 icon: Icons.verified_user,
                 label: 'Account Status',
-                value: 'Active',
+                value: 'Verified',
                 valueColor: Colors.green,
               ),
             ],

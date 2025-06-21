@@ -93,41 +93,76 @@ class _ListScreenState extends State<ListScreen> {
     }
   }
 
-  // Load items from a specific section
+  // Load items from a specific section using cached data
   Future<void> _loadSectionItems() async {
     try {
-      debugPrint('Loading items from section ${widget.sectionId}');
-      final items = await _homeSectionService.getSectionItems(
-        widget.sectionId!,
-        widget.sectionType!,
+      debugPrint('Loading items from section ${widget.sectionId} using cached data');
+
+      final appDataProvider = Provider.of<AppDataProvider>(context, listen: false);
+
+      // Find the section in cached home sections
+      final homeSections = appDataProvider.homeSections;
+      final section = homeSections.firstWhere(
+        (s) => s.id == widget.sectionId,
+        orElse: () => throw Exception('Section not found in cache'),
       );
 
       if (mounted) {
         setState(() {
           switch (widget.listType) {
             case ListType.songs:
-              _songs = items.cast<Song>();
+              _songs = section.items.cast<Song>();
               break;
             case ListType.artists:
-              _artists = items.cast<Artist>();
+              _artists = section.items.cast<Artist>();
               break;
             case ListType.collections:
-              _collections = items.cast<Collection>();
+              _collections = section.items.cast<Collection>();
               break;
           }
           _isLoading = false;
         });
 
         debugPrint(
-          'Loaded ${items.length} items from section ${widget.sectionId}',
+          'Loaded ${section.items.length} cached items from section ${widget.sectionId}',
         );
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = 'Error loading section items: $e';
-          _isLoading = false;
-        });
+      debugPrint('Error loading from cache, falling back to API: $e');
+      // Fallback to API if cache fails
+      try {
+        final items = await _homeSectionService.getSectionItems(
+          widget.sectionId!,
+          widget.sectionType!,
+        );
+
+        if (mounted) {
+          setState(() {
+            switch (widget.listType) {
+              case ListType.songs:
+                _songs = items.cast<Song>();
+                break;
+              case ListType.artists:
+                _artists = items.cast<Artist>();
+                break;
+              case ListType.collections:
+                _collections = items.cast<Collection>();
+                break;
+            }
+            _isLoading = false;
+          });
+
+          debugPrint(
+            'Fallback: Loaded ${items.length} items from API for section ${widget.sectionId}',
+          );
+        }
+      } catch (apiError) {
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'Error loading section items: $apiError';
+            _isLoading = false;
+          });
+        }
       }
     }
   }
@@ -610,39 +645,41 @@ class _ListScreenState extends State<ListScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image Container
-            Container(
-              height: 140,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(8.0),
-                  topRight: Radius.circular(8.0),
+            // Image Container with exact 16:9 aspect ratio
+            AspectRatio(
+              aspectRatio: 16 / 9, // Exact 16:9 aspect ratio
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(8.0),
+                    topRight: Radius.circular(8.0),
+                  ),
+                  // Use image if available, otherwise use gradient
+                  image:
+                      collection.imageUrl != null
+                          ? DecorationImage(
+                            image: NetworkImage(collection.imageUrl!),
+                            fit: BoxFit.contain,
+                            onError: (exception, stackTrace) {
+                              debugPrint(
+                                'Error loading collection image: ${collection.title} - ${collection.imageUrl}',
+                              );
+                            },
+                          )
+                          : null,
+                  gradient:
+                      collection.imageUrl == null
+                          ? LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              collection.color,
+                              collection.color.withAlpha(150),
+                            ],
+                          )
+                          : null,
                 ),
-                // Use image if available, otherwise use gradient
-                image:
-                    collection.imageUrl != null
-                        ? DecorationImage(
-                          image: NetworkImage(collection.imageUrl!),
-                          fit: BoxFit.cover,
-                          onError: (exception, stackTrace) {
-                            debugPrint(
-                              'Error loading collection image: ${collection.title} - ${collection.imageUrl}',
-                            );
-                          },
-                        )
-                        : null,
-                gradient:
-                    collection.imageUrl == null
-                        ? LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            collection.color,
-                            collection.color.withAlpha(150),
-                          ],
-                        )
-                        : null,
               ),
             ),
 

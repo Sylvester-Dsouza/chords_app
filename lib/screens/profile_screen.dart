@@ -18,14 +18,16 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-
   @override
   void initState() {
     super.initState();
 
     // Sync with navigation provider
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final navigationProvider = Provider.of<NavigationProvider>(context, listen: false);
+      final navigationProvider = Provider.of<NavigationProvider>(
+        context,
+        listen: false,
+      );
       navigationProvider.updateIndex(4); // Profile screen is index 4
     });
   }
@@ -75,7 +77,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (userData == null) return null;
 
     // Check if user has a profile picture URL in their data
-    if (userData['profilePicture'] != null && userData['profilePicture'].toString().isNotEmpty) {
+    if (userData['profilePicture'] != null &&
+        userData['profilePicture'].toString().isNotEmpty) {
       return userData['profilePicture'];
     }
 
@@ -98,8 +101,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return null;
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -133,9 +134,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileHeader(bool isLoggedIn, Map<String, dynamic>? userData) {
-    final profilePictureUrl = isLoggedIn ? _getProfilePictureUrl(userData) : null;
-    final displayName = isLoggedIn ? (userData?['name'] ?? 'User') : 'Guest User';
-    final displayEmail = isLoggedIn ? (userData?['email'] ?? 'No email') : 'Not logged in';
+    final profilePictureUrl =
+        isLoggedIn ? _getProfilePictureUrl(userData) : null;
+    final displayName =
+        isLoggedIn ? (userData?['name'] ?? 'User') : 'Guest User';
+    final displayEmail =
+        isLoggedIn ? (userData?['email'] ?? 'No email') : 'Not logged in';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -148,44 +152,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.grey[800],
-              border: Border.all(
-                color: AppTheme.primary,
-                width: 1.5,
-              ),
+              border: Border.all(color: AppTheme.primary, width: 1.5),
             ),
-            child: profilePictureUrl != null
-                ? ClipOval(
-                    child: Image.network(
-                      profilePictureUrl,
-                      width: 65,
-                      height: 65,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return const Center(
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
+            child:
+                profilePictureUrl != null
+                    ? ClipOval(
+                      child: Image.network(
+                        profilePictureUrl,
+                        width: 65,
+                        height: 65,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return const Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             ),
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: 32,
-                        );
-                      },
-                    ),
-                  )
-                : const Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size: 32,
-                  ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: 32,
+                          );
+                        },
+                      ),
+                    )
+                    : const Icon(Icons.person, color: Colors.white, size: 32),
           ),
           const SizedBox(width: 16),
 
@@ -210,10 +206,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // Email
                 Text(
                   displayEmail,
-                  style: TextStyle(
-                    color: Colors.grey[400],
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.grey[400], fontSize: 14),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -221,7 +214,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 // Show joined date for logged in users or login button for guests
                 isLoggedIn
-                  ? Row(
+                    ? Row(
                       children: [
                         Icon(
                           Icons.calendar_today,
@@ -238,7 +231,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ],
                     )
-                  : Column(
+                    : Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 4),
@@ -249,17 +242,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             onPressed: () {
                               Navigator.pushReplacementNamed(context, '/login');
                             },
-                            icon: const Icon(
-                              Icons.login,
-                              size: 16,
-                            ),
+                            icon: const Icon(Icons.login, size: 16),
                             label: const Text('Login'),
                             style: TextButton.styleFrom(
                               foregroundColor: AppTheme.primary,
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              textStyle: const TextStyle(
-                                fontSize: 14,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
                               ),
+                              textStyle: const TextStyle(fontSize: 14),
                             ),
                           ),
                         ),
@@ -282,7 +272,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           // Account Section
           _buildSectionHeader('Account'),
           _buildSettingsCard([
@@ -380,28 +369,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: Colors.grey[850]!,
-          width: 1,
-        ),
+        border: Border.all(color: Colors.grey[850]!, width: 1),
       ),
       child: Column(
-        children: items.asMap().entries.map((entry) {
-          final index = entry.key;
-          final item = entry.value;
-          
-          return Column(
-            children: [
-              item,
-              if (index < items.length - 1) 
-                Divider(
-                  height: 1,
-                  color: Colors.grey[850],
-                  indent: 60,
-                ),
-            ],
-          );
-        }).toList(),
+        children:
+            items.asMap().entries.map((entry) {
+              final index = entry.key;
+              final item = entry.value;
+
+              return Column(
+                children: [
+                  item,
+                  if (index < items.length - 1)
+                    Divider(height: 1, color: Colors.grey[850], indent: 60),
+                ],
+              );
+            }).toList(),
       ),
     );
   }
@@ -418,16 +401,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
             builder: (BuildContext context) {
               return AlertDialog(
                 backgroundColor: const Color(0xFF1E1E1E),
-                title: const Text('Logout', style: TextStyle(color: Colors.white)),
-                content: const Text('Are you sure you want to logout?', style: TextStyle(color: Colors.white)),
+                title: const Text(
+                  'Logout',
+                  style: TextStyle(color: Colors.white),
+                ),
+                content: const Text(
+                  'Are you sure you want to logout?',
+                  style: TextStyle(color: Colors.white),
+                ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(false),
-                    child: Text('Cancel', style: TextStyle(color: AppTheme.primary)),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(color: AppTheme.primary),
+                    ),
                   ),
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(true),
-                    child: const Text('Logout', style: TextStyle(color: Colors.red)),
+                    child: const Text(
+                      'Logout',
+                      style: TextStyle(color: Colors.red),
+                    ),
                   ),
                 ],
               );
@@ -523,9 +518,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: isHighlighted
-                    ? AppTheme.primary.withAlpha(40)
-                    : Colors.grey[800],
+                color:
+                    isHighlighted
+                        ? AppTheme.primary.withAlpha(40)
+                        : Colors.grey[800],
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Icon(
@@ -549,11 +545,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
 
             // Arrow - Smaller
-            Icon(
-              Icons.chevron_right,
-              color: Colors.grey[500],
-              size: 18,
-            ),
+            Icon(Icons.chevron_right, color: Colors.grey[500], size: 18),
           ],
         ),
       ),
