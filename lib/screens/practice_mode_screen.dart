@@ -32,19 +32,17 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
   PracticeDifficulty _currentDifficulty = PracticeDifficulty.beginner;
   bool _showChordDiagrams = true;
   bool _showChordTransitions = true;
-  int _chordChangeCountdown = 0;
+  final int _chordChangeCountdown = 0;
   String? _nextChord;
-  String? _currentChord;
 
   // Practice session tracking
   DateTime? _sessionStartTime;
   int _correctChordChanges = 0;
   int _totalChordChanges = 0;
-  List<String> _practiceLog = [];
+  final List<String> _practiceLog = [];
 
   // Visual enhancements
   bool _showBeatVisualization = true;
-  double _chordSheetOpacity = 1.0;
 
   @override
   void initState() {
@@ -116,12 +114,13 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
       enableDrag: true,
       isDismissible: true,
       useSafeArea: true,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: ChordDiagramBottomSheet(chordName: cleanChordName),
-      ),
+      builder:
+          (context) => Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: ChordDiagramBottomSheet(chordName: cleanChordName),
+          ),
     );
   }
 
@@ -139,11 +138,16 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
   void _endPracticeSession() {
     if (_sessionStartTime != null) {
       final duration = DateTime.now().difference(_sessionStartTime!);
-      final accuracy = _totalChordChanges > 0 ? _correctChordChanges / _totalChordChanges : 0.0;
+      final accuracy =
+          _totalChordChanges > 0
+              ? _correctChordChanges / _totalChordChanges
+              : 0.0;
 
       // Log practice session (could save to local storage or send to backend)
       debugPrint('Practice Session Complete:');
-      debugPrint('  Duration: ${duration.inMinutes}m ${duration.inSeconds % 60}s');
+      debugPrint(
+        '  Duration: ${duration.inMinutes}m ${duration.inSeconds % 60}s',
+      );
       debugPrint('  Accuracy: ${(accuracy * 100).toStringAsFixed(1)}%');
       debugPrint('  Chord Changes: $_correctChordChanges/$_totalChordChanges');
     }
@@ -255,7 +259,11 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
                           'Beat Visualization',
                           'Visual metronome indicator',
                           _showBeatVisualization,
-                          () => setState(() => _showBeatVisualization = !_showBeatVisualization),
+                          () => setState(
+                            () =>
+                                _showBeatVisualization =
+                                    !_showBeatVisualization,
+                          ),
                         ),
                       ],
                     ),
@@ -272,7 +280,9 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
                           'Start New Session',
                           'Begin tracking your practice progress',
                           Icons.play_circle_outline,
-                          _sessionStartTime == null ? _startPracticeSession : null,
+                          _sessionStartTime == null
+                              ? _startPracticeSession
+                              : null,
                         ),
                         if (_sessionStartTime != null) ...[
                           const SizedBox(height: 12),
@@ -314,49 +324,63 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
   /// Build difficulty selector
   Widget _buildDifficultySelector() {
     return Column(
-      children: PracticeDifficulty.values.map((difficulty) {
-        final isSelected = _currentDifficulty == difficulty;
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            title: Text(
-              difficulty.displayName,
-              style: TextStyle(
-                color: isSelected ? AppTheme.primary : Colors.white,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+      children:
+          PracticeDifficulty.values.map((difficulty) {
+            final isSelected = _currentDifficulty == difficulty;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                title: Text(
+                  difficulty.displayName,
+                  style: TextStyle(
+                    color: isSelected ? AppTheme.primary : Colors.white,
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+                subtitle: Text(
+                  '${(difficulty.tempoMultiplier * 100).round()}% tempo - ${difficulty.description}',
+                  style: TextStyle(
+                    color:
+                        isSelected
+                            ? AppTheme.primary.withValues(alpha: 0.8)
+                            : Colors.white70,
+                    fontSize: 12,
+                  ),
+                ),
+                leading: Radio<PracticeDifficulty>(
+                  value: difficulty,
+                  groupValue: _currentDifficulty,
+                  onChanged: (value) {
+                    if (value != null) {
+                      _changeDifficulty(value);
+                      Navigator.pop(context);
+                    }
+                  },
+                  activeColor: AppTheme.primary,
+                ),
+                tileColor:
+                    isSelected ? AppTheme.primary.withValues(alpha: 0.1) : null,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side:
+                      isSelected
+                          ? BorderSide(color: AppTheme.primary)
+                          : BorderSide.none,
+                ),
               ),
-            ),
-            subtitle: Text(
-              '${(difficulty.tempoMultiplier * 100).round()}% tempo - ${difficulty.description}',
-              style: TextStyle(
-                color: isSelected ? AppTheme.primary.withValues(alpha: 0.8) : Colors.white70,
-                fontSize: 12,
-              ),
-            ),
-            leading: Radio<PracticeDifficulty>(
-              value: difficulty,
-              groupValue: _currentDifficulty,
-              onChanged: (value) {
-                if (value != null) {
-                  _changeDifficulty(value);
-                  Navigator.pop(context);
-                }
-              },
-              activeColor: AppTheme.primary,
-            ),
-            tileColor: isSelected ? AppTheme.primary.withValues(alpha: 0.1) : null,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-              side: isSelected ? BorderSide(color: AppTheme.primary) : BorderSide.none,
-            ),
-          ),
-        );
-      }).toList(),
+            );
+          }).toList(),
     );
   }
 
   /// Build toggle option
-  Widget _buildToggleOption(String title, String subtitle, bool value, VoidCallback onChanged) {
+  Widget _buildToggleOption(
+    String title,
+    String subtitle,
+    bool value,
+    VoidCallback onChanged,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
@@ -369,10 +393,7 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
         ),
         subtitle: Text(
           subtitle,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 12,
-          ),
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
         ),
         trailing: Switch(
           value: value,
@@ -380,15 +401,18 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
           activeColor: AppTheme.primary,
         ),
         tileColor: Colors.white.withValues(alpha: 0.05),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
 
   /// Build action button
-  Widget _buildActionButton(String title, String subtitle, IconData icon, VoidCallback? onPressed) {
+  Widget _buildActionButton(
+    String title,
+    String subtitle,
+    IconData icon,
+    VoidCallback? onPressed,
+  ) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 8),
@@ -400,10 +424,7 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
           children: [
             Text(
               title,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
             ),
             Text(
               subtitle,
@@ -418,9 +439,7 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
           backgroundColor: onPressed != null ? AppTheme.primary : Colors.grey,
           foregroundColor: Colors.black,
           padding: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
     );
@@ -431,7 +450,10 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
     if (_sessionStartTime == null) return const SizedBox.shrink();
 
     final duration = DateTime.now().difference(_sessionStartTime!);
-    final accuracy = _totalChordChanges > 0 ? (_correctChordChanges / _totalChordChanges * 100) : 0.0;
+    final accuracy =
+        _totalChordChanges > 0
+            ? (_correctChordChanges / _totalChordChanges * 100)
+            : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -445,9 +467,15 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildStatItem('Duration', '${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}'),
+              _buildStatItem(
+                'Duration',
+                '${duration.inMinutes}:${(duration.inSeconds % 60).toString().padLeft(2, '0')}',
+              ),
               _buildStatItem('Accuracy', '${accuracy.toStringAsFixed(1)}%'),
-              _buildStatItem('Changes', '$_correctChordChanges/$_totalChordChanges'),
+              _buildStatItem(
+                'Changes',
+                '$_correctChordChanges/$_totalChordChanges',
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -481,10 +509,7 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
         ),
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 12,
-          ),
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
         ),
       ],
     );
@@ -497,9 +522,7 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
       body: Stack(
         children: [
           // Background color from theme
-          Container(
-            color: Theme.of(context).scaffoldBackgroundColor,
-          ),
+          Container(color: Theme.of(context).scaffoldBackgroundColor),
 
           // Main content
           Column(
@@ -696,7 +719,8 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
                           fontFamily: AppTheme.primaryFontFamily,
                         ),
                       ),
-                      if (_chordTimingService.currentChord != null && _chordTimingService.currentChord != '—') ...[
+                      if (_chordTimingService.currentChord != null &&
+                          _chordTimingService.currentChord != '—') ...[
                         const SizedBox(width: 8),
                         const Icon(
                           Icons.touch_app,
@@ -725,7 +749,8 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
                               : Colors.white.withValues(alpha: 0.1),
                       border: Border.all(
                         color:
-                            _metronomeService.isRunning && _showBeatVisualization
+                            _metronomeService.isRunning &&
+                                    _showBeatVisualization
                                 ? AppTheme.primary
                                 : Colors.white.withValues(alpha: 0.3),
                         width: 2,
@@ -736,7 +761,8 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
                         '${_metronomeService.currentBeat}',
                         style: TextStyle(
                           color:
-                              _metronomeService.isRunning && _showBeatVisualization
+                              _metronomeService.isRunning &&
+                                      _showBeatVisualization
                                   ? AppTheme.primary
                                   : Colors.white.withValues(alpha: 0.7),
                           fontSize: 18,
@@ -771,11 +797,7 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.arrow_forward,
-            color: AppTheme.primary,
-            size: 16,
-          ),
+          Icon(Icons.arrow_forward, color: AppTheme.primary, size: 16),
           const SizedBox(width: 8),
           Text(
             'Next: ',
@@ -939,8 +961,11 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
                     isCurrentChord
                         ? Border.all(color: Colors.white, width: 1)
                         : _showChordDiagrams
-                            ? Border.all(color: AppTheme.primary.withValues(alpha: 0.3), width: 1)
-                            : null,
+                        ? Border.all(
+                          color: AppTheme.primary.withValues(alpha: 0.3),
+                          width: 1,
+                        )
+                        : null,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -959,7 +984,10 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
                     Icon(
                       Icons.touch_app,
                       size: 12,
-                      color: isCurrentChord ? Colors.black : AppTheme.primary.withValues(alpha: 0.7),
+                      color:
+                          isCurrentChord
+                              ? Colors.black
+                              : AppTheme.primary.withValues(alpha: 0.7),
                     ),
                   ],
                 ],
@@ -1096,7 +1124,6 @@ class _PracticeModeScreenState extends State<PracticeModeScreen>
     // Set up chord change tracking
     _chordTimingService.onChordChange = (chord, beat) {
       setState(() {
-        _currentChord = chord;
         _nextChord = _chordTimingService.getNextChord();
         _totalChordChanges++;
 

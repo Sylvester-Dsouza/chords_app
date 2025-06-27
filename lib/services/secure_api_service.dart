@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:io' show Platform;
+import '../config/api_config.dart';
 
 /// A secure API service with enhanced error handling, retry logic,
 /// and proper HTTPS enforcement.
@@ -14,23 +14,7 @@ class SecureApiService {
   }
 
   // Base URL based on environment
-  static String get baseUrl {
-    if (kIsWeb) {
-      return 'https://chords-api-jl8n.onrender.com/api';
-    } else if (const bool.fromEnvironment('dart.vm.product')) {
-      // Release mode - use production server
-      return 'https://chords-api-jl8n.onrender.com/api';
-    } else {
-      // Debug mode
-      if (Platform.isAndroid) {
-        // For Android emulator and devices, use the actual IP address
-        return 'http://192.168.1.6:3001/api';
-      } else {
-        // For iOS simulator or physical devices
-        return 'http://192.168.1.6:3001/api';
-      }
-    }
-  }
+  static String get baseUrl => ApiConfig.baseUrl;
 
   final Dio _dio = Dio();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
@@ -46,74 +30,80 @@ class SecureApiService {
   // Initialize Dio with interceptors
   void _initializeDio() {
     _dio.options.baseUrl = baseUrl;
+    debugPrint('🌐 SecureApiService initialized with base URL: ${ApiConfig.baseUrl}');
     _dio.options.connectTimeout = const Duration(seconds: 10);
     _dio.options.receiveTimeout = const Duration(seconds: 10);
 
     // Add interceptors
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        // Apply rate limiting
-        final String requestKey = '${options.method}:${options.path}';
-        final now = DateTime.now();
-        if (_lastRequestTimes.containsKey(requestKey)) {
-          final lastRequestTime = _lastRequestTimes[requestKey]!;
-          final timeSinceLastRequest = now.difference(lastRequestTime);
-          if (timeSinceLastRequest < _minRequestInterval) {
-            final delayNeeded = _minRequestInterval - timeSinceLastRequest;
-            await Future.delayed(delayNeeded);
-          }
-        }
-        _lastRequestTimes[requestKey] = DateTime.now();
-
-        // Add authorization header if token exists
-        final token = await _secureStorage.read(key: 'access_token');
-        if (token != null) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-
-        // Enforce HTTPS in production
-        if (const bool.fromEnvironment('dart.vm.product')) {
-          if (!options.path.startsWith('https://')) {
-            options.path = options.path.replaceFirst('http://', 'https://');
-          }
-        }
-
-        return handler.next(options);
-      },
-      onResponse: (response, handler) {
-        // Handle successful response
-        return handler.next(response);
-      },
-      onError: (DioException e, handler) async {
-        // Handle token refresh if unauthorized
-        if (e.response?.statusCode == 401) {
-          try {
-            final refreshed = await _refreshToken();
-            if (refreshed) {
-              // Retry the request with the new token
-              final token = await _secureStorage.read(key: 'access_token');
-              final opts = Options(
-                method: e.requestOptions.method,
-                headers: {...e.requestOptions.headers, 'Authorization': 'Bearer $token'},
-              );
-
-              final response = await _dio.request(
-                e.requestOptions.path,
-                data: e.requestOptions.data,
-                queryParameters: e.requestOptions.queryParameters,
-                options: opts,
-              );
-
-              return handler.resolve(response);
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          // Apply rate limiting
+          final String requestKey = '${options.method}:${options.path}';
+          final now = DateTime.now();
+          if (_lastRequestTimes.containsKey(requestKey)) {
+            final lastRequestTime = _lastRequestTimes[requestKey]!;
+            final timeSinceLastRequest = now.difference(lastRequestTime);
+            if (timeSinceLastRequest < _minRequestInterval) {
+              final delayNeeded = _minRequestInterval - timeSinceLastRequest;
+              await Future.delayed(delayNeeded);
             }
-          } catch (refreshError) {
-            debugPrint('Error refreshing token: $refreshError');
           }
-        }
+          _lastRequestTimes[requestKey] = DateTime.now();
 
-        return handler.next(e);
-      },
-    ));
+          // Add authorization header if token exists
+          final token = await _secureStorage.read(key: 'access_token');
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+
+          // Enforce HTTPS in production
+          if (const bool.fromEnvironment('dart.vm.product')) {
+            if (!options.path.startsWith('https://')) {
+              options.path = options.path.replaceFirst('http://', 'https://');
+            }
+          }
+
+          return handler.next(options);
+        },
+        onResponse: (response, handler) {
+          // Handle successful response
+          return handler.next(response);
+        },
+        onError: (DioException e, handler) async {
+          // Handle token refresh if unauthorized
+          if (e.response?.statusCode == 401) {
+            try {
+              final refreshed = await _refreshToken();
+              if (refreshed) {
+                // Retry the request with the new token
+                final token = await _secureStorage.read(key: 'access_token');
+                final opts = Options(
+                  method: e.requestOptions.method,
+                  headers: {
+                    ...e.requestOptions.headers,
+                    'Authorization': 'Bearer $token',
+                  },
+                );
+
+                final response = await _dio.request(
+                  e.requestOptions.path,
+                  data: e.requestOptions.data,
+                  queryParameters: e.requestOptions.queryParameters,
+                  options: opts,
+                );
+
+                return handler.resolve(response);
+              }
+            } catch (refreshError) {
+              debugPrint('Error refreshing token: $refreshError');
+            }
+          }
+
+          return handler.next(e);
+        },
+      ),
+    );
   }
 
   // Refresh token
@@ -178,10 +168,7 @@ class SecureApiService {
 
       // Validate input
       if (name.isEmpty || email.isEmpty || password.isEmpty) {
-        return {
-          'success': false,
-          'message': 'All fields are required',
-        };
+        return {'success': false, 'message': 'All fields are required'};
       }
 
       if (!termsAccepted) {
@@ -200,12 +187,15 @@ class SecureApiService {
 
       // Use the correct endpoint with retry logic
       final response = await _requestWithRetry(
-        () => _dio.post('/auth/register', data: {
-          'name': name,
-          'email': email,
-          'password': password,
-          'termsAccepted': termsAccepted,
-        }),
+        () => _dio.post(
+          '/auth/register',
+          data: {
+            'name': name,
+            'email': email,
+            'password': password,
+            'termsAccepted': termsAccepted,
+          },
+        ),
       );
 
       debugPrint('Registration response: ${response.statusCode}');
@@ -218,17 +208,15 @@ class SecureApiService {
         };
       }
 
-      return {
-        'success': false,
-        'message': 'Registration failed',
-      };
+      return {'success': false, 'message': 'Registration failed'};
     } catch (e) {
       debugPrint('Registration error: $e');
       return {
         'success': false,
-        'message': e is DioException && e.response?.data['message'] != null
-            ? e.response?.data['message']
-            : 'Registration failed. Please try again.',
+        'message':
+            e is DioException && e.response?.data['message'] != null
+                ? e.response?.data['message']
+                : 'Registration failed. Please try again.',
       };
     }
   }
@@ -242,19 +230,19 @@ class SecureApiService {
     try {
       // Validate input
       if (email.isEmpty || password.isEmpty) {
-        return {
-          'success': false,
-          'message': 'Email and password are required',
-        };
+        return {'success': false, 'message': 'Email and password are required'};
       }
 
       // Use the correct endpoint with retry logic
       final response = await _requestWithRetry(
-        () => _dio.post('/auth/login', data: {
-          'email': email,
-          'password': password,
-          'rememberMe': rememberMe,
-        }),
+        () => _dio.post(
+          '/auth/login',
+          data: {
+            'email': email,
+            'password': password,
+            'rememberMe': rememberMe,
+          },
+        ),
       );
 
       debugPrint('Login response: ${response.statusCode}');
@@ -267,17 +255,15 @@ class SecureApiService {
         };
       }
 
-      return {
-        'success': false,
-        'message': 'Login failed',
-      };
+      return {'success': false, 'message': 'Login failed'};
     } catch (e) {
       debugPrint('Login error: $e');
       return {
         'success': false,
-        'message': e is DioException && e.response?.data['message'] != null
-            ? e.response?.data['message']
-            : 'Login failed. Please check your credentials and try again.',
+        'message':
+            e is DioException && e.response?.data['message'] != null
+                ? e.response?.data['message']
+                : 'Login failed. Please check your credentials and try again.',
       };
     }
   }
@@ -285,30 +271,23 @@ class SecureApiService {
   // Get user profile with enhanced security
   Future<Map<String, dynamic>> getUserProfile() async {
     try {
-      final response = await _requestWithRetry(
-        () => _dio.get('/customers/me'),
-      );
+      final response = await _requestWithRetry(() => _dio.get('/customers/me'));
 
       debugPrint('User profile response: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': response.data,
-        };
+        return {'success': true, 'data': response.data};
       }
 
-      return {
-        'success': false,
-        'message': 'Failed to get user profile',
-      };
+      return {'success': false, 'message': 'Failed to get user profile'};
     } catch (e) {
       debugPrint('Get user profile error: $e');
       return {
         'success': false,
-        'message': e is DioException && e.response?.data['message'] != null
-            ? e.response?.data['message']
-            : 'Failed to get user profile. Please try again.',
+        'message':
+            e is DioException && e.response?.data['message'] != null
+                ? e.response?.data['message']
+                : 'Failed to get user profile. Please try again.',
       };
     }
   }
@@ -316,18 +295,13 @@ class SecureApiService {
   // Logout with enhanced security
   Future<Map<String, dynamic>> logout() async {
     try {
-      await _requestWithRetry(
-        () => _dio.post('/auth/logout'),
-      );
+      await _requestWithRetry(() => _dio.post('/auth/logout'));
 
       // Clear tokens
       await _secureStorage.delete(key: 'access_token');
       await _secureStorage.delete(key: 'refresh_token');
 
-      return {
-        'success': true,
-        'message': 'Logged out successfully',
-      };
+      return {'success': true, 'message': 'Logged out successfully'};
     } catch (e) {
       debugPrint('Logout error: $e');
 
@@ -336,14 +310,18 @@ class SecureApiService {
       await _secureStorage.delete(key: 'refresh_token');
 
       return {
-        'success': true, // Still consider it successful since tokens are cleared
+        'success':
+            true, // Still consider it successful since tokens are cleared
         'message': 'Logged out successfully',
       };
     }
   }
 
   // Generic GET method with enhanced security
-  Future<dynamic> get(String path, {Map<String, dynamic>? queryParameters}) async {
+  Future<dynamic> get(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+  }) async {
     try {
       final response = await _requestWithRetry(
         () => _dio.get(path, queryParameters: queryParameters),
@@ -401,9 +379,7 @@ class SecureApiService {
   // Generic DELETE method with enhanced security
   Future<dynamic> delete(String path) async {
     try {
-      final response = await _requestWithRetry(
-        () => _dio.delete(path),
-      );
+      final response = await _requestWithRetry(() => _dio.delete(path));
 
       return response.data;
     } catch (e) {
@@ -413,7 +389,9 @@ class SecureApiService {
   }
 
   // Request with retry logic
-  Future<Response> _requestWithRetry(Future<Response> Function() requestFunc) async {
+  Future<Response> _requestWithRetry(
+    Future<Response> Function() requestFunc,
+  ) async {
     int retryCount = 0;
     Duration delay = _initialRetryDelay;
 

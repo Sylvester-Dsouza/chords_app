@@ -628,6 +628,26 @@ class IncrementalSyncService {
     }
   }
 
+  /// Clear setlist cache to force refresh
+  Future<void> clearSetlistCache([String? specificSetlistId]) async {
+    try {
+      if (specificSetlistId != null) {
+        // Clear specific setlist from cache
+        debugPrint('🗑️ Clearing cache for specific setlist: $specificSetlistId');
+        final cachedSetlists = await _getCachedSetlists();
+        final updatedSetlists = cachedSetlists.where((s) => s.id != specificSetlistId).toList();
+        await _cacheSetlists(updatedSetlists);
+        debugPrint('✅ Removed setlist $specificSetlistId from cache');
+      } else {
+        // Clear all setlists cache
+        await _prefs?.remove(_setlistsKey);
+        debugPrint('🗑️ Cleared all setlist cache');
+      }
+    } catch (e) {
+      debugPrint('❌ Error clearing setlist cache: $e');
+    }
+  }
+
   /// Get cached setlists
   Future<List<Setlist>> _getCachedSetlists() async {
     try {

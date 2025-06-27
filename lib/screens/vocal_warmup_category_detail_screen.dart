@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
-import '../widgets/inner_screen_app_bar.dart';
 import '../models/vocal.dart';
 import '../services/vocal_service.dart';
 import '../core/service_locator.dart';

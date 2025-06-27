@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:http/http.dart' as http;
@@ -31,23 +30,24 @@ class ConnectivityService extends ChangeNotifier {
   bool get isConnected => _isConnected;
   bool get hasInternetAccess => _hasInternetAccess;
   bool get isApiReachable => _isApiReachable;
-  bool get isFullyOnline => _isConnected && _hasInternetAccess && _isApiReachable;
+  bool get isFullyOnline =>
+      _isConnected && _hasInternetAccess && _isApiReachable;
   ConnectivityResult get connectionType => _connectionType;
 
   /// Initialize the connectivity service
   Future<void> initialize() async {
     debugPrint('🌐 Initializing ConnectivityService...');
-    
+
     try {
       // Check initial connectivity
       await _checkInitialConnectivity();
-      
+
       // Start listening to connectivity changes
       _startConnectivityListener();
-      
+
       // Start periodic checks
       _startPeriodicChecks();
-      
+
       debugPrint('✅ ConnectivityService initialized successfully');
     } catch (e) {
       debugPrint('❌ Failed to initialize ConnectivityService: $e');
@@ -58,16 +58,16 @@ class ConnectivityService extends ChangeNotifier {
   Future<void> _checkInitialConnectivity() async {
     try {
       final connectivityResults = await _connectivity.checkConnectivity();
-      final connectivityResult = connectivityResults.isNotEmpty 
-          ? connectivityResults.first 
-          : ConnectivityResult.none;
-      
+      final connectivityResult =
+          connectivityResults.isNotEmpty
+              ? connectivityResults.first
+              : ConnectivityResult.none;
+
       await _updateConnectivityState(connectivityResult);
-      
+
       // Also check internet access and API reachability
       await _checkInternetAccess();
       await _checkApiReachability();
-      
     } catch (e) {
       debugPrint('❌ Error checking initial connectivity: $e');
       _setOfflineState();
@@ -78,9 +78,10 @@ class ConnectivityService extends ChangeNotifier {
   void _startConnectivityListener() {
     _connectivitySubscription = _connectivity.onConnectivityChanged.listen(
       (List<ConnectivityResult> results) async {
-        final result = results.isNotEmpty ? results.first : ConnectivityResult.none;
+        final result =
+            results.isNotEmpty ? results.first : ConnectivityResult.none;
         await _updateConnectivityState(result);
-        
+
         // Check internet access when connectivity changes
         if (_isConnected) {
           await _checkInternetAccess();
@@ -119,12 +120,14 @@ class ConnectivityService extends ChangeNotifier {
     _lastConnectivityCheck = DateTime.now();
 
     if (wasConnected != _isConnected) {
-      debugPrint('🌐 Connectivity changed: ${_isConnected ? "Connected" : "Disconnected"} ($result)');
-      
+      debugPrint(
+        '🌐 Connectivity changed: ${_isConnected ? "Connected" : "Disconnected"} ($result)',
+      );
+
       if (!_isConnected) {
         _setOfflineState();
       }
-      
+
       notifyListeners();
     }
   }
@@ -138,19 +141,24 @@ class ConnectivityService extends ChangeNotifier {
 
     try {
       // Try to reach a reliable internet service with longer timeout
-      final response = await http.get(
-        Uri.parse('https://www.google.com'),
-        headers: {'Cache-Control': 'no-cache'},
-      ).timeout(const Duration(seconds: 10)); // Increased timeout for mobile networks
+      final response = await http
+          .get(
+            Uri.parse('https://www.google.com'),
+            headers: {'Cache-Control': 'no-cache'},
+          )
+          .timeout(
+            const Duration(seconds: 10),
+          ); // Increased timeout for mobile networks
 
       final hadInternetAccess = _hasInternetAccess;
       _hasInternetAccess = response.statusCode == 200;
 
       if (hadInternetAccess != _hasInternetAccess) {
-        debugPrint('🌐 Internet access changed: ${_hasInternetAccess ? "Available" : "Unavailable"}');
+        debugPrint(
+          '🌐 Internet access changed: ${_hasInternetAccess ? "Available" : "Unavailable"}',
+        );
         notifyListeners();
       }
-
     } catch (e) {
       if (_hasInternetAccess) {
         debugPrint('🌐 Lost internet access: $e');
@@ -169,20 +177,24 @@ class ConnectivityService extends ChangeNotifier {
 
     try {
       // Try to reach the app's API health endpoint
-      final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/api/health'),
-        headers: {'Cache-Control': 'no-cache'},
-      ).timeout(_apiTimeout);
+      final response = await http
+          .get(
+            Uri.parse('${ApiConfig.baseUrl}/api/health'),
+            headers: {'Cache-Control': 'no-cache'},
+          )
+          .timeout(_apiTimeout);
 
       final wasApiReachable = _isApiReachable;
-      _isApiReachable = response.statusCode < 500; // Accept any non-server error
+      _isApiReachable =
+          response.statusCode < 500; // Accept any non-server error
       _lastApiCheck = DateTime.now();
 
       if (wasApiReachable != _isApiReachable) {
-        debugPrint('🌐 API reachability changed: ${_isApiReachable ? "Reachable" : "Unreachable"}');
+        debugPrint(
+          '🌐 API reachability changed: ${_isApiReachable ? "Reachable" : "Unreachable"}',
+        );
         notifyListeners();
       }
-
     } catch (e) {
       if (_isApiReachable) {
         debugPrint('🌐 API became unreachable: $e');
@@ -198,7 +210,7 @@ class ConnectivityService extends ChangeNotifier {
     _isConnected = false;
     _hasInternetAccess = false;
     _isApiReachable = false;
-    
+
     if (wasFullyOnline) {
       debugPrint('🌐 Device is now fully offline');
       notifyListeners();
@@ -208,7 +220,7 @@ class ConnectivityService extends ChangeNotifier {
   /// Force refresh all connectivity checks
   Future<void> refreshConnectivity() async {
     debugPrint('🌐 Refreshing connectivity status...');
-    
+
     try {
       await _checkInitialConnectivity();
     } catch (e) {
@@ -256,6 +268,7 @@ class ConnectivityService extends ChangeNotifier {
   }
 
   /// Dispose the service
+  @override
   void dispose() {
     _connectivitySubscription?.cancel();
     _connectivitySubscription = null;
@@ -265,9 +278,4 @@ class ConnectivityService extends ChangeNotifier {
 }
 
 /// Types of connectivity issues
-enum ConnectivityIssueType {
-  none,
-  noNetwork,
-  noInternet,
-  apiUnreachable,
-}
+enum ConnectivityIssueType { none, noNetwork, noInternet, apiUnreachable }

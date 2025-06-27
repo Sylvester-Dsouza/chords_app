@@ -2,30 +2,18 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:io' show Platform;
 import 'package:firebase_auth/firebase_auth.dart';
+import '../config/api_config.dart';
 import '../utils/performance_tracker.dart';
 
+/// API service for making HTTP requests to the backend
 class ApiService {
-  // For Android emulator, use 10.0.2.2 instead of localhost
-  // For physical devices, use your computer's IP address
-  // Fixed IP address for development
-  static const String _devIpAddress = '192.168.1.6';
+  /// Get the base URL from the centralized API config
+  static String get baseUrl => ApiConfig.baseUrlWithoutSuffix;
 
-  static String get baseUrl {
-    if (kIsWeb) {
-      return 'http://$_devIpAddress:3001';
-    } else if (const bool.fromEnvironment('dart.vm.product')) {
-      // Release mode - use production server
-      return 'https://chords-api-jl8n.onrender.com';
-    } else if (Platform.isAndroid && !kIsWeb) {
-      // For Android emulator and devices, use the actual IP address
-      // This works for both emulator and physical devices
-      return 'http://$_devIpAddress:3001';
-    } else {
-      // For all other platforms (iOS, desktop)
-      return 'http://$_devIpAddress:3001';
-    }
+  // Initialize and log the base URL
+  static void _logBaseUrl() {
+    debugPrint('🌐 ApiService using base URL: $baseUrl');
   }
 
   // Test API connection
@@ -64,6 +52,7 @@ class ApiService {
   final Map<String, Future<Response>> _pendingRequests = {};
 
   ApiService() {
+    _logBaseUrl();
     _dio.options.baseUrl = baseUrl;
     _dio.options.connectTimeout = const Duration(
       seconds: 30,

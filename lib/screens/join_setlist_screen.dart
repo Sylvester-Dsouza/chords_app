@@ -121,31 +121,42 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
           children: [
             // Header
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppTheme.primary.withValues(alpha: 0.1),
-                    AppTheme.primary.withValues(alpha: 0.05),
+                    AppTheme.primary.withValues(alpha: 0.15),
+                    AppTheme.primary.withValues(alpha: 0.08),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(5),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppTheme.primary.withValues(alpha: 0.3),
+                  color: AppTheme.primary.withValues(alpha: 0.2),
+                  width: 1,
                 ),
               ),
               child: Column(
                 children: [
-                  Icon(Icons.group_add, size: 48, color: AppTheme.primary),
-                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(50),
+                    ),
+                    child: Icon(
+                      Icons.group_add,
+                      size: 32,
+                      color: AppTheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   Text(
                     'Join a Collaborative Setlist',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       color: AppTheme.text,
                       fontWeight: FontWeight.bold,
-                      fontFamily: AppTheme.primaryFontFamily,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -154,14 +165,13 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                     'Enter a 4-digit code or scan a QR code to join',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppTheme.textMuted,
-                      fontFamily: AppTheme.primaryFontFamily,
                     ),
                     textAlign: TextAlign.center,
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
 
             // Share code input with QR scanner
             Row(
@@ -172,7 +182,6 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: AppTheme.text,
                       fontWeight: FontWeight.w600,
-                      fontFamily: AppTheme.primaryFontFamily,
                     ),
                   ),
                 ),
@@ -190,128 +199,190 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                   icon: const Icon(Icons.qr_code_scanner, size: 18),
                   label: const Text('Scan QR'),
                   style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: AppTheme.primary),
+                    side: BorderSide(color: AppTheme.primary, width: 1.5),
                     foregroundColor: AppTheme.primary,
+                    backgroundColor: AppTheme.primary.withValues(alpha: 0.05),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _shareCodeController,
-              decoration: InputDecoration(
-                hintText: 'Enter 4-digit code (e.g., 1234)',
-                hintStyle: TextStyle(
-                  color: AppTheme.textMuted,
-                  fontFamily: AppTheme.primaryFontFamily,
-                ),
-                errorText: _errorMessage,
-                prefixIcon: Icon(Icons.code, color: AppTheme.primary),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(5),
-                  borderSide: BorderSide(color: AppTheme.primary.withAlpha(80)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(5),
-                  borderSide: BorderSide(color: AppTheme.primary.withAlpha(80)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(5),
-                  borderSide: BorderSide(color: AppTheme.primary, width: 2),
-                ),
-                filled: true,
-                fillColor: AppTheme.surface,
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              style: TextStyle(
-                color: AppTheme.text,
-                fontSize: 18,
-                letterSpacing: 4,
-                fontFamily: AppTheme.monospaceFontFamily,
+              child: TextField(
+                controller: _shareCodeController,
+                decoration: InputDecoration(
+                  hintText: 'Enter 4-digit code (e.g., 1234)',
+                  hintStyle: TextStyle(
+                    color: AppTheme.textMuted,
+                  ),
+                  errorText: _errorMessage,
+                  prefixIcon: Container(
+                    margin: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.code,
+                      color: AppTheme.primary,
+                      size: 20,
+                    ),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: AppTheme.primary.withValues(alpha: 0.3),
+                      width: 1.5,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: AppTheme.primary.withValues(alpha: 0.3),
+                      width: 1.5,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppTheme.primary, width: 2),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                  ),
+                  filled: true,
+                  fillColor: AppTheme.surface,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                ),
+                style: TextStyle(
+                  color: AppTheme.text,
+                  fontSize: 20,
+                  letterSpacing: 6,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                onChanged: (value) {
+                  // Auto-preview when user types 4 digits
+                  if (value.length == 4) {
+                    _previewSetlistData();
+                  } else {
+                    setState(() {
+                      _previewSetlist = null;
+                      _errorMessage = null;
+                    });
+                  }
+                },
               ),
-              textAlign: TextAlign.center,
-              keyboardType: TextInputType.number,
-              maxLength: 4,
-              onChanged: (value) {
-                // Auto-preview when user types 4 digits
-                if (value.length == 4) {
-                  _previewSetlistData();
-                } else {
-                  setState(() {
-                    _previewSetlist = null;
-                    _errorMessage = null;
-                  });
-                }
-              },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
             // Preview button
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: _isLoading ? null : _previewSetlistData,
-                icon:
-                    _isLoading
-                        ? SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppTheme.primary,
-                          ),
-                        )
-                        : const Icon(Icons.preview),
+                icon: _isLoading
+                    ? SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppTheme.primary,
+                        ),
+                      )
+                    : const Icon(Icons.preview, size: 20),
                 label: Text(
                   _isLoading ? 'Loading...' : 'Preview Setlist',
-                  style: TextStyle(fontFamily: AppTheme.primaryFontFamily),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  side: BorderSide(color: AppTheme.primary),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  side: BorderSide(color: AppTheme.primary, width: 1.5),
                   foregroundColor: AppTheme.primary,
+                  backgroundColor: AppTheme.primary.withValues(alpha: 0.05),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
 
             // Setlist preview
             if (_previewSetlist != null) ...[
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: AppTheme.surface,
-                  borderRadius: BorderRadius.circular(5),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: AppTheme.primary.withValues(alpha: 0.3),
+                    color: AppTheme.primary.withValues(alpha: 0.2),
+                    width: 1,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(
-                          Icons.queue_music,
-                          color: AppTheme.primary,
-                          size: 24,
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.queue_music,
+                            color: AppTheme.primary,
+                            size: 24,
+                          ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 _previewSetlist!.name,
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.titleLarge?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(
                                   color: AppTheme.text,
                                   fontWeight: FontWeight.bold,
-                                  fontFamily: AppTheme.primaryFontFamily,
                                 ),
                               ),
                               if (_previewSetlist!.description?.isNotEmpty ==
@@ -319,11 +390,11 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                                 const SizedBox(height: 4),
                                 Text(
                                   _previewSetlist!.description!,
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.bodyMedium?.copyWith(
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(
                                     color: AppTheme.textMuted,
-                                    fontFamily: AppTheme.primaryFontFamily,
                                   ),
                                 ),
                               ],
@@ -332,7 +403,7 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
 
                     // Setlist info
                     Row(
@@ -341,38 +412,42 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                           Icons.music_note,
                           '${_previewSetlist!.songs?.length ?? 0} songs',
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 12),
                         _buildInfoChip(Icons.person, 'Owner'),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
 
                     // Join button
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: _isJoining ? null : _joinSetlist,
-                        icon:
-                            _isJoining
-                                ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.black,
-                                  ),
-                                )
-                                : const Icon(Icons.group_add),
+                        icon: _isJoining
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.black,
+                                ),
+                              )
+                            : const Icon(Icons.group_add, size: 20),
                         label: Text(
                           _isJoining ? 'Joining...' : 'Join Setlist',
-                          style: TextStyle(
-                            fontFamily: AppTheme.primaryFontFamily,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primary,
                           foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
                         ),
                       ),
                     ),
@@ -388,24 +463,26 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
 
   Widget _buildInfoChip(IconData icon, String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppTheme.primary.withAlpha(20),
-        borderRadius: BorderRadius.circular(5),
-        border: Border.all(color: AppTheme.primary.withAlpha(60), width: 0.5),
+        color: AppTheme.primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppTheme.primary.withValues(alpha: 0.3),
+          width: 1,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: AppTheme.primary),
-          const SizedBox(width: 4),
+          Icon(icon, size: 16, color: AppTheme.primary),
+          const SizedBox(width: 6),
           Text(
             text,
             style: TextStyle(
               color: AppTheme.primary,
-              fontSize: 12,
-              fontFamily: AppTheme.primaryFontFamily,
-              fontWeight: FontWeight.w500,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

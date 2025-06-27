@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 
 class AppTheme {
@@ -17,7 +16,9 @@ class AppTheme {
   static const Color surface = Color(0xFF1A1A1A); // Dark gray
 
   /// App bar color - Independent color for app bars and status bar
-  static const Color appBar = Color(0xFF090909); // Slightly lighter than surface for distinction
+  static const Color appBar = Color(
+    0xFF090909,
+  ); // Slightly lighter than surface for distinction
 
   /// Text color - Primary text content (white for dark theme)
   static const Color text = Color(0xFFFFFFFF); // Pure white
@@ -54,15 +55,16 @@ class AppTheme {
   static const Color subtitleColor = textMuted;
 
   // ============================================================================
-  // FONT CONFIGURATION - Apple San Francisco-like fonts
+  // FONT CONFIGURATION - Apple San Francisco Pro fonts
   // ============================================================================
 
-  /// Primary font family - Inter (closest to Apple San Francisco)
-  /// Inter is specifically designed for UI and closely matches SF Pro characteristics
-  static const String primaryFontFamily = 'Inter';
+  /// Primary font family - SF Pro Text (for body text and UI elements)
+  static const String primaryFontFamily = 'SF Pro Text';
 
-  /// Monospace font family - SF Mono alternative
-  /// JetBrains Mono is the closest open-source alternative to SF Mono
+  /// Display font family - SF Pro Display (for headings and large text)
+  static const String displayFontFamily = 'SF Pro Display';
+
+  /// Monospace font family - For chord sheets and code-like content
   static const String monospaceFontFamily = 'JetBrains Mono';
 
   // Get the theme data
@@ -81,41 +83,54 @@ class AppTheme {
     );
 
     return ThemeData(
-      // Use Inter as the base font - closest to Apple San Francisco
-      textTheme: GoogleFonts.interTextTheme(
-        const TextTheme(
-          displayLarge: TextStyle(
-            fontSize: 28.0, // Reduced from 32.0
-            fontWeight: FontWeight.bold,
-            color: text,
-          ),
-          displayMedium: TextStyle(
-            fontSize: 24.0, // Reduced from 28.0
-            fontWeight: FontWeight.bold,
-            color: text,
-          ),
-          displaySmall: TextStyle(
-            fontSize: 20.0, // Reduced from 24.0
-            fontWeight: FontWeight.bold,
-            color: text,
-          ),
-          headlineMedium: TextStyle(
-            fontSize: 18.0, // Reduced from 20.0
-            fontWeight: FontWeight.w600,
-            color: text,
-          ),
-          titleLarge: TextStyle(
-            fontSize: 16.0, // Reduced from 18.0
-            fontWeight: FontWeight.w500,
-            color: text,
-          ),
-          bodyLarge: TextStyle(fontSize: 14.0, color: text), // Reduced from 16.0
-          bodyMedium: TextStyle(fontSize: 13.0, color: text), // Reduced from 14.0
-          labelLarge: TextStyle(
-            fontSize: 13.0, // Reduced from 14.0
-            fontWeight: FontWeight.w500,
-            color: text,
-          ),
+      // Use SF Pro fonts - Apple's system fonts
+      fontFamily: primaryFontFamily, // Default to SF Pro Text
+      textTheme: const TextTheme(
+        displayLarge: TextStyle(
+          fontSize: 28.0, // Reduced from 32.0
+          fontWeight: FontWeight.bold,
+          fontFamily: displayFontFamily, // SF Pro Display for large text
+          color: text,
+        ),
+        displayMedium: TextStyle(
+          fontSize: 24.0, // Reduced from 28.0
+          fontWeight: FontWeight.bold,
+          fontFamily: displayFontFamily, // SF Pro Display for large text
+          color: text,
+        ),
+        displaySmall: TextStyle(
+          fontSize: 20.0, // Reduced from 24.0
+          fontWeight: FontWeight.bold,
+          fontFamily: displayFontFamily, // SF Pro Display for large text
+          color: text,
+        ),
+        headlineMedium: TextStyle(
+          fontSize: 18.0, // Reduced from 20.0
+          fontWeight: FontWeight.w600,
+          fontFamily: displayFontFamily, // SF Pro Display for headings
+          color: text,
+        ),
+        titleLarge: TextStyle(
+          fontSize: 16.0, // Reduced from 18.0
+          fontWeight: FontWeight.w500,
+          fontFamily: primaryFontFamily, // SF Pro Text for titles
+          color: text,
+        ),
+        bodyLarge: TextStyle(
+          fontSize: 14.0,
+          fontFamily: primaryFontFamily, // SF Pro Text for body
+          color: text,
+        ), // Reduced from 16.0
+        bodyMedium: TextStyle(
+          fontSize: 13.0,
+          fontFamily: primaryFontFamily, // SF Pro Text for body
+          color: text,
+        ), // Reduced from 14.0
+        labelLarge: TextStyle(
+          fontSize: 13.0, // Reduced from 14.0
+          fontWeight: FontWeight.w500,
+          fontFamily: primaryFontFamily, // SF Pro Text for labels
+          color: text,
         ),
       ),
 
@@ -149,9 +164,10 @@ class AppTheme {
         scrolledUnderElevation: 0, // Prevents elevation change when scrolling
         surfaceTintColor:
             Colors.transparent, // Prevents blue tinting from primary color
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: TextStyle(
           fontSize: 16.0, // Reduced from 18.0
           fontWeight: FontWeight.w600,
+          fontFamily: primaryFontFamily, // SF Pro Text for titles
           color: text,
         ),
       ),
@@ -163,9 +179,10 @@ class AppTheme {
           foregroundColor: Colors.black,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-          textStyle: GoogleFonts.inter(
+          textStyle: TextStyle(
             fontSize: 13.0, // Reduced from 14.0
             fontWeight: FontWeight.w500,
+            fontFamily: primaryFontFamily, // SF Pro Text for body
           ),
         ),
       ),
@@ -174,9 +191,10 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: primary,
-          textStyle: GoogleFonts.inter(
+          textStyle: TextStyle(
             fontSize: 13.0, // Reduced from 14.0
             fontWeight: FontWeight.w500,
+            fontFamily: primaryFontFamily, // SF Pro Text for body
           ),
         ),
       ),
@@ -193,8 +211,14 @@ class AppTheme {
           borderRadius: BorderRadius.circular(5),
           borderSide: BorderSide.none,
         ),
-        hintStyle: GoogleFonts.inter(color: textMuted),
-        errorStyle: GoogleFonts.inter(color: error),
+        hintStyle: TextStyle(
+          color: textMuted,
+          fontFamily: primaryFontFamily, // SF Pro Text for body
+        ),
+        errorStyle: TextStyle(
+          color: error,
+          fontFamily: primaryFontFamily, // SF Pro Text for body
+        ),
       ),
 
       // Card theme
@@ -225,51 +249,59 @@ class AppTheme {
   // PREDEFINED TEXT STYLES - Using the minimal color system
   // ============================================================================
 
-  static TextStyle songTitleStyle = GoogleFonts.inter(
+  static TextStyle songTitleStyle = TextStyle(
     fontSize: 20.0, // Reduced from 24.0
     fontWeight: FontWeight.bold,
+    fontFamily: displayFontFamily, // SF Pro Display for large text
     color: text,
   );
 
-  static TextStyle artistNameStyle = GoogleFonts.inter(
+  static TextStyle artistNameStyle = TextStyle(
     fontSize: 14.0, // Reduced from 16.0
     fontWeight: FontWeight.w400,
+    fontFamily: primaryFontFamily, // SF Pro Text for body
     color: textMuted,
   );
 
-  static TextStyle sectionTitleStyle = GoogleFonts.inter(
+  static TextStyle sectionTitleStyle = TextStyle(
     fontSize: 14.0, // Reduced from 16.0
     fontWeight: FontWeight.w600,
+    fontFamily: primaryFontFamily, // SF Pro Text for titles
     color: text,
   );
 
-  static TextStyle chordSheetStyle = GoogleFonts.jetBrainsMono(
+  static TextStyle chordSheetStyle = TextStyle(
     fontSize: 13.0, // Reduced from 14.0
     height: 1.5,
+    fontFamily: monospaceFontFamily, // Monospace font
     color: text,
   );
 
-  static TextStyle chordStyle = GoogleFonts.jetBrainsMono(
+  static TextStyle chordStyle = TextStyle(
     fontSize: 13.0, // Reduced from 14.0
     fontWeight: FontWeight.w600,
+    fontFamily: monospaceFontFamily, // Monospace font
     color: primary,
   );
 
-  static TextStyle sectionHeaderStyle = GoogleFonts.jetBrainsMono(
+  static TextStyle sectionHeaderStyle = TextStyle(
     fontSize: 13.0, // Reduced from 14.0
     fontWeight: FontWeight.bold,
+    fontFamily: monospaceFontFamily, // Monospace font
     color: textMuted,
     letterSpacing: 0.5,
   );
 
-  static TextStyle tabLabelStyle = GoogleFonts.inter(
+  static TextStyle tabLabelStyle = TextStyle(
     fontSize: 13.0, // Reduced from 14.0
     fontWeight: FontWeight.w500,
+    fontFamily: primaryFontFamily, // SF Pro Text for body
   );
 
-  static TextStyle bottomNavLabelStyle = GoogleFonts.inter(
+  static TextStyle bottomNavLabelStyle = TextStyle(
     fontSize: 11.0, // Reduced from 12.0
     fontWeight: FontWeight.w500,
+    fontFamily: primaryFontFamily, // SF Pro Text for body
   );
 }
 

@@ -257,7 +257,7 @@ class _VocalWarmupsContentState extends State<_VocalWarmupsContent> {
             width: 96,
             height: 96,
             decoration: BoxDecoration(
-              color: primaryColor.withOpacity(0.1),
+              color: primaryColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(5),
             ),
             child: Icon(
@@ -314,10 +314,10 @@ class _VocalCategoryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(5),
-        border: Border.all(color: primaryColor.withOpacity(0.1), width: 1),
+        border: Border.all(color: primaryColor.withValues(alpha: 0.1), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 6,
             offset: const Offset(0, 3),
           ),
@@ -341,8 +341,8 @@ class _VocalCategoryCard extends StatelessWidget {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        primaryColor.withOpacity(0.8),
-                        primaryColor.withOpacity(0.6),
+                        primaryColor.withValues(alpha: 0.8),
+                        primaryColor.withValues(alpha: 0.6),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(5),
@@ -377,7 +377,7 @@ class _VocalCategoryCard extends StatelessWidget {
                       Text(
                         '${category.itemCount ?? 0} warmups',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.primary.withOpacity(0.8),
+                          color: theme.colorScheme.primary.withValues(alpha: 0.8),
                           fontWeight: FontWeight.w500,
                           fontFamily: AppTheme.primaryFontFamily,
                           fontSize: 16,

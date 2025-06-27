@@ -137,7 +137,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
       // Log song details for debugging
       if (setlist.songs != null && setlist.songs!.isNotEmpty) {
         debugPrint('📋 Songs in refreshed setlist:');
-        for (var i = 0; i < setlist.songs!.length; i++) {
+        for (var i = 0; i <setlist.songs!.length; i++) {
           final song = setlist.songs![i];
           if (song is Map<String, dynamic>) {
             debugPrint('  ${i + 1}. ${song['title'] ?? 'Unknown'} - ${song['artist'] is Map ? song['artist']['name'] : song['artist'] ?? 'Unknown Artist'}');
@@ -161,6 +161,65 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
       if (mounted) {
         debugPrint('⚠️ Refresh failed but widget is still mounted');
       }
+    }
+  }
+
+  /// Force refresh setlist data directly from API, bypassing all cache
+  Future<void> _forceRefreshFromAPI() async {
+    try {
+      if (!_isLoggedIn) {
+        debugPrint('❌ User not logged in, skipping API refresh');
+        return;
+      }
+
+      debugPrint('🔄 Force refreshing setlist directly from API (bypassing cache)');
+      
+      // Clear all local state first
+      if (mounted) {
+        setState(() {
+          _songs = [];
+        });
+      }
+      
+      // Clear cache completely for this setlist
+      await _syncService.clearSetlistCache(widget.setlistId);
+      
+      // Wait for cache to clear
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      // Force refresh from API
+      final setlist = await _syncService.getSetlistById(widget.setlistId, forceRefresh: true);
+
+      if (setlist == null) {
+        debugPrint('❌ Setlist not found during API refresh');
+        return;
+      }
+
+      debugPrint('✅ Setlist refreshed from API: ${setlist.name}');
+      debugPrint('🎵 Fresh song count from API: ${setlist.songs?.length ?? 0}');
+
+      // Log fresh song details
+      if (setlist.songs != null && setlist.songs!.isNotEmpty) {
+        debugPrint('📋 Fresh songs from API:');
+        for (var i = 0; i < setlist.songs!.length; i++) {
+          final song = setlist.songs![i];
+          if (song is Map<String, dynamic>) {
+            debugPrint('  ${i + 1}. ${song['title'] ?? 'Unknown'} - ${song['artist'] is Map ? song['artist']['name'] : song['artist'] ?? 'Unknown Artist'}');
+          }
+        }
+      } else {
+        debugPrint('📋 No songs in fresh setlist from API');
+      }
+
+      if (mounted) {
+        setState(() {
+          _setlist = setlist;
+          _songs = setlist.songs ?? [];
+        });
+        debugPrint('🔄 State updated with fresh API data - UI now shows ${_songs.length} songs');
+      }
+    } catch (e) {
+      debugPrint('❌ Error force refreshing from API: $e');
     }
   }
 
@@ -920,8 +979,9 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
       }
     }
 
-    // Set of selected song IDs for multi-select (initially empty)
-    final Set<String> selectedSongIds = {};
+    // Set of selected song IDs for multi-select
+    // Initialize with songs already in setlist so they appear pre-selected
+    final Set<String> selectedSongIds = Set<String>.from(existingSongIds);
 
     // Show bottom sheet instead of dialog for better scrolling with long lists
     showModalBottomSheet(
@@ -959,7 +1019,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Add Songs to Setlist',
+                            'Manage Setlist Songs',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 20,
@@ -987,7 +1047,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
 
                   // Instructions
                   const Text(
-                    'Select songs from your liked songs:',
+                    'Select songs to add or uncheck to remove from setlist:',
                     style: TextStyle(color: Colors.white70),
                   ),
 
@@ -1000,13 +1060,6 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                       itemBuilder: (context, index) {
                         final song = _likedSongs[index];
                         final bool isInSetlist = existingSongIds.contains(song.id);
-
-                        // Initialize selection state - if song is already in setlist, it's pre-selected
-                        if (isInSetlist && !selectedSongIds.contains(song.id)) {
-                          // Add to selected songs if it's the first time rendering and song is in setlist
-                          selectedSongIds.add(song.id);
-                        }
-
                         final bool isSelected = selectedSongIds.contains(song.id);
 
                         return Container(
@@ -1150,16 +1203,19 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                               ),
                             ),
                             onPressed: _isAddingSongs ? null : () async {
-                              // Add songs to setlist logic
-                              if (selectedSongIds.isNotEmpty) {
-                                // Filter out songs that are already in the setlist
+                              // Handle both adding and removing songs
+                              if (selectedSongIds.isNotEmpty || existingSongIds.isNotEmpty) {
+                                // Find songs to add (selected but not in setlist)
                                 final Set<String> newSongIds = selectedSongIds.difference(existingSongIds);
+                                
+                                // Find songs to remove (in setlist but not selected)
+                                final Set<String> removeSongIds = existingSongIds.difference(selectedSongIds);
 
-                                // If no new songs to add, show message and return
-                                if (newSongIds.isEmpty) {
+                                // If no changes, show message and return
+                                if (newSongIds.isEmpty && removeSongIds.isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('All selected songs are already in the setlist'),
+                                      content: Text('No changes to apply'),
                                       backgroundColor: Colors.orange,
                                     ),
                                   );
@@ -1179,7 +1235,16 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                                   });
                                 }
 
-                                // Show loading dialog
+                                // Show loading dialog with appropriate message
+                                String loadingMessage = '';
+                                if (newSongIds.isNotEmpty && removeSongIds.isNotEmpty) {
+                                  loadingMessage = 'Adding ${newSongIds.length} and removing ${removeSongIds.length} songs...';
+                                } else if (newSongIds.isNotEmpty) {
+                                  loadingMessage = 'Adding ${newSongIds.length} song${newSongIds.length > 1 ? "s" : ""} to setlist...';
+                                } else {
+                                  loadingMessage = 'Removing ${removeSongIds.length} song${removeSongIds.length > 1 ? "s" : ""} from setlist...';
+                                }
+
                                 showDialog(
                                   context: context,
                                   barrierDismissible: false,
@@ -1194,7 +1259,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                                           ),
                                           const SizedBox(height: 16),
                                           Text(
-                                            'Adding ${newSongIds.length} song${newSongIds.length > 1 ? "s" : ""} to setlist...',
+                                            loadingMessage,
                                             style: const TextStyle(color: Colors.white),
                                             textAlign: TextAlign.center,
                                           ),
@@ -1205,8 +1270,19 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                                 );
 
                                 try {
-                                  // Use bulk add API for much faster performance
-                                  await _setlistService.addMultipleSongsToSetlist(widget.setlistId, newSongIds.toList());
+                                  // Remove songs first
+                                  if (removeSongIds.isNotEmpty) {
+                                    debugPrint('🗑️ Removing ${removeSongIds.length} songs from setlist...');
+                                    await _setlistService.removeMultipleSongsFromSetlist(widget.setlistId, removeSongIds.toList());
+                                    debugPrint('✅ All songs removed successfully');
+                                  }
+
+                                  // Add new songs
+                                  if (newSongIds.isNotEmpty) {
+                                    debugPrint('➕ Adding ${newSongIds.length} songs to setlist...');
+                                    await _setlistService.addMultipleSongsToSetlist(widget.setlistId, newSongIds.toList());
+                                    debugPrint('✅ All songs added successfully');
+                                  }
 
                                   // Close loading dialog first
                                   if (mounted) {
@@ -1221,25 +1297,38 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                                     });
                                   }
 
-                                  // Show immediate success message
+                                  // Show success message
                                   if (mounted) {
+                                    String successMessage = '';
+                                    if (newSongIds.isNotEmpty && removeSongIds.isNotEmpty) {
+                                      successMessage = 'Added ${newSongIds.length} and removed ${removeSongIds.length} songs';
+                                    } else if (newSongIds.isNotEmpty) {
+                                      successMessage = 'Added ${newSongIds.length} song${newSongIds.length > 1 ? "s" : ""} to setlist';
+                                    } else {
+                                      successMessage = 'Removed ${removeSongIds.length} song${removeSongIds.length > 1 ? "s" : ""} from setlist';
+                                    }
+
                                     scaffoldMessenger.showSnackBar(
                                       SnackBar(
-                                        content: Text('Added ${newSongIds.length} song${newSongIds.length > 1 ? "s" : ""} to setlist'),
+                                        content: Text(successMessage),
                                         backgroundColor: Colors.green,
                                         duration: const Duration(seconds: 2),
                                       ),
                                     );
                                   }
 
-                                  // Refresh setlist details in background to get the complete data from server
+                                  // Clear specific setlist cache and refresh setlist details
                                   if (mounted) {
-                                    debugPrint('🔄 Refreshing setlist data after adding songs...');
-                                    await _refreshSetlistData();
-                                    debugPrint('✅ Setlist data refreshed successfully');
+                                    debugPrint('🔄 Force refreshing setlist data from API after modifications...');
+                                    
+                                    // Wait a moment for the backend to process
+                                    await Future.delayed(const Duration(milliseconds: 1000));
+                                    
+                                    // Force refresh directly from API bypassing all cache
+                                    await _forceRefreshFromAPI();
                                   }
                                 } catch (e) {
-                                  debugPrint('Error adding songs to setlist: $e');
+                                  debugPrint('Error modifying setlist songs: $e');
 
                                   // Close loading dialog
                                   if (mounted) {
@@ -1257,36 +1346,19 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                                   if (mounted) {
                                     scaffoldMessenger.showSnackBar(
                                       SnackBar(
-                                        content: Text('Failed to add songs to setlist: ${e.toString().replaceAll('Exception: ', '')}'),
+                                        content: Text('Failed to modify setlist: $e'),
                                         backgroundColor: Colors.red,
                                         duration: const Duration(seconds: 3),
                                       ),
                                     );
                                   }
                                 }
-                              } else {
-                                // Show error
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Please select at least one song to add'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
                               }
                             },
-                            child: _isAddingSongs
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-                                  ),
-                                )
-                              : Text(
-                                  'Add ${selectedSongIds.isNotEmpty ? "(${selectedSongIds.length})" : ""}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
+                            child: Text(
+                              _isAddingSongs ? 'Processing...' : 'Apply Changes',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),
@@ -1486,7 +1558,9 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                 );
 
                 try {
+                  debugPrint('🗑️ Removing song ID: $songId from setlist: ${widget.setlistId}');
                   await _setlistService.removeSongFromSetlist(widget.setlistId, songId);
+                  debugPrint('✅ Successfully removed song from setlist');
 
                   // Mark setlist as modified
                   if (mounted) {
@@ -1495,9 +1569,15 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                     });
                   }
 
-                  // Refresh setlist details using simple refresh
+                  // Clear specific setlist cache and refresh setlist details
                   if (mounted) {
-                    await _refreshSetlistData();
+                    debugPrint('🔄 Force refreshing setlist data from API after song removal...');
+                    
+                    // Wait a moment for the backend to process
+                    await Future.delayed(const Duration(milliseconds: 1000));
+                    
+                    // Force refresh directly from API bypassing all cache
+                    await _forceRefreshFromAPI();
                   }
 
                   // Show success message
@@ -1534,6 +1614,4 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
       },
     );
   }
-
-
 }

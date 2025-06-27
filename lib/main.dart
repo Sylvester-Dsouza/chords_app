@@ -7,6 +7,7 @@ import 'core/constants.dart';
 import 'core/crashlytics_service.dart';
 import 'utils/page_transitions.dart';
 import 'services/api_service.dart';
+import 'config/api_config.dart';
 import 'providers/navigation_provider.dart';
 import 'providers/app_data_provider.dart';
 import 'providers/screen_state_provider.dart';
@@ -76,9 +77,13 @@ void main() async {
     // Continue anyway to allow the app to start
   }
 
-  // Test API connection
+  // Test API connection with our dynamic connection testing
   try {
-    debugPrint('🔗 Testing API connection...');
+    debugPrint('🔗 Testing API connections...');
+    // First, try our new dynamic connection testing
+    await ApiConfig.testConnections();
+    
+    // Then, verify with the API service test
     final isConnected = await ApiService.testApiConnection();
     debugPrint(
       'API connection test result: ${isConnected ? 'Connected ✅' : 'Failed to connect ❌'}',

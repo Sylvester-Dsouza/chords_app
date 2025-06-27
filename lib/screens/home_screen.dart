@@ -20,7 +20,6 @@ import '../core/service_locator.dart';
 import '../config/theme.dart';
 import './list_screen.dart';
 import '../widgets/connectivity_status_widget.dart';
-import '../services/connectivity_service.dart';
 
 class HomeScreenNew extends StatefulWidget {
   const HomeScreenNew({super.key});
@@ -417,7 +416,9 @@ class _HomeScreenNewState extends State<HomeScreenNew>
 
       // Only setup notifications if user is logged in
       if (userProvider.isLoggedIn) {
-        debugPrint('🏠 Home: User is logged in, completing notification setup...');
+        debugPrint(
+          '🏠 Home: User is logged in, completing notification setup...',
+        );
 
         // Import service locator to access notification service
         final notificationService = serviceLocator.notificationService;
@@ -526,9 +527,7 @@ class _HomeScreenNewState extends State<HomeScreenNew>
         centerTitle: true,
         actions: [
           // Connectivity indicator
-          ConnectivityIndicator(
-            margin: const EdgeInsets.only(right: 8.0),
-          ),
+          ConnectivityIndicator(margin: const EdgeInsets.only(right: 8.0)),
           Stack(
             children: [
               IconButton(
@@ -596,7 +595,10 @@ class _HomeScreenNewState extends State<HomeScreenNew>
 
             // Connectivity Status Widget
             ConnectivityStatusWidget(
-              margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              margin: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
               onRetryPressed: () {
                 // Retry loading home sections when connectivity is restored
                 _fetchHomeSections(forceRefresh: true);
@@ -621,6 +623,8 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                     ),
                     _buildSectionContent(section),
                   ],
+                  // Add spacing between sections
+                  const SizedBox(height: 18),
                 ],
 
             // Support Us section
@@ -652,12 +656,6 @@ class _HomeScreenNewState extends State<HomeScreenNew>
               children: [
                 Row(
                   children: [
-                    Container(
-                      width: 4,
-                      height: 20,
-                      color: Theme.of(context).colorScheme.primary,
-                      margin: const EdgeInsets.only(right: 8.0),
-                    ),
                     Text(
                       title,
                       style: const TextStyle(
@@ -676,7 +674,7 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                   child: Text(
                     'See all',
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: Color.fromARGB(255, 164, 164, 164),
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
@@ -772,9 +770,12 @@ class _HomeScreenNewState extends State<HomeScreenNew>
           );
         }
       },
-      child: Container(        margin: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 8.0),
         child: AspectRatio(
-          aspectRatio: 16 / 9, // 16:9 aspect ratio - this will automatically calculate height
+          aspectRatio:
+              16 /
+              9, // 16:9 aspect ratio - this will automatically calculate height
           child: Container(
             decoration: BoxDecoration(
               color: _getColorWithOpacity(color, 0.3),

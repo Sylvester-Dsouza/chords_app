@@ -6,12 +6,8 @@ import '../models/artist.dart';
 import '../models/collection.dart';
 import '../models/setlist.dart';
 import '../services/home_section_service.dart';
-import '../services/song_service.dart';
 import '../services/incremental_sync_service.dart';
-import '../services/artist_service.dart';
 import '../services/offline_service.dart';
-import '../services/collection_service.dart';
-import '../services/setlist_service.dart';
 import '../services/liked_songs_service.dart';
 import '../services/cache_service.dart';
 import '../services/smart_data_manager.dart';
@@ -59,11 +55,6 @@ class AppDataProvider extends ChangeNotifier {
   }
 
   // Services
-  final HomeSectionService _homeSectionService = HomeSectionService();
-  final SongService _songService = SongService();
-  final ArtistService _artistService = ArtistService();
-  final CollectionService _collectionService = CollectionService();
-  final SetlistService _setlistService = SetlistService();
   final LikedSongsService _likedSongsService = LikedSongsService();
   final CacheService _cacheService = CacheService();
   final IncrementalSyncService _syncService = IncrementalSyncService();
@@ -89,7 +80,8 @@ class AppDataProvider extends ChangeNotifier {
   // Memory management - Reduced limits for better performance
   static const int _maxSongsInMemory = 50; // Reduced for memory efficiency
   static const int _maxArtistsInMemory = 25; // Reduced for memory efficiency
-  static const int _maxCollectionsInMemory = 15; // Reduced for memory efficiency
+  static const int _maxCollectionsInMemory =
+      15; // Reduced for memory efficiency
 
   // Cache Timestamps (only for setlists and liked songs that still use old caching)
   DateTime? _lastSetlistsRefresh;

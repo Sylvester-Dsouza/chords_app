@@ -802,25 +802,61 @@ class SetlistService {
         throw Exception('No songs provided to add to setlist');
       }
 
-      debugPrint('Adding ${songIds.length} songs to setlist $setlistId');
+      debugPrint('🎵 Adding ${songIds.length} songs to setlist $setlistId');
+      debugPrint('🎵 Song IDs: ${songIds.join(", ")}');
 
-      // Add timeout to prevent hanging
-      final response = await _apiService.post('/setlists/$setlistId/songs/bulk', data: {
-        'songIds': songIds,
-      }).timeout(
-        const Duration(seconds: 30), // 30 second timeout
-        onTimeout: () {
-          throw Exception('Request timed out. Please try again.');
-        },
-      );
+      try {
+        // Try bulk add first
+        final response = await _apiService.post('/setlists/$setlistId/songs/bulk', data: {
+          'songIds': songIds,
+        }).timeout(
+          const Duration(seconds: 30), // 30 second timeout
+          onTimeout: () {
+            throw Exception('Request timed out. Please try again.');
+          },
+        );
 
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        throw Exception('Failed to add songs to setlist');
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          debugPrint('✅ Successfully added ${songIds.length} songs to setlist via bulk API');
+          return;
+        } else {
+          debugPrint('❌ Bulk add failed with status: ${response.statusCode}');
+          throw Exception('Bulk add failed with status: ${response.statusCode}');
+        }
+      } catch (bulkError) {
+        debugPrint('❌ Bulk add failed: $bulkError');
+        debugPrint('🔄 Falling back to individual song additions...');
+        
+        // Fallback to individual song additions
+        int successCount = 0;
+        List<String> failedSongs = [];
+        
+        for (String songId in songIds) {
+          try {
+            debugPrint('➕ Adding song $songId individually...');
+            await addSongToSetlist(setlistId, songId);
+            successCount++;
+            debugPrint('✅ Successfully added song $songId');
+          } catch (individualError) {
+            debugPrint('❌ Failed to add song $songId: $individualError');
+            failedSongs.add(songId);
+          }
+        }
+        
+        debugPrint('📊 Individual additions complete: $successCount/${songIds.length} successful');
+        
+        if (failedSongs.isNotEmpty) {
+          throw Exception('Failed to add ${failedSongs.length} songs: ${failedSongs.join(", ")}');
+        }
+        
+        if (successCount == 0) {
+          throw Exception('Failed to add any songs to setlist');
+        }
+        
+        debugPrint('✅ All songs added successfully via individual additions');
       }
-
-      debugPrint('Successfully added ${songIds.length} songs to setlist');
     } catch (e) {
-      debugPrint('Error adding multiple songs to setlist: $e');
+      debugPrint('❌ Error in addMultipleSongsToSetlist: $e');
       if (e is DioException && e.response?.statusCode == 401) {
         throw Exception('Authentication required. Please log in.');
       }
@@ -847,6 +883,80 @@ class SetlistService {
         throw Exception('Authentication required. Please log in.');
       }
       throw Exception('Failed to remove song from setlist: $e');
+    }
+  }
+
+  // Remove multiple songs from a setlist
+  Future<void> removeMultipleSongsFromSetlist(String setlistId, List<String> songIds) async {
+    try {
+      // Check if user is authenticated
+      if (!await isAuthenticated()) {
+        throw Exception('Authentication required. Please log in.');
+      }
+
+      if (songIds.isEmpty) {
+        throw Exception('No songs provided to remove from setlist');
+      }
+
+      debugPrint('🗑️ Removing ${songIds.length} songs from setlist $setlistId');
+      debugPrint('🗑️ Song IDs: ${songIds.join(", ")}');
+
+      try {
+        // Try bulk remove first
+        final response = await _apiService.delete('/setlists/$setlistId/songs/bulk', data: {
+          'songIds': songIds,
+        }).timeout(
+          const Duration(seconds: 30),
+          onTimeout: () {
+            throw Exception('Request timed out. Please try again.');
+          },
+        );
+
+        if (response.statusCode == 200 || response.statusCode == 204) {
+          debugPrint('✅ Successfully removed ${songIds.length} songs from setlist via bulk API');
+          return;
+        } else {
+          debugPrint('❌ Bulk remove failed with status: ${response.statusCode}');
+          throw Exception('Bulk remove failed with status: ${response.statusCode}');
+        }
+      } catch (bulkError) {
+        debugPrint('❌ Bulk remove failed: $bulkError');
+        debugPrint('🔄 Falling back to individual song removals...');
+        
+        // Fallback to individual song removals
+        int successCount = 0;
+        List<String> failedSongs = [];
+        
+        for (String songId in songIds) {
+          try {
+            debugPrint('🗑️ Removing song $songId individually...');
+            await removeSongFromSetlist(setlistId, songId);
+            successCount++;
+            debugPrint('✅ Successfully removed song $songId');
+          } catch (individualError) {
+            debugPrint('❌ Failed to remove song $songId: $individualError');
+            failedSongs.add(songId);
+          }
+        }
+        
+        debugPrint('📊 Individual removals complete: $successCount/${songIds.length} successful');
+        
+        if (failedSongs.isNotEmpty) {
+          throw Exception('Failed to remove ${failedSongs.length} songs: ${failedSongs.join(", ")}');
+        }
+        
+        if (successCount == 0) {
+          throw Exception('Failed to remove any songs from setlist');
+        }
+        
+        debugPrint('✅ All songs removed successfully via individual removals');
+      }
+    } catch (e) {
+      debugPrint('❌ Error in removeMultipleSongsFromSetlist: $e');
+      if (e is DioException && e.response?.statusCode == 401) {
+        throw Exception('Authentication required. Please log in.');
+      }
+      throw Exception('Failed to remove songs from setlist: $e');
     }
   }
 
