@@ -22,14 +22,14 @@ class SetlistCard extends StatelessWidget {
   Color _generateColor(String name) {
     final int hash = name.hashCode;
     final List<Color> colors = [
-      const Color(0xFFE57373), // Red
-      const Color(0xFFFFB74D), // Orange
-      const Color(0xFFFFF176), // Yellow
-      const Color(0xFFAED581), // Light Green
-      const Color(0xFF4FC3F7), // Light Blue
-      const Color(0xFF9575CD), // Purple
-      const Color(0xFFF06292), // Pink
-      const Color(0xFF4DB6AC), // Teal
+      AppTheme.accent4, // Red
+      AppTheme.accent3, // Orange
+      AppTheme.accent3, // Orange (replacing yellow for better contrast)
+      AppTheme.accent2, // Green
+      AppTheme.primary, // Primary blue
+      AppTheme.accent1, // Purple
+      AppTheme.accent4, // Red (replacing pink)
+      AppTheme.accent2, // Green (replacing teal)
     ];
 
     return colors[hash.abs() % colors.length];
@@ -58,11 +58,9 @@ class SetlistCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(5), // Smaller radius
           child: Ink(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface, // Use theme surface color
-              borderRadius: BorderRadius.circular(5), // Smaller radius
+            decoration: AppTheme.cardDecorationWithRadius(5).copyWith(
               border: Border.all(
-                color: cardColor.withAlpha(40), // Using withAlpha
+                color: cardColor.withAlpha(40), // Keep the dynamic accent border
                 width: 1,
               ),
             ),
@@ -99,7 +97,7 @@ class SetlistCard extends StatelessWidget {
                               child: Text(
                                 setlist.name,
                                 style: const TextStyle(
-                                  color: Colors.white,
+                                  color: AppTheme.textPrimary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16, // Smaller font
                                 ),
@@ -136,17 +134,17 @@ class SetlistCard extends StatelessWidget {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.green.withAlpha(40),
+                                  color: AppTheme.success.withAlpha(40),
                                   borderRadius: BorderRadius.circular(3),
                                   border: Border.all(
-                                    color: Colors.green.withAlpha(80),
+                                    color: AppTheme.success.withAlpha(80),
                                     width: 0.5,
                                   ),
                                 ),
                                 child: const Text(
                                   'Shared',
                                   style: TextStyle(
-                                    color: Colors.green,
+                                    color: AppTheme.success,
                                     fontSize: 10,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -159,17 +157,17 @@ class SetlistCard extends StatelessWidget {
                                 margin: const EdgeInsets.only(left: 8),
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.blue.withAlpha(51), // 0.2 * 255 = 51
+                                  color: AppTheme.info.withAlpha(51),
                                   borderRadius: BorderRadius.circular(5),
                                   border: Border.all(
-                                    color: Colors.blue.withAlpha(128), // 0.5 * 255 = 128
+                                    color: AppTheme.info.withAlpha(128),
                                     width: 1,
                                   ),
                                 ),
                                 child: const Text(
                                   'SHARED',
                                   style: TextStyle(
-                                    color: Colors.blue,
+                                    color: AppTheme.info,
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -182,7 +180,7 @@ class SetlistCard extends StatelessWidget {
                         Text(
                           '$songCount ${songCount == 1 ? 'song' : 'songs'}',
                           style: TextStyle(
-                            color: Colors.grey[400],
+                            color: AppTheme.textSecondary,
                             fontSize: 12, // Smaller font
                           ),
                         ),
@@ -195,19 +193,19 @@ class SetlistCard extends StatelessWidget {
                     icon: Container(
                       padding: const EdgeInsets.all(6.0),
                       decoration: BoxDecoration(
-                        color: Colors.grey[800],
+                        color: AppTheme.surfaceSecondary,
                         borderRadius: BorderRadius.circular(5),
                       ),
                       child: const Icon(
                         Icons.more_vert_rounded,
-                        color: Colors.white,
+                        color: AppTheme.textPrimary,
                         size: 18,
                       ),
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(5),
                     ),
-                    color: const Color(0xFF1E1E1E),
+                    color: AppTheme.surface,
                     elevation: 4,
                     offset: const Offset(0, 8),
                     itemBuilder: (context) => [
@@ -219,19 +217,19 @@ class SetlistCard extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: Colors.green.withAlpha(40),
+                                color: AppTheme.success.withAlpha(40),
                                 borderRadius: BorderRadius.circular(5),
                               ),
                               child: const Icon(
                                 Icons.share_rounded,
-                                color: Colors.green,
+                                color: AppTheme.success,
                                 size: 16,
                               ),
                             ),
                             const SizedBox(width: 12),
                             const Text(
                               'Share',
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(color: AppTheme.textPrimary),
                             ),
                           ],
                         ),
@@ -244,19 +242,19 @@ class SetlistCard extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: Colors.orange.withAlpha(40),
+                                color: AppTheme.warning.withAlpha(40),
                                 borderRadius: BorderRadius.circular(5),
                               ),
                               child: const Icon(
                                 Icons.edit_rounded,
-                                color: Colors.orange,
+                                color: AppTheme.warning,
                                 size: 16,
                               ),
                             ),
                             const SizedBox(width: 12),
                             const Text(
                               'Edit',
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(color: AppTheme.textPrimary),
                             ),
                           ],
                         ),
@@ -269,19 +267,19 @@ class SetlistCard extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: Colors.red.withAlpha(40),
+                                color: AppTheme.error.withAlpha(40),
                                 borderRadius: BorderRadius.circular(5),
                               ),
                               child: const Icon(
                                 Icons.delete_outline_rounded,
-                                color: Colors.red,
+                                color: AppTheme.error,
                                 size: 16,
                               ),
                             ),
                             const SizedBox(width: 12),
                             const Text(
                               'Delete',
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(color: AppTheme.textPrimary),
                             ),
                           ],
                         ),

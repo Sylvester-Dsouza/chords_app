@@ -26,7 +26,7 @@ class ApiService {
       dio.options.receiveTimeout = const Duration(seconds: 2);
 
       final response = await dio.get(
-        '$baseUrl/api/health',
+        '$baseUrl/health',
         options: Options(validateStatus: (_) => true),
       );
 

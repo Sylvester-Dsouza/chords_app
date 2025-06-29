@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/setlist.dart';
 import 'api_service.dart';
+import 'incremental_sync_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SetlistService {
@@ -664,6 +665,59 @@ class SetlistService {
     }
   }
 
+  // Clear setlist-related caches
+  Future<void> _clearSetlistCaches(String setlistId) async {
+    try {
+      // Clear specific setlist cache from secure storage
+      await _secureStorage.delete(key: 'setlist_$setlistId');
+
+      // Clear all setlists cache to force refresh
+      await _secureStorage.delete(key: 'setlists_cache');
+      await _secureStorage.delete(key: 'shared_setlists_cache');
+
+      // IMPORTANT: Also clear incremental sync cache
+      final incrementalSyncService = IncrementalSyncService();
+      await incrementalSyncService.clearSetlistCache(setlistId);
+
+      debugPrint('🗑️ Cleared all caches (secure storage + incremental sync) for setlist $setlistId');
+
+      // Verify cache was cleared by trying to get fresh data
+      await _verifySetlistAfterOperation(setlistId);
+    } catch (e) {
+      debugPrint('⚠️ Error clearing setlist caches: $e');
+    }
+  }
+
+  // Verify setlist contents after operations
+  Future<void> _verifySetlistAfterOperation(String setlistId) async {
+    try {
+      debugPrint('🔍 Verifying setlist $setlistId after operation...');
+
+      // Wait a moment for backend to process
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Get fresh data from API
+      final response = await _apiService.get('/setlists/$setlistId');
+
+      if (response.statusCode == 200 && response.data != null) {
+        final songCount = response.data['songs']?.length ?? 0;
+        debugPrint('✅ Verification: Setlist $setlistId now has $songCount songs');
+
+        if (response.data['songs'] != null && response.data['songs'].isNotEmpty) {
+          debugPrint('🎵 Current songs in setlist:');
+          for (var i = 0; i < response.data['songs'].length; i++) {
+            final song = response.data['songs'][i];
+            debugPrint('  ${i + 1}. ${song['title'] ?? 'Unknown'} - ${song['artist']?['name'] ?? 'Unknown Artist'}');
+          }
+        }
+      } else {
+        debugPrint('❌ Failed to verify setlist: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error verifying setlist: $e');
+    }
+  }
+
   // Save setlist for offline use
   Future<void> saveSetlistOffline(Setlist setlist) async {
     try {
@@ -774,12 +828,26 @@ class SetlistService {
         throw Exception('Authentication required. Please log in.');
       }
 
+      debugPrint('🎵 Adding song $songId to setlist $setlistId');
       final response = await _apiService.post('/setlists/$setlistId/songs', data: {
         'songId': songId,
       });
 
       if (response.statusCode != 200 && response.statusCode != 201) {
         throw Exception('Failed to add song to setlist');
+      }
+
+      // Clear cache to force refresh
+      await _clearSetlistCaches(setlistId);
+      debugPrint('✅ Song added and cache cleared');
+
+      // Verify the song was actually added by checking the API response
+      if (response.data != null) {
+        debugPrint('📋 API Response: ${response.data}');
+        if (response.data['songs'] != null) {
+          final songCount = response.data['songs'].length;
+          debugPrint('🎵 Setlist now has $songCount songs according to API');
+        }
       }
     } catch (e) {
       debugPrint('Error adding song to setlist: $e');
@@ -818,6 +886,8 @@ class SetlistService {
 
         if (response.statusCode == 200 || response.statusCode == 201) {
           debugPrint('✅ Successfully added ${songIds.length} songs to setlist via bulk API');
+          // Clear cache to force refresh
+          await _clearSetlistCaches(setlistId);
           return;
         } else {
           debugPrint('❌ Bulk add failed with status: ${response.statusCode}');
@@ -844,7 +914,12 @@ class SetlistService {
         }
         
         debugPrint('📊 Individual additions complete: $successCount/${songIds.length} successful');
-        
+
+        // Clear cache if any songs were added successfully
+        if (successCount > 0) {
+          await _clearSetlistCaches(setlistId);
+        }
+
         if (failedSongs.isNotEmpty) {
           throw Exception('Failed to add ${failedSongs.length} songs: ${failedSongs.join(", ")}');
         }
@@ -872,11 +947,16 @@ class SetlistService {
         throw Exception('Authentication required. Please log in.');
       }
 
+      debugPrint('🗑️ Removing song $songId from setlist $setlistId');
       final response = await _apiService.delete('/setlists/$setlistId/songs/$songId');
 
       if (response.statusCode != 200 && response.statusCode != 204) {
         throw Exception('Failed to remove song from setlist');
       }
+
+      // Clear cache to force refresh
+      await _clearSetlistCaches(setlistId);
+      debugPrint('✅ Song removed and cache cleared');
     } catch (e) {
       debugPrint('Error removing song from setlist: $e');
       if (e is DioException && e.response?.statusCode == 401) {
@@ -914,6 +994,8 @@ class SetlistService {
 
         if (response.statusCode == 200 || response.statusCode == 204) {
           debugPrint('✅ Successfully removed ${songIds.length} songs from setlist via bulk API');
+          // Clear cache to force refresh
+          await _clearSetlistCaches(setlistId);
           return;
         } else {
           debugPrint('❌ Bulk remove failed with status: ${response.statusCode}');
@@ -950,6 +1032,8 @@ class SetlistService {
         }
         
         debugPrint('✅ All songs removed successfully via individual removals');
+        // Clear cache after successful individual removals
+        await _clearSetlistCaches(setlistId);
       }
     } catch (e) {
       debugPrint('❌ Error in removeMultipleSongsFromSetlist: $e');

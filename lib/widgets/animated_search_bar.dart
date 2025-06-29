@@ -31,9 +31,9 @@ class AnimatedSearchBar extends StatefulWidget {
     this.showSuggestions = false,
     this.primaryColor = AppTheme.primary,
     this.backgroundColor = AppTheme.surface,
-    this.textColor = AppTheme.text,
-    this.hintColor = Colors.grey,
-    this.iconColor = Colors.grey,
+    this.textColor = AppTheme.textPrimary,
+    this.hintColor = AppTheme.textSecondary,
+    this.iconColor = AppTheme.textSecondary,
     this.activeFilterColor = AppTheme.primary,
   });
 
@@ -109,12 +109,6 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar> with SingleTicker
             decoration: BoxDecoration(
               color: widget.backgroundColor,
               borderRadius: BorderRadius.circular(5),
-              border: Border.all(
-                color: _isFocused 
-                    ? widget.primaryColor 
-                    : Colors.grey.withValues(alpha: 0.5),
-                width: _isFocused ? 1.5 : 1.0,
-              ),
               boxShadow: _isFocused ? [
                 BoxShadow(
                   color: widget.primaryColor.withAlpha(76), // 0.3 * 255 = 76
@@ -159,6 +153,11 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar> with SingleTicker
                           fontSize: 16,
                         ),
                         border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
                         contentPadding: EdgeInsets.zero,
                         isDense: true,
                       ),

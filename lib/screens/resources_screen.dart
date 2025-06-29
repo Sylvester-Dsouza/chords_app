@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/inner_screen_app_bar.dart';
+import '../config/theme.dart';
 
 class ResourcesScreen extends StatefulWidget {
   const ResourcesScreen({super.key});
@@ -39,7 +40,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
   Widget _buildBlogCard() {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF009688), // Teal color
+        color: AppTheme.accent2, // Use theme accent color
         borderRadius: BorderRadius.circular(5),
       ),
       child: Column(

@@ -101,71 +101,118 @@ class _VocalsScreenState extends State<VocalsScreen>
   }
 
   Widget _buildHeroSection() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(5),
-        border: Border.all(
-          color: AppTheme.primary.withValues(alpha: 0.2),
-          width: 1,
+    return FadeTransition(
+      opacity: _fadeController,
+      child: Container(
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.primary.withValues(alpha: 0.15),
+              AppTheme.primary.withValues(alpha: 0.05),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppTheme.primary.withValues(alpha: 0.3),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primary.withValues(alpha: 0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+              spreadRadius: 0,
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 15,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Icon
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(5),
-            ),
-            child: const Icon(
-              Icons.record_voice_over_rounded,
-              color: AppTheme.primary,
-              size: 32,
-            ),
-          ),
-
-          const SizedBox(width: 20),
-
-          // Content
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Vocal Training',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: AppTheme.primaryFontFamily,
-                    letterSpacing: -0.3,
-                  ),
+        child: Row(
+          children: [
+            // Modern Icon Container
+            Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.primary,
+                    AppTheme.primary.withValues(alpha: 0.8),
+                  ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  'Improve your voice with guided exercises and warmups',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    fontSize: 14,
-                    fontFamily: AppTheme.primaryFontFamily,
-                    height: 1.4,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primary.withValues(alpha: 0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
                   ),
-                ),
-              ],
+                ],
+              ),
+              child: const Icon(
+                Icons.record_voice_over_rounded,
+                color: Colors.black,
+                size: 36,
+              ),
             ),
-          ),
-        ],
+
+            const SizedBox(width: 24),
+
+            // Enhanced Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Vocal Training',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      fontFamily: AppTheme.primaryFontFamily,
+                      letterSpacing: -0.5,
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Master your voice with professional exercises and warmups',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      fontSize: 15,
+                      fontFamily: AppTheme.primaryFontFamily,
+                      height: 1.4,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Progress indicator
+                  Container(
+                    height: 4,
+                    width: 60,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppTheme.primary,
+                          AppTheme.primary.withValues(alpha: 0.6),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

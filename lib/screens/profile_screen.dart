@@ -122,7 +122,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // Modern Profile Header
               _buildProfileHeader(isLoggedIn, userData),
 
-              const Divider(color: Color(0xFF333333)),
+              Divider(color: AppTheme.separator),
 
               // Settings Sections
               _buildSettingsSection(),
@@ -151,7 +151,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             height: 65,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.grey[800],
+              color: AppTheme.surfaceSecondary,
               border: Border.all(color: AppTheme.primary, width: 1.5),
             ),
             child:
@@ -175,13 +175,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         errorBuilder: (context, error, stackTrace) {
                           return const Icon(
                             Icons.person,
-                            color: Colors.white,
+                            color: AppTheme.textPrimary,
                             size: 32,
                           );
                         },
                       ),
                     )
-                    : const Icon(Icons.person, color: Colors.white, size: 32),
+                    : const Icon(Icons.person, color: AppTheme.textPrimary, size: 32),
           ),
           const SizedBox(width: 16),
 
@@ -194,7 +194,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(
                   displayName,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppTheme.textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                   ),
@@ -206,7 +206,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // Email
                 Text(
                   displayEmail,
-                  style: TextStyle(color: Colors.grey[400], fontSize: 14),
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -355,7 +355,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Text(
         title.toUpperCase(),
         style: TextStyle(
-          color: Colors.grey[500],
+          color: AppTheme.textTertiary,
           fontSize: 12,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.8,
@@ -366,11 +366,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildSettingsCard(List<Widget> items) {
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[850]!, width: 1),
-      ),
+      decoration: AppTheme.cardDecoration,
       child: Column(
         children:
             items.asMap().entries.map((entry) {
@@ -381,7 +377,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   item,
                   if (index < items.length - 1)
-                    Divider(height: 1, color: Colors.grey[850], indent: 60),
+                    Divider(height: 1, color: AppTheme.separator, indent: 60),
                 ],
               );
             }).toList(),
@@ -400,14 +396,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             context: context,
             builder: (BuildContext context) {
               return AlertDialog(
-                backgroundColor: const Color(0xFF1E1E1E),
+                backgroundColor: AppTheme.surface,
                 title: const Text(
                   'Logout',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: AppTheme.textPrimary),
                 ),
                 content: const Text(
                   'Are you sure you want to logout?',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: AppTheme.textPrimary),
                 ),
                 actions: [
                   TextButton(
@@ -421,7 +417,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onPressed: () => Navigator.of(context).pop(true),
                     child: const Text(
                       'Logout',
-                      style: TextStyle(color: Colors.red),
+                      style: TextStyle(color: AppTheme.error),
                     ),
                   ),
                 ],
@@ -436,12 +432,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         icon: const Icon(Icons.logout, size: 18),
         label: const Text('Logout', style: TextStyle(fontSize: 14)),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red.withAlpha(30),
-          foregroundColor: Colors.red[300],
+          backgroundColor: AppTheme.error.withAlpha(30),
+          foregroundColor: AppTheme.error,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(6),
-            side: BorderSide(color: Colors.red.withAlpha(100), width: 1),
+            side: BorderSide(color: AppTheme.error.withAlpha(100), width: 1),
           ),
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
         ),
@@ -459,13 +455,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return const AlertDialog(
-          backgroundColor: Color(0xFF1E1E1E),
+          backgroundColor: AppTheme.surface,
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               CircularProgressIndicator(),
               SizedBox(height: 16),
-              Text('Logging out...', style: TextStyle(color: Colors.white)),
+              Text('Logging out...', style: TextStyle(color: AppTheme.textPrimary)),
             ],
           ),
         );
@@ -521,12 +517,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color:
                     isHighlighted
                         ? AppTheme.primary.withAlpha(40)
-                        : Colors.grey[800],
+                        : AppTheme.surfaceSecondary,
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Icon(
                 icon,
-                color: isHighlighted ? AppTheme.primary : Colors.grey[300],
+                color: isHighlighted ? AppTheme.primary : AppTheme.textSecondary,
                 size: 18,
               ),
             ),
@@ -537,7 +533,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Text(
                 title,
                 style: TextStyle(
-                  color: Colors.grey[200],
+                  color: AppTheme.textPrimary,
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
                 ),
@@ -545,7 +541,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
 
             // Arrow - Smaller
-            Icon(Icons.chevron_right, color: Colors.grey[500], size: 18),
+            Icon(Icons.chevron_right, color: AppTheme.textTertiary, size: 18),
           ],
         ),
       ),

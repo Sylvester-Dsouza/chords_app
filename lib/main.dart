@@ -12,6 +12,7 @@ import 'providers/navigation_provider.dart';
 import 'providers/app_data_provider.dart';
 import 'providers/screen_state_provider.dart';
 import 'providers/course_provider.dart';
+import 'providers/community_provider.dart';
 import 'screens/setlist_detail_screen.dart';
 import 'screens/setlist_presentation_screen.dart';
 import 'screens/main_navigation.dart';
@@ -39,7 +40,9 @@ import 'screens/vocal_warmups_screen.dart';
 import 'screens/vocal_exercises_screen.dart';
 import 'screens/courses_screen.dart';
 import 'screens/course_detail_screen.dart';
+import 'screens/community_setlists_screen.dart';
 import 'services/deep_link_service.dart';
+import 'services/community_service.dart';
 import 'config/theme.dart';
 import 'providers/user_provider.dart';
 import 'models/song.dart';
@@ -111,6 +114,9 @@ void main() async {
   // Initialize course provider
   final courseProvider = CourseProvider();
 
+  // Initialize community provider
+  final communityProvider = CommunityProvider(serviceLocator<CommunityService>());
+
   // Run the app with the splash screen as initial route
   runApp(
     MultiProvider(
@@ -120,6 +126,7 @@ void main() async {
         ChangeNotifierProvider.value(value: appDataProvider),
         ChangeNotifierProvider.value(value: screenStateProvider),
         ChangeNotifierProvider.value(value: courseProvider),
+        ChangeNotifierProvider.value(value: communityProvider),
       ],
       child: const MyApp(),
     ),
@@ -261,6 +268,7 @@ class _MyAppState extends State<MyApp> {
         '/vocal-warmups': (context) => const VocalWarmupsScreen(),
         '/vocal-exercises': (context) => const VocalExercisesScreen(),
         '/vocal-courses': (context) => const VocalCoursesScreen(),
+        '/community_setlists': (context) => const CommunitySetlistsScreen(),
       },
       onGenerateRoute: (settings) {
         // Import our custom page transitions

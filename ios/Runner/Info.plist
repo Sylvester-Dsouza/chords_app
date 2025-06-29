@@ -68,16 +68,14 @@
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
 		<!-- Notification permissions -->
-		<key>UIBackgroundModes</key>
-		<array>
-			<string>fetch</string>
-			<string>remote-notification</string>
-		</array>
 		<key>NSUserNotificationsUsageDescription</key>
 		<string>We need to send you notifications about new songs, updates to your requests, and other important information.</string>
-		<!-- Microphone permission for Guitar Tuner -->
+		<!-- Microphone permission for Guitar Tuner and Voice Search -->
 		<key>NSMicrophoneUsageDescription</key>
-		<string>We need access to your microphone to detect the pitch of your guitar strings for the Guitar Tuner feature.</string>
+		<string>We need access to your microphone to detect the pitch of your guitar strings for the Guitar Tuner feature and for voice search functionality.</string>
+		<!-- Speech Recognition permission for Voice Search -->
+		<key>NSSpeechRecognitionUsageDescription</key>
+		<string>We need access to speech recognition to enable voice search functionality, allowing you to search for songs, artists, and collections using your voice.</string>
 		<!-- Camera permission for QR code scanning -->
 		<key>NSCameraUsageDescription</key>
 		<string>We need access to your camera to scan QR codes for joining collaborative setlists.</string>
@@ -90,5 +88,48 @@
 		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<!-- App Transport Security Settings -->
+		<key>NSAppTransportSecurity</key>
+		<dict>
+			<key>NSAllowsArbitraryLoads</key>
+			<false/>
+			<key>NSExceptionDomains</key>
+			<dict>
+				<key>localhost</key>
+				<dict>
+					<key>NSExceptionAllowsInsecureHTTPLoads</key>
+					<true/>
+					<key>NSExceptionMinimumTLSVersion</key>
+					<string>TLSv1.0</string>
+				</dict>
+				<key>google.com</key>
+				<dict>
+					<key>NSIncludesSubdomains</key>
+					<true/>
+					<key>NSExceptionRequiresForwardSecrecy</key>
+					<false/>
+				</dict>
+				<key>youtube.com</key>
+				<dict>
+					<key>NSIncludesSubdomains</key>
+					<true/>
+					<key>NSExceptionRequiresForwardSecrecy</key>
+					<false/>
+				</dict>
+			</dict>
+		</dict>
+		<!-- File sharing support for PDF export -->
+		<key>UIFileSharingEnabled</key>
+		<true/>
+		<key>LSSupportsOpeningDocumentsInPlace</key>
+		<true/>
+		<!-- Background audio capability -->
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>audio</string>
+			<string>background-processing</string>
+			<string>fetch</string>
+			<string>remote-notification</string>
+		</array>
 	</dict>
 </plist>

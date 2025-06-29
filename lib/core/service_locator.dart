@@ -14,8 +14,8 @@ import '../services/collection_service.dart';
 import '../services/setlist_service.dart';
 import '../services/liked_songs_service.dart';
 import '../services/home_section_service.dart';
-import '../services/simple_metronome_service.dart';
-import '../services/metronome_audio_service.dart';
+import '../services/community_service.dart';
+
 import '../services/audio_service.dart';
 import '../services/memory_manager.dart';
 import '../services/persistent_cache_manager.dart';
@@ -61,13 +61,12 @@ Future<void> setupServiceLocator() async {
   serviceLocator.registerLazySingleton<SetlistService>(() => SetlistService());
   serviceLocator.registerLazySingleton<LikedSongsService>(() => LikedSongsService());
   serviceLocator.registerLazySingleton<HomeSectionService>(() => HomeSectionService());
+  serviceLocator.registerLazySingleton<CommunityService>(() => CommunityService(serviceLocator<AuthService>()));
   
   // Vocal services
   serviceLocator.registerLazySingleton<VocalService>(() => VocalService());
   
   // Audio services
-  serviceLocator.registerLazySingleton<SimpleMetronomeService>(() => SimpleMetronomeService());
-  serviceLocator.registerLazySingleton<MetronomeAudioService>(() => MetronomeAudioService());
   serviceLocator.registerLazySingleton<AudioService>(() => AudioService());
 
   // Memory management service
@@ -130,8 +129,7 @@ Future<void> initializeDeferredServices() async {
     // Initialize vocal service (heavy initialization)
     await serviceLocator<VocalService>().initialize();
     
-    // Initialize audio services
-    await serviceLocator<MetronomeAudioService>().initialize();
+
     
     debugPrint('✅ Deferred services initialized successfully');
   } catch (e) {
@@ -151,14 +149,7 @@ Future<void> disposeServices() async {
 
     // Dispose services in reverse order of initialization
 
-    // Audio services
-    if (serviceLocator.isRegistered<MetronomeAudioService>()) {
-      await serviceLocator<MetronomeAudioService>().dispose();
-    }
-
-    if (serviceLocator.isRegistered<SimpleMetronomeService>()) {
-      serviceLocator<SimpleMetronomeService>().dispose();
-    }
+    // Audio services - no metronome services to dispose
 
     // Vocal service
     if (serviceLocator.isRegistered<VocalService>()) {
@@ -219,8 +210,6 @@ extension ServiceLocatorExtensions on GetIt {
   VocalService get vocalService => get<VocalService>();
   
   // Audio services
-  SimpleMetronomeService get metronomeService => get<SimpleMetronomeService>();
-  MetronomeAudioService get metronomeAudioService => get<MetronomeAudioService>();
   AudioService get audioService => get<AudioService>();
   
   // Utility services

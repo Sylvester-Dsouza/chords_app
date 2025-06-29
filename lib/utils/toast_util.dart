@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/theme.dart';
 
 /// A utility class to show modern toast messages using SnackBar
 /// This provides a more visually appealing toast notification experience
@@ -89,19 +90,19 @@ class ToastUtil {
     switch (type) {
       case ToastType.success:
         return ToastConfig(
-          backgroundColor: const Color(0xFF1B5E20), // Darker green for better contrast
+          backgroundColor: AppTheme.success,
           icon: Icons.check_circle_outline,
-          iconColor: Colors.white,
+          iconColor: AppTheme.textPrimary,
         );
       case ToastType.error:
         return ToastConfig(
-          backgroundColor: const Color(0xFFB71C1C), // Darker red for better contrast
+          backgroundColor: AppTheme.error,
           icon: Icons.error_outline,
-          iconColor: Colors.white,
+          iconColor: AppTheme.textPrimary,
         );
       case ToastType.warning:
         return ToastConfig(
-          backgroundColor: const Color(0xFFE65100), // Darker orange for better contrast
+          backgroundColor: AppTheme.warning,
           icon: Icons.warning_amber_outlined,
           iconColor: Colors.white,
         );

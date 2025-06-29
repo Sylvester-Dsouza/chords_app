@@ -8,8 +8,12 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <!-- Microphone permission for Guitar Tuner -->
+    <!-- Microphone permission for Guitar Tuner and Voice Search -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Speech recognition permissions -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <!-- Camera permission for QR code scanning -->
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Storage permissions for saving PDFs -->
@@ -100,6 +104,10 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Required for speech recognition on Android SDK 30+ -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
         </intent>
         <!-- Required for Google Sign-In -->
         <package android:name="com.google.android.gms" />

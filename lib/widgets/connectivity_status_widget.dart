@@ -43,8 +43,14 @@ class _ConnectivityStatusWidgetState extends State<ConnectivityStatusWidget> {
             return const SizedBox.shrink();
           }
 
+          // Don't show if margin is zero (indicates parent doesn't want to show it)
+          final margin = widget.margin ?? const EdgeInsets.all(8.0);
+          if (margin == EdgeInsets.zero) {
+            return const SizedBox.shrink();
+          }
+
           return Container(
-            margin: widget.margin ?? const EdgeInsets.all(8.0),
+            margin: margin,
             child: _buildStatusWidget(connectivityService),
           );
         },
@@ -263,7 +269,7 @@ class _ConnectivityStatusWidgetState extends State<ConnectivityStatusWidget> {
         icon: Icon(Icons.refresh, size: 18),
         label: Text('Retry'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppTheme.primaryColor,
+          backgroundColor: AppTheme.primary,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 12),
           shape: RoundedRectangleBorder(

@@ -64,21 +64,54 @@ class _MainNavigationState extends State<MainNavigation> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF1E1E1E),
-          title: const Text('Exit App?', style: TextStyle(color: Colors.white)),
-          content: const Text('Are you sure you want to exit the app?', style: TextStyle(color: Colors.white70)),
+          backgroundColor: AppTheme.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: AppTheme.border, width: 1),
+          ),
+          title: const Text(
+            'Exit App?',
+            style: TextStyle(
+              color: AppTheme.textPrimary,
+              fontFamily: AppTheme.primaryFontFamily,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          content: const Text(
+            'Are you sure you want to exit the app?',
+            style: TextStyle(
+              color: AppTheme.textSecondary,
+              fontFamily: AppTheme.primaryFontFamily,
+            ),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('No', style: TextStyle(color: AppTheme.primary)),
+              child: const Text(
+                'No',
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontFamily: AppTheme.primaryFontFamily,
+                ),
+              ),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 // This will exit the app safely
                 Navigator.of(context).popUntil((route) => route.isFirst);
               },
-              child: const Text('Yes', style: TextStyle(color: AppTheme.primary)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: AppTheme.background,
+              ),
+              child: const Text(
+                'Yes',
+                style: TextStyle(
+                  fontFamily: AppTheme.primaryFontFamily,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
         ),
@@ -124,7 +157,7 @@ class _MainNavigationState extends State<MainNavigation> {
         automaticallyImplyLeading: false, // Don't show back button
         // Custom back button that handles our navigation logic
         leading: BackButton(
-          color: Colors.white,
+          color: AppTheme.textPrimary,
           onPressed: _handleBackPress,
         ),
         title: const Text(''),

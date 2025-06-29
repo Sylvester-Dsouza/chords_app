@@ -4,7 +4,10 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/setlist.dart';
 import '../services/setlist_service.dart';
+import '../services/community_service.dart';
 import '../utils/ui_helpers.dart';
+import '../core/service_locator.dart';
+import '../config/theme.dart';
 
 /// Enhanced share dialog with QR code and multiple sharing options
 class EnhancedSetlistShareDialog extends StatefulWidget {
@@ -23,16 +26,21 @@ class EnhancedSetlistShareDialog extends StatefulWidget {
 
 class _EnhancedSetlistShareDialogState extends State<EnhancedSetlistShareDialog> {
   final SetlistService _setlistService = SetlistService();
+  late final CommunityService _communityService;
 
   bool _isLoading = false;
   String? _errorMessage;
   String? _shareCode;
   String? _deepLink;
   bool _useDeepLink = true; // Toggle between deep link and simple code
+  bool _isPublic = false;
+  bool _isTogglingPublic = false;
 
   @override
   void initState() {
     super.initState();
+    _communityService = serviceLocator<CommunityService>();
+    _isPublic = widget.setlist.isPublic;
     _generateShareCode();
   }
 
@@ -139,6 +147,57 @@ Download Stuthi app to join the collaborative setlist.''';
     }
   }
 
+  // Toggle public/private status
+  Future<void> _togglePublicStatus() async {
+    if (_isTogglingPublic) return;
+
+    setState(() {
+      _isTogglingPublic = true;
+    });
+
+    try {
+      if (_isPublic) {
+        await _communityService.makeSetlistPrivate(widget.setlist.id);
+        setState(() {
+          _isPublic = false;
+        });
+        if (mounted) {
+          UIHelpers.showSuccessSnackBar(
+            context,
+            'Setlist removed from community',
+          );
+        }
+      } else {
+        await _communityService.makeSetlistPublic(widget.setlist.id);
+        setState(() {
+          _isPublic = true;
+        });
+        if (mounted) {
+          UIHelpers.showSuccessSnackBar(
+            context,
+            'Setlist shared with community!',
+          );
+        }
+      }
+
+      // Notify parent to refresh
+      widget.onSetlistUpdated();
+    } catch (e) {
+      if (mounted) {
+        UIHelpers.showErrorSnackBar(
+          context,
+          'Failed to update setlist: $e',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isTogglingPublic = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -232,6 +291,10 @@ Download Stuthi app to join the collaborative setlist.''';
   Widget _buildSharingContent() {
     return Column(
       children: [
+        // Community sharing section
+        _buildCommunitySection(),
+        const SizedBox(height: 16),
+
         // QR Code section - Compact
         Container(
           padding: const EdgeInsets.all(16),
@@ -362,16 +425,152 @@ Download Stuthi app to join the collaborative setlist.''';
         ),
         const SizedBox(height: 8),
 
-        // Instructions - Minimal
-        Text(
-          'Scan QR or share the 4-digit code',
-          style: TextStyle(
-            color: Colors.grey[500],
-            fontSize: 11,
+        // Clear instructions
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFC19FFF).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFC19FFF).withValues(alpha: 0.3)),
           ),
-          textAlign: TextAlign.center,
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.info_outline, color: const Color(0xFFC19FFF), size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'How to share this setlist:',
+                      style: TextStyle(
+                        color: const Color(0xFFC19FFF),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '1. Share the 4-digit code with your team\n2. They open Stuthi app → Setlists → Join\n3. Enter the code to collaborate together',
+                style: TextStyle(
+                  color: Colors.grey[300],
+                  fontSize: 11,
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.left,
+              ),
+            ],
+          ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCommunitySection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppTheme.border.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.people_outline,
+                color: AppTheme.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Community Sharing',
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: AppTheme.primaryFontFamily,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _isPublic
+                ? 'Your setlist is public and visible to the community'
+                : 'Make your setlist public to share with the community',
+            style: const TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 14,
+              fontFamily: AppTheme.primaryFontFamily,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isTogglingPublic ? null : _togglePublicStatus,
+              icon: _isTogglingPublic
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(_isPublic ? Icons.lock : Icons.public),
+              label: Text(_isPublic ? 'Make Private' : 'Make Public'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _isPublic ? AppTheme.textSecondary : AppTheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+          if (_isPublic) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: AppTheme.primary.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: AppTheme.primary,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Your setlist is now discoverable in the Community tab',
+                      style: TextStyle(
+                        color: AppTheme.primary,
+                        fontSize: 12,
+                        fontFamily: AppTheme.primaryFontFamily,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/theme.dart';
 import '../services/home_section_service.dart';
 
 /// A shimmer effect widget for skeleton loading
@@ -189,8 +190,8 @@ class HomeSectionSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ShimmerEffect(
-      baseColor: Colors.grey[800]!,
-      highlightColor: Colors.grey[600]!,
+      baseColor: AppTheme.surface,
+      highlightColor: AppTheme.surfaceSecondary,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 0.0),
         child: Column(
@@ -204,7 +205,7 @@ class HomeSectionSkeleton extends StatelessWidget {
                   width: 120,
                   height: 20,
                   decoration: BoxDecoration(
-                    color: Colors.grey[700],
+                    color: AppTheme.surfaceTertiary,
                     borderRadius: BorderRadius.circular(5),
                   ),
                 ),
@@ -212,7 +213,7 @@ class HomeSectionSkeleton extends StatelessWidget {
                   width: 60,
                   height: 16,
                   decoration: BoxDecoration(
-                    color: Colors.grey[700],
+                    color: AppTheme.surfaceTertiary,
                     borderRadius: BorderRadius.circular(5),
                   ),
                 ),
@@ -261,7 +262,7 @@ class HomeSectionSkeleton extends StatelessWidget {
         return Container(
           height: 200,
           decoration: BoxDecoration(
-            color: Colors.grey[800],
+            color: AppTheme.surface,
             borderRadius: BorderRadius.circular(5),
           ),
         );
@@ -276,8 +277,8 @@ class SongListItemSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ShimmerEffect(
-      baseColor: Colors.grey[800]!,
-      highlightColor: Colors.grey[600]!,
+      baseColor: AppTheme.surface,
+      highlightColor: AppTheme.surfaceSecondary,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         child: Row(
@@ -287,7 +288,7 @@ class SongListItemSkeleton extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: Colors.grey[700],
+                color: AppTheme.surfaceTertiary,
                 borderRadius: BorderRadius.circular(5),
               ),
             ),

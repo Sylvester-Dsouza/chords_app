@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_guitar_chord/flutter_guitar_chord.dart';
 import 'package:guitar_chord_library/guitar_chord_library.dart';
 
+
+import '../config/theme.dart';
+import '../models/chord_instrument.dart';
+
 class ChordDiagramBottomSheet extends StatefulWidget {
   final String chordName;
 
@@ -20,6 +24,7 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
   bool _isLoading = true;
   String _errorMessage = '';
   int _currentVariationIndex = 0;
+  ChordInstrument _selectedInstrument = ChordInstrument.guitar;
 
   @override
   void initState() {
@@ -39,6 +44,15 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
       _errorMessage = '';
     });
 
+    // Handle piano chords differently
+    if (_selectedInstrument == ChordInstrument.piano) {
+      setState(() {
+        _isLoading = false;
+        // Piano chords will be handled by the piano diagram widget
+      });
+      return;
+    }
+
     try {
       // Parse the chord name to get the root note and type
       final chordParts = _parseChordName(widget.chordName);
@@ -54,8 +68,11 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
         return;
       }
 
-      // Get the guitar instrument from the library
-      final instrument = GuitarChordLibrary.instrument(InstrumentType.guitar);
+      // Get the instrument from the library based on selection
+      final instrumentType = _selectedInstrument == ChordInstrument.ukulele
+          ? InstrumentType.ukulele
+          : InstrumentType.guitar;
+      final instrument = GuitarChordLibrary.instrument(instrumentType);
 
       // Try to get chord positions with the original root note first
       debugPrint('🎸 Loading chord data for: $rootNote${chordType ?? 'major'} (original: ${widget.chordName})');
@@ -447,7 +464,7 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
       height: bottomSheetHeight,
       width: screenWidth,
       decoration: const BoxDecoration(
-        color: Color(0xFF1A1A1A),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(16),
           topRight: Radius.circular(16),
@@ -461,23 +478,26 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey[600],
+              color: AppTheme.textSecondary,
               borderRadius: BorderRadius.circular(5),
             ),
           ),
 
           // Chord name
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12.0), // Increased padding
+            padding: const EdgeInsets.symmetric(vertical: 12.0),
             child: Text(
               widget.chordName,
               style: const TextStyle(
-                color: Colors.white,
-                fontSize: 32, // Increased from 24 to 32 for bigger text
+                color: AppTheme.textPrimary,
+                fontSize: 32,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
+
+          // Instrument selection tabs
+          _buildInstrumentTabs(),
 
           // Chord diagram
           Expanded(
@@ -495,7 +515,7 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 24), // Increased icon size
+                    icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary, size: 24),
                     onPressed: _currentVariationIndex > 0
                         ? () {
                             _pageController.previousPage(
@@ -504,19 +524,19 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
                             );
                           }
                         : null,
-                    color: _currentVariationIndex > 0 ? Colors.white : Colors.grey[700],
+                    color: _currentVariationIndex > 0 ? AppTheme.textPrimary : AppTheme.textTertiary,
                   ),
                   const SizedBox(width: 16), // Added spacing
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.grey[800],
+                      color: AppTheme.surfaceSecondary,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       '${_currentVariationIndex + 1} of ${_chordVariations.length}',
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppTheme.textPrimary,
                         fontSize: 16, // Increased font size
                         fontWeight: FontWeight.w500,
                       ),
@@ -524,7 +544,7 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
                   ),
                   const SizedBox(width: 16), // Added spacing
                   IconButton(
-                    icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 24), // Increased icon size
+                    icon: const Icon(Icons.arrow_forward_ios, color: AppTheme.textPrimary, size: 24),
                     onPressed: _currentVariationIndex < _chordVariations.length - 1
                         ? () {
                             _pageController.nextPage(
@@ -534,13 +554,59 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
                           }
                         : null,
                     color: _currentVariationIndex < _chordVariations.length - 1
-                        ? Colors.white
-                        : Colors.grey[700],
+                        ? AppTheme.textPrimary
+                        : AppTheme.textTertiary,
                   ),
                 ],
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildInstrumentTabs() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Row(
+        children: ChordInstrument.values.map((instrument) {
+          final isSelected = _selectedInstrument == instrument;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedInstrument = instrument;
+                  _loadChordData(); // Reload chord data for new instrument
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppTheme.primary : AppTheme.surfaceSecondary,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      instrument.icon,
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      instrument.displayName,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : AppTheme.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -560,7 +626,7 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
           padding: const EdgeInsets.all(20.0),
           child: Text(
             _errorMessage,
-            style: const TextStyle(color: Colors.white70),
+            style: const TextStyle(color: AppTheme.textSecondary),
             textAlign: TextAlign.center,
           ),
         ),
@@ -571,12 +637,20 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
       return const Center(
         child: Text(
           'No chord variations available',
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: AppTheme.textSecondary),
         ),
       );
     }
 
-    // PageView for swiping between variations
+    // Show different diagrams based on selected instrument
+    if (_selectedInstrument == ChordInstrument.piano) {
+      return _buildPianoDiagram();
+    } else {
+      return _buildStringInstrumentDiagram();
+    }
+  }
+
+  Widget _buildStringInstrumentDiagram() {
     return PageView.builder(
       controller: _pageController,
       itemCount: _chordVariations.length,
@@ -587,30 +661,329 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
       },
       itemBuilder: (context, index) {
         final variation = _chordVariations[index];
+        final stringCount = _selectedInstrument.stringCount ?? 6;
+
         return Center(
           child: SizedBox(
-            height: 235, // Reduced by 5px from 240 to 235
-            width: 195, // Reduced by 5px from 200 to 195
+            height: 235,
+            width: 195,
             child: Transform.scale(
-              scale: 1.2, // Increased from 0.9 to 1.2 for larger scale
+              scale: 1.2,
               child: FlutterGuitarChord(
                 chordName: widget.chordName,
                 baseFret: variation['baseFret'],
                 frets: variation['frets'],
                 fingers: variation['fingers'],
-                totalString: 6,
-                labelColor: Colors.white, // White label
-                tabForegroundColor: Colors.black, // Black text for finger numbers
-                tabBackgroundColor: Theme.of(context).colorScheme.primary, // Theme primary color for finger dots
-                barColor: Colors.white, // White bar
-                stringColor: Colors.white, // White strings
-                firstFrameColor: Colors.white, // White first frame
-                mutedColor: Colors.white, // White X and O symbols
+                totalString: stringCount,
+                labelColor: AppTheme.textPrimary,
+                tabForegroundColor: AppTheme.background,
+                tabBackgroundColor: Theme.of(context).colorScheme.primary,
+                barColor: AppTheme.textPrimary,
+                stringColor: AppTheme.textPrimary,
+                firstFrameColor: AppTheme.textPrimary,
+                mutedColor: AppTheme.textPrimary,
               ),
             ),
           ),
         );
       },
     );
+  }
+
+  Widget _buildPianoDiagram() {
+    // Get piano chord notes for the current chord
+    final pianoNotes = _getPianoChordNotes(widget.chordName);
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Chord name for piano
+          Text(
+            '${widget.chordName} Piano',
+            style: const TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Piano keyboard - smaller size
+          Container(
+            height: 120, // Reduced from 200 to 120
+            width: 280,  // Reduced from 350 to 280
+            decoration: BoxDecoration(
+              border: Border.all(color: AppTheme.textSecondary.withValues(alpha: 0.3)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: _buildHighlightedPiano(pianoNotes),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Show the chord notes
+          if (pianoNotes.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceSecondary,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Notes: ${pianoNotes.join(' - ')}',
+                style: const TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 8),
+
+          // Instructions
+          Text(
+            'Highlighted keys show the ${widget.chordName} chord',
+            style: const TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build a custom piano with highlighted chord notes
+  Widget _buildHighlightedPiano(List<String> chordNotes) {
+    return CustomPaint(
+      size: const Size(280, 120),
+      painter: PianoChordPainter(
+        chordNotes: chordNotes,
+        chordName: widget.chordName,
+      ),
+    );
+  }
+
+  /// Get piano chord notes for a given chord name
+  List<String> _getPianoChordNotes(String chordName) {
+    // Parse chord name to get root note and chord type
+    final cleanChordName = chordName.replaceAll(RegExp(r'[/\s].*'), '').trim();
+
+    // Extract root note and chord type
+    String rootNote = '';
+    String chordType = '';
+
+    if (cleanChordName.length >= 2 && (cleanChordName[1] == '#' || cleanChordName[1] == 'b')) {
+      rootNote = cleanChordName.substring(0, 2);
+      chordType = cleanChordName.substring(2);
+    } else if (cleanChordName.isNotEmpty) {
+      rootNote = cleanChordName.substring(0, 1);
+      chordType = cleanChordName.substring(1);
+    }
+
+    // Get chord intervals based on chord type
+    final intervals = _getChordIntervals(chordType);
+
+    // Build chord notes
+    final List<String> chordNotes = [];
+    for (final interval in intervals) {
+      final note = _transposeNote(rootNote, interval);
+      if (note.isNotEmpty) {
+        chordNotes.add(note);
+      }
+    }
+
+    return chordNotes;
+  }
+
+  /// Get chord intervals for different chord types
+  List<int> _getChordIntervals(String chordType) {
+    switch (chordType.toLowerCase()) {
+      case '': case 'maj': case 'major':
+        return [0, 4, 7]; // Major triad
+      case 'm': case 'min': case 'minor':
+        return [0, 3, 7]; // Minor triad
+      case '7': case 'dom7':
+        return [0, 4, 7, 10]; // Dominant 7th
+      case 'maj7': case 'major7':
+        return [0, 4, 7, 11]; // Major 7th
+      case 'm7': case 'min7': case 'minor7':
+        return [0, 3, 7, 10]; // Minor 7th
+      case 'dim': case 'diminished':
+        return [0, 3, 6]; // Diminished triad
+      case 'aug': case 'augmented': case '+':
+        return [0, 4, 8]; // Augmented triad
+      case 'sus2':
+        return [0, 2, 7]; // Suspended 2nd
+      case 'sus4':
+        return [0, 5, 7]; // Suspended 4th
+      case '6':
+        return [0, 4, 7, 9]; // Major 6th
+      case 'm6':
+        return [0, 3, 7, 9]; // Minor 6th
+      case '9':
+        return [0, 4, 7, 10, 14]; // Dominant 9th
+      case 'maj9':
+        return [0, 4, 7, 11, 14]; // Major 9th
+      case 'm9':
+        return [0, 3, 7, 10, 14]; // Minor 9th
+      default:
+        return [0, 4, 7]; // Default to major triad
+    }
+  }
+
+  /// Transpose a note by semitones
+  String _transposeNote(String rootNote, int semitones) {
+    final notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+    // Normalize root note
+    String normalizedRoot = rootNote.toUpperCase();
+    if (normalizedRoot.contains('B')) {
+      // Convert flat notes to sharp equivalents
+      normalizedRoot = normalizedRoot.replaceAll('DB', 'C#')
+          .replaceAll('EB', 'D#')
+          .replaceAll('GB', 'F#')
+          .replaceAll('AB', 'G#')
+          .replaceAll('BB', 'A#');
+    }
+
+    final rootIndex = notes.indexOf(normalizedRoot);
+    if (rootIndex == -1) return '';
+
+    final newIndex = (rootIndex + semitones) % 12;
+    return notes[newIndex];
+  }
+}
+
+/// Custom painter for piano keyboard with highlighted chord notes
+class PianoChordPainter extends CustomPainter {
+  final List<String> chordNotes;
+  final String chordName;
+
+  PianoChordPainter({
+    required this.chordNotes,
+    required this.chordName,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint();
+    final double keyWidth = size.width / 7; // 7 white keys (C to B)
+    final double keyHeight = size.height;
+    final double blackKeyWidth = keyWidth * 0.6;
+    final double blackKeyHeight = keyHeight * 0.6;
+
+    // Define white and black key positions
+    final whiteKeys = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+    final blackKeys = ['C#', 'D#', '', 'F#', 'G#', 'A#', '']; // Empty strings for no black key
+
+    // Draw white keys
+    for (int i = 0; i < whiteKeys.length; i++) {
+      final key = whiteKeys[i];
+      final isHighlighted = chordNotes.contains(key);
+
+      // Key rectangle
+      final keyRect = Rect.fromLTWH(
+        i * keyWidth,
+        0,
+        keyWidth,
+        keyHeight,
+      );
+
+      // Fill color
+      paint.color = isHighlighted ? AppTheme.primary : Colors.white;
+      canvas.drawRect(keyRect, paint);
+
+      // Border
+      paint.color = Colors.black;
+      paint.style = PaintingStyle.stroke;
+      paint.strokeWidth = 1;
+      canvas.drawRect(keyRect, paint);
+      paint.style = PaintingStyle.fill;
+
+      // Key label
+      if (isHighlighted) {
+        final textPainter = TextPainter(
+          text: TextSpan(
+            text: key,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        );
+        textPainter.layout();
+        textPainter.paint(
+          canvas,
+          Offset(
+            keyRect.center.dx - textPainter.width / 2,
+            keyRect.bottom - textPainter.height - 8,
+          ),
+        );
+      }
+    }
+
+    // Draw black keys
+    for (int i = 0; i < blackKeys.length; i++) {
+      final key = blackKeys[i];
+      if (key.isEmpty) continue; // Skip positions without black keys
+
+      final isHighlighted = chordNotes.contains(key);
+
+      // Black key position (offset to center between white keys)
+      final blackKeyX = (i + 1) * keyWidth - blackKeyWidth / 2;
+
+      final keyRect = Rect.fromLTWH(
+        blackKeyX,
+        0,
+        blackKeyWidth,
+        blackKeyHeight,
+      );
+
+      // Fill color
+      paint.color = isHighlighted ? AppTheme.primary : Colors.black;
+      canvas.drawRect(keyRect, paint);
+
+      // Border for highlighted black keys
+      if (isHighlighted) {
+        paint.color = Colors.white;
+        paint.style = PaintingStyle.stroke;
+        paint.strokeWidth = 2;
+        canvas.drawRect(keyRect, paint);
+        paint.style = PaintingStyle.fill;
+
+        // Key label
+        final textPainter = TextPainter(
+          text: TextSpan(
+            text: key,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        );
+        textPainter.layout();
+        textPainter.paint(
+          canvas,
+          Offset(
+            keyRect.center.dx - textPainter.width / 2,
+            keyRect.bottom - textPainter.height - 4,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return oldDelegate is! PianoChordPainter ||
+        oldDelegate.chordNotes != chordNotes ||
+        oldDelegate.chordName != chordName;
   }
 }

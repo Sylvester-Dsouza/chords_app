@@ -121,7 +121,7 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Setlist created and song added!'),
-              backgroundColor: Colors.green,
+              backgroundColor: AppTheme.success,
             ),
           );
         }
@@ -133,7 +133,7 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Failed to create setlist: ${e.toString()}'),
-              backgroundColor: Colors.red,
+              backgroundColor: AppTheme.error,
             ),
           );
         }
@@ -163,13 +163,22 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
           _setlistContainsSong[setlistId] = false;
         });
 
-        // Show success message
+        // Show success message with setlist name
         if (mounted) {
+          final setlistName = _setlists.firstWhere((s) => s.id == setlistId).name;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Song removed from setlist'),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 1),
+            SnackBar(
+              content: Text('✅ Removed from "$setlistName"'),
+              backgroundColor: AppTheme.warning,
+              duration: const Duration(seconds: 2),
+              action: SnackBarAction(
+                label: 'UNDO',
+                textColor: Colors.white,
+                onPressed: () {
+                  // Re-add the song
+                  _toggleSongInSetlist(setlistId);
+                },
+              ),
             ),
           );
         }
@@ -182,13 +191,28 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
           _setlistContainsSong[setlistId] = true;
         });
 
-        // Show success message
+        // Show success message with setlist name
         if (mounted) {
+          final setlistName = _setlists.firstWhere((s) => s.id == setlistId).name;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Song added to setlist!'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 1),
+            SnackBar(
+              content: Text('✅ Added to "$setlistName"'),
+              backgroundColor: AppTheme.success,
+              duration: const Duration(seconds: 2),
+              action: SnackBarAction(
+                label: 'VIEW',
+                textColor: Colors.white,
+                onPressed: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/setlist_detail',
+                    arguments: {
+                      'setlistId': setlistId,
+                      'setlistName': setlistName,
+                    },
+                  );
+                },
+              ),
             ),
           );
         }
@@ -201,7 +225,7 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to update setlist: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.error,
           ),
         );
       }
@@ -220,7 +244,7 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Setlists updated successfully!'),
-        backgroundColor: Colors.green,
+        backgroundColor: AppTheme.success,
       ),
     );
 
@@ -233,7 +257,7 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
-        color: Color(0xFF1E1E1E),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Column(
@@ -247,13 +271,13 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
               const Text(
                 'Add to Setlist',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppTheme.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
+                icon: const Icon(Icons.close, color: AppTheme.textPrimary),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
@@ -265,7 +289,7 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.black.withAlpha(50),
+              color: AppTheme.background.withAlpha(50),
               borderRadius: BorderRadius.circular(5),
             ),
             child: Row(
@@ -275,10 +299,10 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-                    color: Colors.grey[800],
+                    color: AppTheme.surfaceSecondary,
                     borderRadius: BorderRadius.circular(5),
                   ),
-                  child: const Icon(Icons.music_note, color: Colors.white),
+                  child: const Icon(Icons.music_note, color: AppTheme.textPrimary),
                 ),
                 const SizedBox(width: 12),
                 // Song details
@@ -289,7 +313,7 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
                       Text(
                         widget.song.title,
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppTheme.textPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -297,7 +321,7 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
                       Text(
                         widget.song.artist,
                         style: const TextStyle(
-                          color: Colors.grey,
+                          color: AppTheme.textSecondary,
                           fontSize: 14,
                         ),
                       ),
@@ -325,7 +349,7 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
                         color: AppTheme.primary,
                         borderRadius: BorderRadius.circular(5),
                       ),
-                      child: const Icon(Icons.add, color: Colors.black),
+                      child: const Icon(Icons.add, color: AppTheme.background),
                     ),
                     const SizedBox(width: 16),
                     const Text(

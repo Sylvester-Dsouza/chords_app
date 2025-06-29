@@ -249,7 +249,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                 'Auto-scroll paused - will resume in 2 seconds',
               ),
               duration: const Duration(milliseconds: 1500),
-              backgroundColor: Colors.orange.withValues(alpha: 0.8),
+              backgroundColor: AppTheme.warning.withValues(alpha: 0.8),
               behavior: SnackBarBehavior.floating,
               margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
             ),
@@ -335,7 +335,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                     ? 'Added "${_song.title}" to liked songs'
                     : 'Removed "${_song.title}" from liked songs',
               ),
-              backgroundColor: _isLiked ? Colors.green : Colors.grey,
+              backgroundColor: _isLiked ? AppTheme.success : AppTheme.textSecondary,
               duration: const Duration(seconds: 1),
             ),
           );
@@ -473,7 +473,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
       'title': _song.title,
       'artist': _song.artist,
       'key': _song.key,
-      'chordSheet': _song.chords ?? '',
+      'content': _song.chords ?? '', // Use 'content' instead of 'chordSheet'
       'tempo': _song.tempo ?? 120,
       'timeSignature': _song.timeSignature ?? '4/4',
       'capo': _song.capo,
@@ -501,7 +501,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
   void _showPracticeAndPresentOptions() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E1E1E),
+      backgroundColor: AppTheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -522,14 +522,14 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
             children: [
               // Practice option
               ListTile(
-                leading: const Icon(Icons.piano, color: Colors.white),
+                leading: const Icon(Icons.piano, color: AppTheme.textPrimary),
                 title: const Text(
                   'Practice Mode',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: AppTheme.textPrimary),
                 ),
                 subtitle: const Text(
                   'Practice with metronome and auto-scroll',
-                  style: TextStyle(color: Colors.white70),
+                  style: TextStyle(color: AppTheme.textSecondary),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -726,7 +726,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                     content: Text(
                       'Thank you for your report. We will review it shortly.',
                     ),
-                    backgroundColor: Colors.green,
+                    backgroundColor: AppTheme.success,
                   ),
                 );
               },
@@ -758,7 +758,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('You rated "${_song.title}" $rating stars'),
-              backgroundColor: Colors.green,
+              backgroundColor: AppTheme.success,
               duration: const Duration(seconds: 2),
             ),
           );
@@ -773,7 +773,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Failed to rate song. Please try again.'),
-              backgroundColor: Colors.red,
+              backgroundColor: AppTheme.error,
             ),
           );
         }
@@ -787,7 +787,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.error),
         );
       }
     } finally {
@@ -811,7 +811,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
         surfaceTintColor:
             Colors.transparent, // Prevents blue tinting from primary color
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: null,
@@ -823,7 +823,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                   IconButton(
                     icon: Icon(
                       _isLiked ? Icons.favorite : Icons.favorite_border,
-                      color: _isLiked ? Colors.red : Colors.white,
+                      color: _isLiked ? AppTheme.error : AppTheme.textPrimary,
                       size: 24,
                     ),
                     onPressed: _toggleLike,
@@ -835,7 +835,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                       IconButton(
                         icon: const Icon(
                           Icons.comment,
-                          color: Colors.white,
+                          color: AppTheme.textPrimary,
                           size: 24,
                         ),
                         onPressed: () {
@@ -868,7 +868,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                                   ? '99+'
                                   : _song.commentCount.toString(),
                               style: const TextStyle(
-                                color: Colors.black,
+                                color: AppTheme.background,
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -882,7 +882,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                   IconButton(
                     icon: const Icon(
                       Icons.playlist_add,
-                      color: Colors.white,
+                      color: AppTheme.textPrimary,
                       size: 24,
                     ),
                     onPressed: _showAddToSetlistSheet,
@@ -891,7 +891,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                   IconButton(
                     icon: const Icon(
                       Icons.print,
-                      color: Colors.white,
+                      color: AppTheme.textPrimary,
                       size: 24,
                     ),
                     onPressed: _printChordSheet,
@@ -900,7 +900,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                   IconButton(
                     icon: const Icon(
                       Icons.more_vert,
-                      color: Colors.white,
+                      color: AppTheme.textPrimary,
                       size: 24,
                     ),
                     onPressed: _showMoreOptions,
@@ -957,12 +957,12 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, color: Colors.red, size: 48),
+              const Icon(Icons.error_outline, color: AppTheme.error, size: 48),
               const SizedBox(height: 16),
               Text(
                 'Error loading song',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppTheme.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -970,7 +970,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
               const SizedBox(height: 8),
               Text(
                 _errorMessage!,
-                style: const TextStyle(color: Colors.white70),
+                style: const TextStyle(color: AppTheme.textSecondary),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -1012,7 +1012,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
           // Divider between details and content
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 3.0),
-            child: Divider(color: Color(0xFF333333), thickness: 1),
+            child: Divider(color: AppTheme.separator, thickness: 1),
           ),
 
           // Lyrics and chords
@@ -1021,7 +1021,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
           // Divider before rating section
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16.0),
-            child: Divider(color: Color(0xFF333333), thickness: 1),
+            child: Divider(color: AppTheme.separator, thickness: 1),
           ),
 
           // Rating section
@@ -1059,7 +1059,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
               const SizedBox(width: 6),
               Text(
                 '(${_song.ratingCount})',
-                style: const TextStyle(color: Colors.white54, fontSize: 11),
+                style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11),
               ),
             ],
           ),
@@ -1110,7 +1110,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
               Text(
                 'Chords Used (${uniqueChords.length})',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppTheme.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   fontFamily: AppTheme.primaryFontFamily,
@@ -1157,7 +1157,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
         width: 50,
         height: 50,
         decoration: BoxDecoration(
-          color: const Color(0xFF2A2A2A),
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(5),
           border: Border.all(
             color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
@@ -1190,7 +1190,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
             child: Text(
               'No chord sheet available',
               style: TextStyle(
-                color: Colors.grey,
+                color: AppTheme.textSecondary,
                 fontFamily: AppTheme.primaryFontFamily,
               ),
             ),
@@ -1223,7 +1223,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
         bottom: MediaQuery.of(context).padding.bottom, // Add safe area padding
       ),
       decoration: const BoxDecoration(
-        color: Color(0xFF1E1E1E), // Lighter background (was 0xFF121212)
+        color: AppTheme.surface, // Use theme surface color
         boxShadow: [
           BoxShadow(
             color: Color(0x33000000), // Black with 20% opacity
@@ -2387,7 +2387,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error printing: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.error,
           ),
         );
       }
@@ -2417,7 +2417,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error sharing: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.error,
           ),
         );
       }
@@ -2522,7 +2522,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('No video URL available for this song.'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppTheme.error,
         ),
       );
       return;

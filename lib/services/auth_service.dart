@@ -11,7 +11,7 @@ import '../core/service_locator.dart';
 import '../core/crashlytics_service.dart';
 
 // Constants for secure storage keys
-const String _tokenKey = 'auth_token';
+const String _tokenKey = 'firebase_token'; // Changed to match API service
 const String _userIdKey = 'user_id';
 const String _userEmailKey = 'user_email';
 const String _userNameKey = 'user_name';
@@ -578,13 +578,70 @@ class AuthService {
     }
   }
 
-  // Get the authentication token
+  // Get the authentication token with automatic refresh
   Future<String?> getToken() async {
     try {
-      final storage = FlutterSecureStorage();
-      return await storage.read(key: _tokenKey);
+      // First check if user is still authenticated
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        debugPrint('No current user, cannot get token');
+        return null;
+      }
+
+      // Try to get a fresh token from Firebase (this will automatically refresh if needed)
+      debugPrint('Getting fresh Firebase ID token');
+      final String? freshToken = await currentUser.getIdToken(true); // Force refresh
+
+      if (freshToken != null) {
+        // Store the fresh token
+        final storage = FlutterSecureStorage();
+        await storage.write(key: _tokenKey, value: freshToken);
+        debugPrint('Fresh token obtained and stored');
+        return freshToken;
+      } else {
+        debugPrint('Failed to get fresh token from Firebase');
+        return null;
+      }
     } catch (e) {
-      debugPrint('Error getting token: $e');
+      debugPrint('Error getting fresh token: $e');
+
+      // Fallback: try to get stored token
+      try {
+        final storage = FlutterSecureStorage();
+        final storedToken = await storage.read(key: _tokenKey);
+        debugPrint('Fallback to stored token: ${storedToken != null}');
+        return storedToken;
+      } catch (storageError) {
+        debugPrint('Error getting stored token: $storageError');
+        return null;
+      }
+    }
+  }
+
+  // Force refresh the authentication token
+  Future<String?> refreshToken() async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        debugPrint('No current user, cannot refresh token');
+        return null;
+      }
+
+      debugPrint('Force refreshing Firebase ID token');
+      final String? freshToken = await currentUser.getIdToken(true); // Force refresh
+
+      if (freshToken != null) {
+        // Store the fresh token
+        final storage = FlutterSecureStorage();
+        await storage.write(key: _tokenKey, value: freshToken);
+        debugPrint('Token refreshed and stored successfully');
+        return freshToken;
+      } else {
+        debugPrint('Failed to refresh token');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Error refreshing token: $e');
       return null;
     }
   }

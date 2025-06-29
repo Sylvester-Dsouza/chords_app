@@ -15,6 +15,8 @@ import '../screens/vocal_warmups_screen.dart';
 import '../screens/vocal_exercises_screen.dart';
 import '../screens/courses_screen.dart';
 import '../screens/crashlytics_test_screen.dart';
+import '../screens/community_screen.dart';
+import '../screens/community_setlists_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -41,6 +43,12 @@ class AppDrawer extends StatelessWidget {
 
                     // Features Section
                     _buildSectionHeader(context, 'Features'),
+                    _buildMenuItem(
+                      context,
+                      Icons.people_outline,
+                      'Community',
+                      routeName: '/community',
+                    ),
                     _buildMenuItem(
                       context,
                       Icons.music_note_outlined,
@@ -374,6 +382,12 @@ class AppDrawer extends StatelessWidget {
         break;
       case '/song_request':
         page = const SongRequestScreen();
+        break;
+      case '/community':
+        page = const CommunityScreen();
+        break;
+      case '/community_setlists':
+        page = const CommunitySetlistsScreen();
         break;
       case '/about_us':
         page = const AboutUsScreen();

@@ -322,7 +322,7 @@ class _HomeScreenNewState extends State<HomeScreenNew>
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(connectivityService.getConnectivityMessage()),
-              backgroundColor: Colors.orange,
+              backgroundColor: AppTheme.warning,
               duration: const Duration(seconds: 3),
             ),
           );
@@ -505,23 +505,23 @@ class _HomeScreenNewState extends State<HomeScreenNew>
         backgroundColor: AppTheme.appBar,
         elevation: 0,
         scrolledUnderElevation: 0, // Prevents elevation change when scrolling
-        surfaceTintColor:
-            Colors.transparent, // Prevents blue tinting from primary color
+        surfaceTintColor: Colors.transparent, // Prevents blue tinting from primary color
         leading: Builder(
-          builder:
-              (context) => IconButton(
-                icon: const Icon(Icons.menu, color: Colors.white),
-                onPressed: () {
-                  Scaffold.of(context).openDrawer();
-                },
-              ),
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: AppTheme.textPrimary),
+            onPressed: () {
+              Scaffold.of(context).openDrawer();
+            },
+          ),
         ),
         title: const Text(
           'Stuthi Chords & Lyrics',
           style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
+            fontFamily: AppTheme.primaryFontFamily,
+            letterSpacing: -0.2,
           ),
         ),
         centerTitle: true,
@@ -533,7 +533,7 @@ class _HomeScreenNewState extends State<HomeScreenNew>
               IconButton(
                 icon: const Icon(
                   Icons.notifications_outlined,
-                  color: Colors.white,
+                  color: AppTheme.textPrimary,
                 ),
                 onPressed: () {
                   Navigator.pushNamed(context, '/notifications').then((_) {
@@ -551,7 +551,7 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                     height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.textPrimary),
                     ),
                   ),
                 )
@@ -562,8 +562,8 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                   child: Container(
                     padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(5),
+                      color: AppTheme.error,
+                      borderRadius: BorderRadius.circular(6),
                     ),
                     constraints: const BoxConstraints(
                       minWidth: 16,
@@ -574,9 +574,10 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                           ? '99+'
                           : _unreadNotificationCount.toString(),
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppTheme.textPrimary,
                         fontSize: 10,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: AppTheme.primaryFontFamily,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -593,15 +594,37 @@ class _HomeScreenNewState extends State<HomeScreenNew>
             // Top spacing
             const SizedBox(height: 16.0),
 
-            // Connectivity Status Widget
-            ConnectivityStatusWidget(
-              margin: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 8.0,
-              ),
-              onRetryPressed: () {
-                // Retry loading home sections when connectivity is restored
-                _fetchHomeSections(forceRefresh: true);
+            // Beta version alert banner
+            _buildBetaVersionBanner(),
+
+            // Connectivity Status Widget - Only show when there's a real problem
+            Consumer<AppDataProvider>(
+              builder: (context, appDataProvider, child) {
+                // Only show connectivity issues if:
+                // 1. Data loading has failed (error state) AND
+                // 2. We have connectivity issues AND
+                // 3. We don't have any cached data to show
+                final hasDataToShow = appDataProvider.homeSections.isNotEmpty;
+                final isLoadingOrRefreshing = appDataProvider.homeState == DataState.loading ||
+                                            appDataProvider.homeState == DataState.refreshing;
+                final hasError = appDataProvider.homeState == DataState.error;
+
+                // Only show connectivity widget when we have an error AND no data to show
+                final shouldShowConnectivity = hasError && !hasDataToShow && !isLoadingOrRefreshing;
+
+                return ConnectivityStatusWidget(
+                  showWhenOnline: false,
+                  margin: shouldShowConnectivity
+                    ? const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 8.0,
+                      )
+                    : EdgeInsets.zero,
+                  onRetryPressed: () {
+                    // Retry loading home sections when connectivity is restored
+                    _fetchHomeSections(forceRefresh: true);
+                  },
+                );
               },
             ),
 
@@ -659,7 +682,7 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                     Text(
                       title,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppTheme.textPrimary,
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
                       ),
@@ -674,7 +697,7 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                   child: Text(
                     'See all',
                     style: const TextStyle(
-                      color: Color.fromARGB(255, 164, 164, 164),
+                      color: AppTheme.textSecondary,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
@@ -709,6 +732,56 @@ class _HomeScreenNewState extends State<HomeScreenNew>
     );
   }
 
+  Widget _buildBetaVersionBanner() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withValues(alpha: 0.1),
+        border: Border.all(
+          color: AppTheme.primary.withValues(alpha: 0.3),
+          width: 1,
+        ),
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.science_outlined,
+            color: AppTheme.primary,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Beta Version',
+                  style: TextStyle(
+                    color: AppTheme.primary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    fontFamily: AppTheme.primaryFontFamily,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'This is a beta version of the app. Some features may be experimental.',
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 12,
+                    fontFamily: AppTheme.primaryFontFamily,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLoadingIndicator() {
     return Column(
       children: [
@@ -728,24 +801,24 @@ class _HomeScreenNewState extends State<HomeScreenNew>
       height: 140, // Default height to match horizontal scroll section
       margin: const EdgeInsets.only(bottom: 16.0), // Reduced bottom margin
       child: Center(
-        child: Text(message, style: TextStyle(color: Colors.grey[400])),
+        child: Text(message, style: TextStyle(color: AppTheme.textSecondary)),
       ),
     );
   }
 
   Color _getRandomColor() {
-    // List of predefined colors
+    // Use theme-based colors for consistency
     final colors = [
-      Colors.blue,
-      Colors.red,
-      Colors.green,
-      Colors.orange,
-      Colors.purple,
-      Colors.pink,
-      Colors.teal,
-      Colors.indigo,
-      Colors.cyan,
-      Colors.deepPurple,
+      AppTheme.primary,
+      AppTheme.accent2, // Green
+      AppTheme.accent3, // Orange
+      AppTheme.accent4, // Red
+      AppTheme.accent5, // Light blue
+      AppTheme.primary.withValues(alpha: 0.8), // Lighter primary
+      AppTheme.success,
+      AppTheme.warning,
+      AppTheme.info,
+      AppTheme.primary.withValues(alpha: 0.6), // Even lighter primary
     ];
 
     // Return a random color from the list
@@ -799,7 +872,7 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                       errorWidget: Center(
                         child: Icon(
                           Icons.collections_bookmark,
-                          color: Colors.white,
+                          color: AppTheme.textPrimary,
                           size: 40,
                         ),
                       ),
@@ -807,7 +880,7 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                     : Center(
                       child: Icon(
                         Icons.collections_bookmark,
-                        color: Colors.white,
+                        color: AppTheme.textPrimary,
                         size: 40,
                       ),
                     ),
@@ -895,14 +968,14 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                                 ),
                                 errorWidget: Icon(
                                   Icons.music_note,
-                                  color: Colors.white,
+                                  color: AppTheme.textPrimary,
                                   size: 40,
                                 ),
                               )
                               : Center(
                                 child: Icon(
                                   Icons.music_note,
-                                  color: Colors.white,
+                                  color: AppTheme.textPrimary,
                                   size: 40,
                                 ),
                               ),
@@ -917,7 +990,7 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                     height: textHeight,
                     child: Text(
                       title,
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),

@@ -723,7 +723,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
           children: [
             const Text(
               'Please log in to view your liked songs',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: AppTheme.textPrimary),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
@@ -751,7 +751,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
                 : Center(
                     child: Text(
                       'Loading liked songs...',
-                      style: TextStyle(color: Colors.grey[400]),
+                      style: TextStyle(color: AppTheme.textSecondary),
                     ),
                   ))
             : RefreshIndicator(
@@ -795,7 +795,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
           const Icon(
             Icons.favorite_border,
             size: 64,
-            color: Colors.grey,
+            color: AppTheme.textSecondary,
           ),
           const SizedBox(height: 16),
           const Text(
@@ -803,14 +803,14 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: AppTheme.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
           const Text(
             'Like songs to add them to this list',
             style: TextStyle(
-              color: Colors.grey,
+              color: AppTheme.textSecondary,
             ),
           ),
           const SizedBox(height: 24),
@@ -839,7 +839,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: const Color(0xFF333333),
+            color: AppTheme.separator,
             width: 1.0,
           ),
         ),
@@ -851,7 +851,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
         title: Text(
           song.title,
           style: const TextStyle(
-            color: Colors.white,
+            color: AppTheme.textPrimary,
             fontWeight: FontWeight.bold,
           ),
           // Ensure text doesn't wrap unnecessarily
@@ -860,7 +860,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
         subtitle: Text(
           song.artist,
           style: const TextStyle(
-            color: Colors.grey,
+            color: AppTheme.textSecondary,
           ),
           overflow: TextOverflow.ellipsis,
         ),
@@ -871,13 +871,13 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
               decoration: BoxDecoration(
-                color: const Color(0xFF333333),
+                color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(5),
               ),
               child: Text(
                 song.key,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppTheme.textPrimary,
                   fontSize: 12,
                 ),
               ),
@@ -887,7 +887,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
             IconButton(
               icon: const Icon(
                 Icons.favorite,
-                color: Colors.red,
+                color: AppTheme.error,
                 size: 20,
               ),
               padding: EdgeInsets.zero,
@@ -911,7 +911,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Removed "${song.title}" from liked songs'),
-                      backgroundColor: Colors.grey,
+                      backgroundColor: AppTheme.textSecondary,
                       duration: const Duration(seconds: 1),
                     ),
                   );
@@ -964,7 +964,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
             // Join Collab button on the left
             TextButton.icon(
               icon: const Icon(Icons.group_add, size: 20),
-              label: const Text('Join Collab'),
+              label: const Text('Join Setlist'),
               style: TextButton.styleFrom(
                 foregroundColor: Theme.of(context).primaryColor,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1687,7 +1687,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
                 _buildInfoItem(
                   icon: Icons.group_add,
                   title: 'Join a Setlist',
-                  description: 'Tap the "Join Collab" button to join an existing setlist using a code.',
+                  description: 'Tap "Join Setlist" button above to enter a 4-digit code and collaborate with your team.',
                 ),
                 const SizedBox(height: 16),
                 _buildInfoItem(

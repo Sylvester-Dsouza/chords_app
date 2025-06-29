@@ -9,6 +9,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   firebase_auth
   firebase_core
   flutter_secure_storage_windows
+  metronome
   permission_handler_windows
   printing
   share_plus

@@ -169,7 +169,7 @@ class _CrashlyticsTestScreenState extends State<CrashlyticsTestScreen> {
           title: 'Log Test Event',
           description: 'Send a custom test event to Crashlytics',
           icon: Icons.event_note,
-          color: Colors.blue,
+          color: AppTheme.primary,
           onPressed: _logTestEvent,
         ),
         
@@ -179,7 +179,7 @@ class _CrashlyticsTestScreenState extends State<CrashlyticsTestScreen> {
           title: 'Record Test Error',
           description: 'Send a non-fatal error to Crashlytics',
           icon: Icons.error_outline,
-          color: Colors.orange,
+          color: AppTheme.warning,
           onPressed: _recordTestError,
         ),
         

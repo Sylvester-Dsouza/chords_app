@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/theme.dart';
 
 class AnimatedBottomNavBar extends StatefulWidget {
   final int currentIndex;
@@ -62,25 +63,24 @@ class _AnimatedBottomNavBarState extends State<AnimatedBottomNavBar> with Single
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(76), // 0.3 opacity = 76/255
-            blurRadius: 10,
-            offset: const Offset(0, -3),
-          ),
-        ],
+        color: AppTheme.navigationBar,
+        border: const Border(
+          top: BorderSide(color: AppTheme.border, width: 0.5),
+        ),
       ),
       child: BottomNavigationBar(
-        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-        selectedItemColor: Theme.of(context).colorScheme.primary, // Use theme primary color
-        unselectedItemColor: Colors.grey,
+        backgroundColor: AppTheme.navigationBar,
+        selectedItemColor: AppTheme.primary, // Primary color used sparingly for selected items
+        unselectedItemColor: AppTheme.textSecondary,
         type: BottomNavigationBarType.fixed,
-        elevation: 0, // Remove shadow
+        elevation: 0,
         showSelectedLabels: true,
         showUnselectedLabels: true,
-        selectedLabelStyle: const TextStyle(fontSize: 12),
-        unselectedLabelStyle: const TextStyle(fontSize: 12),
+        selectedLabelStyle: AppTheme.bottomNavLabelStyle.copyWith(
+          color: AppTheme.primary,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: AppTheme.bottomNavLabelStyle,
         items: [
           _buildNavItem(Icons.home_filled, 'Home', 0),
           _buildNavItem(Icons.queue_music, 'My Setlist', 1),
@@ -112,8 +112,8 @@ class _AnimatedBottomNavBarState extends State<AnimatedBottomNavBar> with Single
 
       // Animate the icon color
       final Animation<Color?> colorAnimation = ColorTween(
-        begin: isSelected ? Colors.grey : Theme.of(context).colorScheme.primary,
-        end: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey,
+        begin: isSelected ? AppTheme.textSecondary : AppTheme.primary,
+        end: isSelected ? AppTheme.primary : AppTheme.textSecondary,
       ).animate(_animation);
 
       iconWidget = AnimatedBuilder(

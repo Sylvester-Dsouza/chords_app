@@ -292,7 +292,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to load songs: ${e.toString().replaceAll('Exception: ', '')}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.error,
           ),
         );
       }
@@ -332,7 +332,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to load artists: ${e.toString().replaceAll('Exception: ', '')}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.error,
           ),
         );
       }
@@ -372,7 +372,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to load collections: ${e.toString().replaceAll('Exception: ', '')}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.error,
           ),
         );
       }
@@ -513,7 +513,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to search songs: ${e.toString().replaceAll('Exception: ', '')}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.error,
           ),
         );
       }
@@ -552,7 +552,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to search artists: ${e.toString().replaceAll('Exception: ', '')}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.error,
           ),
         );
       }
@@ -591,7 +591,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to search collections: ${e.toString().replaceAll('Exception: ', '')}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppTheme.error,
           ),
         );
       }
@@ -623,15 +623,49 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
   Future<void> _handleVoiceSearch() async {
     if (!_isVoiceSearchAvailable) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Voice search is not available on this device'),
-          backgroundColor: Colors.orange,
+        SnackBar(
+          content: Text(_voiceSearchService.lastError.isNotEmpty
+              ? _voiceSearchService.lastError
+              : 'Voice search is not available on this device'),
+          backgroundColor: AppTheme.warning,
+          duration: const Duration(seconds: 4),
         ),
       );
       return;
     }
 
+    // Double-check permissions before showing dialog
+    try {
+      final isStillAvailable = await _voiceSearchService.initialize();
+      if (!isStillAvailable) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_voiceSearchService.lastError.isNotEmpty
+                  ? _voiceSearchService.lastError
+                  : 'Voice search is not available. Please check your permissions.'),
+              backgroundColor: AppTheme.error,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+        return;
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to initialize voice search: ${e.toString()}'),
+            backgroundColor: AppTheme.error,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+      return;
+    }
+
     // Show voice search dialog
+    if (!mounted) return;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -684,7 +718,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Voice search: "$result"'),
-                backgroundColor: Colors.green,
+                backgroundColor: AppTheme.success,
                 duration: const Duration(seconds: 2),
               ),
             );
@@ -700,11 +734,28 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           Navigator.of(context).pop();
         }
 
+        // Show user-friendly error message
+        String errorMessage = 'Voice search failed. Please try again.';
+        if (_voiceSearchService.lastError.isNotEmpty) {
+          errorMessage = _voiceSearchService.lastError;
+        } else if (e.toString().contains('permission')) {
+          errorMessage = 'Permission denied. Please enable microphone and speech recognition permissions.';
+        } else if (e.toString().contains('not available')) {
+          errorMessage = 'Voice search is not available on this device.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Voice search failed: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
+            content: Text(errorMessage),
+            backgroundColor: AppTheme.error,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Settings',
+              textColor: AppTheme.textPrimary,
+              onPressed: () {
+                // This could open app settings in the future
+              },
+            ),
           ),
         );
       }
@@ -837,7 +888,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                       title: Text(
                         _screenTitle,
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppTheme.textPrimary,
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
                         ),
@@ -897,7 +948,12 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                             onFilterPressed: _showFilterDialog,
                             onVoicePressed: _handleVoiceSearch,
                             onFocusChanged: _handleSearchFocusChange,
-                            primaryColor: const Color(0xFFC19FFF),
+                            primaryColor: AppTheme.primary,
+                            backgroundColor: AppTheme.surface,
+                            textColor: AppTheme.textPrimary,
+                            hintColor: AppTheme.textSecondary,
+                            iconColor: AppTheme.textSecondary,
+                            activeFilterColor: AppTheme.primary,
                           ),
                         ),
                       ),
@@ -972,8 +1028,8 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
               curve: Curves.easeInOut,
               style: TextStyle(
                 color: isSelected
-                    ? Colors.white
-                    : Colors.grey[500],
+                    ? AppTheme.textPrimary
+                    : AppTheme.textSecondary,
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 letterSpacing: 0.2,
@@ -994,7 +1050,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
               height: 2,
               width: isSelected ? title.length * 6.0 : 0,
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFC19FFF) : Colors.transparent,
+                color: isSelected ? AppTheme.primary : Colors.transparent,
                 borderRadius: BorderRadius.circular(5),
               ),
             ),
@@ -1018,7 +1074,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
             padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 4.0),
             child: Text(
               _getSearchResultText(0),
-              style: TextStyle(color: Colors.grey[400], fontSize: 14),
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
             ),
           ),
 
@@ -1033,7 +1089,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                 ? Center(
                     child: Text(
                       _hasAttemptedLoad ? 'No songs found' : 'Loading songs...',
-                      style: TextStyle(color: Colors.grey[400])
+                      style: TextStyle(color: AppTheme.textSecondary)
                     )
                   )
                 : ListView.builder(
@@ -1063,7 +1119,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
             padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 4.0),
             child: Text(
               _getSearchResultText(1),
-              style: TextStyle(color: Colors.grey[400], fontSize: 14),
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
             ),
           ),
 
@@ -1078,7 +1134,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                 ? Center(
                     child: Text(
                       _hasAttemptedLoad ? 'No artists found' : 'Loading artists...',
-                      style: TextStyle(color: Colors.grey[400])
+                      style: TextStyle(color: AppTheme.textSecondary)
                     )
                   )
                 : ListView.builder(
@@ -1114,7 +1170,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           title: Text(
             name,
             style: const TextStyle(
-              color: Colors.white,
+              color: AppTheme.textPrimary,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -1122,14 +1178,14 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
             children: [
               Icon(
                 Icons.music_note,
-                color: Colors.grey,
+                color: AppTheme.textSecondary,
                 size: 14,
               ),
               const SizedBox(width: 4),
               Text(
                 songCount,
                 style: const TextStyle(
-                  color: Colors.grey,
+                  color: AppTheme.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -1137,7 +1193,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
           ),
           trailing: const Icon(
             Icons.chevron_right,
-            color: Colors.grey,
+            color: AppTheme.textSecondary,
           ),
           onTap: () {
             Navigator.pushNamed(
@@ -1153,7 +1209,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         Container(
           height: 0.5,
           margin: EdgeInsets.only(left: horizontalPadding + placeholderSize + 12, right: 0),
-          color: Colors.grey[700], // Lighter color
+          color: AppTheme.separator,
         ),
       ],
     );
@@ -1173,7 +1229,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
             padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 4.0),
             child: Text(
               _getSearchResultText(2),
-              style: TextStyle(color: Colors.grey[400], fontSize: 14),
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
             ),
           ),
 
@@ -1192,7 +1248,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                 ? Center(
                     child: Text(
                       _hasAttemptedLoad ? 'No collections found' : 'Loading collections...',
-                      style: TextStyle(color: Colors.grey[400])
+                      style: TextStyle(color: AppTheme.textSecondary)
                     )
                   )
                 : ListView.builder(
@@ -1237,10 +1293,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
       },
       borderRadius: BorderRadius.circular(5),
       child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E1E1E),
-          borderRadius: BorderRadius.circular(5),
-        ),
+        decoration: AppTheme.cardDecorationWithRadius(5),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1283,7 +1336,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                   Text(
                     title,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppTheme.textPrimary,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1301,7 +1354,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                       Text(
                         songCount,
                         style: const TextStyle(
-                          color: Colors.grey,
+                          color: AppTheme.textSecondary,
                           fontSize: 14,
                         ),
                       ),
@@ -1312,14 +1365,14 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                           Text(
                             likeCount.toString(),
                             style: const TextStyle(
-                              color: Colors.grey,
+                              color: AppTheme.textSecondary,
                               fontSize: 14,
                             ),
                           ),
                           const SizedBox(width: 4),
                           Icon(
                             collection.isLiked ? Icons.favorite : Icons.favorite_border,
-                            color: collection.isLiked ? Colors.red : Colors.grey,
+                            color: collection.isLiked ? AppTheme.error : AppTheme.textSecondary,
                             size: 14,
                           ),
                         ],
@@ -1349,7 +1402,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         title: Text(
           song.title,
           style: const TextStyle(
-            color: Colors.white,
+            color: AppTheme.textPrimary,
             fontWeight: FontWeight.bold,
           ),
           // Ensure text doesn't wrap unnecessarily
@@ -1358,7 +1411,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         subtitle: Text(
           song.artist,
           style: const TextStyle(
-            color: Colors.grey,
+            color: AppTheme.textSecondary,
           ),
           overflow: TextOverflow.ellipsis,
         ),
@@ -1369,13 +1422,13 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
               decoration: BoxDecoration(
-                color: const Color(0xFF333333),
+                color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(5),
               ),
               child: Text(
                 song.key,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppTheme.textPrimary,
                   fontSize: 12,
                 ),
               ),
@@ -1385,7 +1438,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
             IconButton(
               icon: Icon(
                 song.isLiked ? Icons.favorite : Icons.favorite_border,
-                color: song.isLiked ? Colors.red : Colors.white,
+                color: song.isLiked ? AppTheme.error : AppTheme.textPrimary,
               ),
               onPressed: () async {
                 // Store the current state before toggling
@@ -1407,7 +1460,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
                           ? 'Removed "${song.title}" from liked songs'
                           : 'Added "${song.title}" to liked songs'
                       ),
-                      backgroundColor: wasLiked ? Colors.grey : Colors.green,
+                      backgroundColor: wasLiked ? AppTheme.textSecondary : AppTheme.success,
                       duration: const Duration(seconds: 1),
                     ),
                   );
@@ -1429,7 +1482,7 @@ class _SearchScreenState extends State<SearchScreen> with SingleTickerProviderSt
         Container(
           height: 0.5,
           margin: EdgeInsets.only(left: horizontalPadding + placeholderSize + 12, right: 0),
-          color: Colors.grey[700], // Lighter color
+          color: AppTheme.separator,
         ),
       ],
     );

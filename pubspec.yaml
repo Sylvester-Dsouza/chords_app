@@ -102,6 +102,9 @@ dependencies:
   # Enhanced search functionality
   speech_to_text: ^7.0.0
 
+  # Professional metronome package
+  metronome: ^2.0.6
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -154,6 +157,11 @@ flutter:
   assets:
     - assets/images/
     - assets/audio/
+    # Explicitly list metronome audio files
+    - assets/audio/hihat.wav
+    - assets/audio/click.wav
+    - assets/audio/wood.wav
+    - assets/audio/beep.wav
 
   # Custom fonts
   fonts:

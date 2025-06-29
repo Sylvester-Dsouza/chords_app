@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
 
 /// Service for handling voice search functionality
 class VoiceSearchService extends ChangeNotifier {
@@ -21,17 +22,56 @@ class VoiceSearchService extends ChangeNotifier {
   /// Initialize the voice search service
   Future<bool> initialize() async {
     try {
-      // Check microphone permission
-      final permissionStatus = await Permission.microphone.status;
-      if (permissionStatus.isDenied) {
+      // Reset previous state
+      _lastError = '';
+      _isAvailable = false;
+
+      // Check if speech recognition is supported on this platform
+      if (!await _speechToText.hasPermission) {
+        debugPrint('Speech recognition permission not granted');
+      }
+
+      // Check microphone permission first
+      final micPermissionStatus = await Permission.microphone.status;
+      if (micPermissionStatus.isDenied || micPermissionStatus.isPermanentlyDenied) {
+        if (micPermissionStatus.isPermanentlyDenied) {
+          _lastError = 'Microphone permission permanently denied. Please enable it in Settings.';
+          notifyListeners();
+          return false;
+        }
+
         final result = await Permission.microphone.request();
-        if (result.isDenied) {
-          _lastError = 'Microphone permission denied';
+        if (result.isDenied || result.isPermanentlyDenied) {
+          _lastError = result.isPermanentlyDenied
+              ? 'Microphone permission permanently denied. Please enable it in Settings.'
+              : 'Microphone permission denied';
+          notifyListeners();
           return false;
         }
       }
 
-      // Initialize speech to text
+      // For iOS, also check speech recognition permission
+      if (Platform.isIOS) {
+        final speechPermissionStatus = await Permission.speech.status;
+        if (speechPermissionStatus.isDenied || speechPermissionStatus.isPermanentlyDenied) {
+          if (speechPermissionStatus.isPermanentlyDenied) {
+            _lastError = 'Speech recognition permission permanently denied. Please enable it in Settings.';
+            notifyListeners();
+            return false;
+          }
+
+          final result = await Permission.speech.request();
+          if (result.isDenied || result.isPermanentlyDenied) {
+            _lastError = result.isPermanentlyDenied
+                ? 'Speech recognition permission permanently denied. Please enable it in Settings.'
+                : 'Speech recognition permission denied';
+            notifyListeners();
+            return false;
+          }
+        }
+      }
+
+      // Initialize speech to text with enhanced error handling
       _isAvailable = await _speechToText.initialize(
         onError: _onError,
         onStatus: _onStatus,
@@ -39,14 +79,27 @@ class VoiceSearchService extends ChangeNotifier {
       );
 
       if (!_isAvailable) {
-        _lastError = 'Speech recognition not available';
+        _lastError = Platform.isIOS
+            ? 'Speech recognition not available. Please ensure you have granted microphone and speech recognition permissions in Settings.'
+            : 'Speech recognition not available on this device';
+      } else {
+        debugPrint('Voice search initialized successfully');
       }
 
       notifyListeners();
       return _isAvailable;
     } catch (e) {
       debugPrint('Error initializing voice search: $e');
-      _lastError = 'Failed to initialize voice search: $e';
+
+      // Provide more specific error messages based on the error type
+      if (e.toString().contains('permission')) {
+        _lastError = 'Permission denied. Please grant microphone and speech recognition permissions.';
+      } else if (e.toString().contains('not available') || e.toString().contains('not supported')) {
+        _lastError = 'Speech recognition is not available on this device.';
+      } else {
+        _lastError = 'Failed to initialize voice search. Please try again.';
+      }
+
       _isAvailable = false;
       notifyListeners();
       return false;
@@ -154,7 +207,30 @@ class VoiceSearchService extends ChangeNotifier {
 
   void _onError(dynamic error) {
     debugPrint('Voice search error: $error');
-    _lastError = error.toString();
+
+    // Provide user-friendly error messages based on error type
+    String errorMessage;
+    final errorString = error.toString().toLowerCase();
+
+    if (errorString.contains('permission') || errorString.contains('denied')) {
+      errorMessage = Platform.isIOS
+          ? 'Permission denied. Please enable microphone and speech recognition in Settings > Privacy & Security.'
+          : 'Permission denied. Please grant microphone permission.';
+    } else if (errorString.contains('not available') || errorString.contains('not supported')) {
+      errorMessage = 'Speech recognition is not available on this device.';
+    } else if (errorString.contains('network') || errorString.contains('connection')) {
+      errorMessage = 'Network error. Please check your internet connection and try again.';
+    } else if (errorString.contains('timeout')) {
+      errorMessage = 'Speech recognition timed out. Please try again.';
+    } else if (errorString.contains('audio') || errorString.contains('microphone')) {
+      errorMessage = Platform.isIOS
+          ? 'Microphone error. Please check your microphone permissions and try again.'
+          : 'Audio error. Please check your microphone and try again.';
+    } else {
+      errorMessage = 'Voice search failed. Please try again.';
+    }
+
+    _lastError = errorMessage;
     _isListening = false;
     notifyListeners();
   }

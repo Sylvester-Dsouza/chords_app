@@ -162,11 +162,36 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Enter a 4-digit code or scan a QR code to join',
+                    'Enter the 4-digit share code from your team leader',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppTheme.textMuted,
                     ),
                     textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, color: AppTheme.primary, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Ask your team leader for the share code',
+                            style: TextStyle(
+                              color: AppTheme.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -228,9 +253,12 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
               child: TextField(
                 controller: _shareCodeController,
                 decoration: InputDecoration(
-                  hintText: 'Enter 4-digit code (e.g., 1234)',
+                  hintText: '1234',
                   hintStyle: TextStyle(
-                    color: AppTheme.textMuted,
+                    color: AppTheme.textMuted.withValues(alpha: 0.5),
+                    fontSize: 20,
+                    letterSpacing: 6,
+                    fontWeight: FontWeight.w600,
                   ),
                   errorText: _errorMessage,
                   prefixIcon: Container(
@@ -241,7 +269,7 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                      Icons.code,
+                      Icons.vpn_key,
                       color: AppTheme.primary,
                       size: 20,
                     ),

@@ -13,7 +13,7 @@ class ConnectivityService extends ChangeNotifier {
   final Connectivity _connectivity = Connectivity();
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
-  // Connection state
+  // Connection state - Start optimistic, verify later
   bool _isConnected = true;
   bool _hasInternetAccess = true;
   bool _isApiReachable = true;
@@ -176,26 +176,31 @@ class ConnectivityService extends ChangeNotifier {
     }
 
     try {
-      // Try to reach the app's API health endpoint
+      // Try to reach the app's API ping endpoint (lighter than full health check)
       final response = await http
           .get(
-            Uri.parse('${ApiConfig.baseUrl}/api/health'),
+            Uri.parse('${ApiConfig.baseUrl}/health/ping'),
             headers: {'Cache-Control': 'no-cache'},
           )
           .timeout(_apiTimeout);
 
       final wasApiReachable = _isApiReachable;
-      _isApiReachable =
-          response.statusCode < 500; // Accept any non-server error
+      // Be more lenient - accept any response that's not a server error or timeout
+      _isApiReachable = response.statusCode >= 200 && response.statusCode < 500;
       _lastApiCheck = DateTime.now();
 
       if (wasApiReachable != _isApiReachable) {
         debugPrint(
-          '🌐 API reachability changed: ${_isApiReachable ? "Reachable" : "Unreachable"}',
+          '🌐 API reachability changed: ${_isApiReachable ? "Reachable" : "Unreachable"} (Status: ${response.statusCode})',
         );
         notifyListeners();
+      } else if (_isApiReachable) {
+        // Don't spam logs when everything is working
+        debugPrint('🌐 API health check passed (Status: ${response.statusCode})');
       }
     } catch (e) {
+      // Only mark as unreachable if we were previously reachable
+      // This prevents false negatives during app startup
       if (_isApiReachable) {
         debugPrint('🌐 API became unreachable: $e');
         _isApiReachable = false;

@@ -325,12 +325,12 @@ class _ListScreenState extends State<ListScreen> {
         title: Text(
           widget.title,
           style: const TextStyle(
-            color: Colors.white,
+            color: AppTheme.textPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -356,12 +356,12 @@ class _ListScreenState extends State<ListScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, color: Colors.red, size: 48),
+              const Icon(Icons.error_outline, color: AppTheme.error, size: 48),
               const SizedBox(height: 16),
               Text(
                 'Error loading data',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppTheme.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -369,7 +369,7 @@ class _ListScreenState extends State<ListScreen> {
               const SizedBox(height: 8),
               Text(
                 _errorMessage!,
-                style: const TextStyle(color: Colors.white70),
+                style: const TextStyle(color: AppTheme.textSecondary),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -403,7 +403,7 @@ class _ListScreenState extends State<ListScreen> {
       return const Center(
         child: Text(
           'No songs available',
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: AppTheme.textSecondary),
         ),
       );
     }
@@ -416,7 +416,7 @@ class _ListScreenState extends State<ListScreen> {
           padding: const EdgeInsets.all(16.0),
           child: Text(
             widget.title,
-            style: TextStyle(color: Colors.grey[400], fontSize: 14),
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
           ),
         ),
 
@@ -442,7 +442,7 @@ class _ListScreenState extends State<ListScreen> {
     return Container(
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: const Color(0xFF333333), width: 1.0),
+          bottom: BorderSide(color: AppTheme.separator, width: 1.0),
         ),
       ),
       child: ListTile(
@@ -455,7 +455,7 @@ class _ListScreenState extends State<ListScreen> {
         title: Text(
           song.title,
           style: const TextStyle(
-            color: Colors.white,
+            color: AppTheme.textPrimary,
             fontWeight: FontWeight.bold,
           ),
           // Ensure text doesn't wrap unnecessarily
@@ -463,7 +463,7 @@ class _ListScreenState extends State<ListScreen> {
         ),
         subtitle: Text(
           song.artist,
-          style: const TextStyle(color: Colors.grey),
+          style: const TextStyle(color: AppTheme.textSecondary),
           overflow: TextOverflow.ellipsis,
         ),
         trailing: Row(
@@ -476,17 +476,17 @@ class _ListScreenState extends State<ListScreen> {
                 vertical: 4.0,
               ),
               decoration: BoxDecoration(
-                color: const Color(0xFF333333),
+                color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(5),
               ),
               child: Text(
                 song.key,
-                style: const TextStyle(color: Colors.white, fontSize: 12),
+                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12),
               ),
             ),
             const SizedBox(width: 8),
             // Chevron
-            const Icon(Icons.chevron_right, color: Colors.grey),
+            const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
           ],
         ),
         onTap: () {
@@ -504,7 +504,7 @@ class _ListScreenState extends State<ListScreen> {
       return const Center(
         child: Text(
           'No artists available',
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: AppTheme.textSecondary),
         ),
       );
     }
@@ -540,7 +540,7 @@ class _ListScreenState extends State<ListScreen> {
             child: Container(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.grey[800],
+                color: AppTheme.surfaceSecondary,
                 image:
                     artist.imageUrl != null
                         ? DecorationImage(
@@ -558,7 +558,7 @@ class _ListScreenState extends State<ListScreen> {
                   artist.imageUrl == null
                       ? const Icon(
                         Icons.person,
-                        color: Colors.white70,
+                        color: AppTheme.textSecondary,
                         size: 40,
                       )
                       : null,
@@ -568,7 +568,7 @@ class _ListScreenState extends State<ListScreen> {
           Text(
             artist.name,
             style: const TextStyle(
-              color: Colors.white,
+              color: AppTheme.textPrimary,
               fontWeight: FontWeight.bold,
               fontSize: 16.0,
             ),
@@ -586,7 +586,7 @@ class _ListScreenState extends State<ListScreen> {
       return const Center(
         child: Text(
           'No collections available',
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: AppTheme.textSecondary),
         ),
       );
     }
@@ -599,7 +599,7 @@ class _ListScreenState extends State<ListScreen> {
           padding: const EdgeInsets.all(16.0),
           child: Text(
             widget.title,
-            style: TextStyle(color: Colors.grey[400], fontSize: 14),
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
           ),
         ),
 
@@ -638,10 +638,7 @@ class _ListScreenState extends State<ListScreen> {
       },
       borderRadius: BorderRadius.circular(5),
       child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E1E1E),
-          borderRadius: BorderRadius.circular(5),
-        ),
+        decoration: AppTheme.cardDecorationWithRadius(5),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -693,7 +690,7 @@ class _ListScreenState extends State<ListScreen> {
                   Text(
                     collection.title,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppTheme.textPrimary,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -711,7 +708,7 @@ class _ListScreenState extends State<ListScreen> {
                       Text(
                         "${collection.songCount} Songs",
                         style: const TextStyle(
-                          color: Colors.grey,
+                          color: AppTheme.textSecondary,
                           fontSize: 14,
                         ),
                       ),
@@ -722,7 +719,7 @@ class _ListScreenState extends State<ListScreen> {
                           Text(
                             collection.likeCount.toString(),
                             style: const TextStyle(
-                              color: Colors.grey,
+                              color: AppTheme.textSecondary,
                               fontSize: 14,
                             ),
                           ),
@@ -732,7 +729,7 @@ class _ListScreenState extends State<ListScreen> {
                                 ? Icons.favorite
                                 : Icons.favorite_border,
                             color:
-                                collection.isLiked ? Colors.red : Colors.grey,
+                                collection.isLiked ? AppTheme.error : AppTheme.textSecondary,
                             size: 14,
                           ),
                         ],

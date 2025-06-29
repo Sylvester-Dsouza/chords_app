@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/song.dart';
 import '../models/artist.dart';
 import '../models/collection.dart';
+import '../config/theme.dart';
 
 /// A widget that optimizes rendering of list items by only rebuilding
 /// when its data changes, not when the parent rebuilds.
@@ -28,7 +29,7 @@ class OptimizedListItem extends StatelessWidget {
     return OptimizedListItem(
       title: song.title,
       subtitle: song.artist,
-      color: Colors.blue.withValues(alpha: 0.3), // Default color
+      color: AppTheme.primary.withValues(alpha: 0.3), // Use theme primary color
       imageUrl: song.imageUrl,
       onTap: onTap,
     );
@@ -38,7 +39,7 @@ class OptimizedListItem extends StatelessWidget {
   factory OptimizedListItem.fromArtist(Artist artist, {required VoidCallback onTap}) {
     return OptimizedListItem(
       title: artist.name,
-      color: Colors.purple.withValues(alpha: 0.3), // Default color
+      color: AppTheme.primary.withValues(alpha: 0.3), // Use theme primary color
       imageUrl: artist.imageUrl,
       onTap: onTap,
     );

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../widgets/inner_screen_app_bar.dart';
 import '../widgets/song_placeholder.dart';
@@ -54,6 +55,24 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
     _checkLoginStatus().then((_) {
       if (_isLoggedIn) {
         _fetchSetlistDetails();
+        // Set up periodic refresh for collaborative setlists
+        _setupPeriodicRefresh();
+      }
+    });
+  }
+
+  void _setupPeriodicRefresh() {
+    // Refresh every 30 seconds if setlist is collaborative
+    Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      // Only refresh if setlist is collaborative (has share code or collaborators)
+      if (_setlist?.shareCode != null || (_setlist?.collaborators?.isNotEmpty == true)) {
+        debugPrint('🔄 Auto-refreshing collaborative setlist');
+        _refreshSetlistData();
       }
     });
   }
@@ -464,6 +483,14 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
           Navigator.of(context).pop(_hasModifiedSetlist);
         },
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () async {
+              debugPrint('🔄 Manual refresh triggered by user');
+              await _forceRefreshFromAPI();
+            },
+            tooltip: 'Refresh Setlist',
+          ),
           IconButton(
             icon: const Icon(Icons.edit, color: Colors.white),
             onPressed: _showEditSetlistDialog,
@@ -1572,10 +1599,10 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                   // Clear specific setlist cache and refresh setlist details
                   if (mounted) {
                     debugPrint('🔄 Force refreshing setlist data from API after song removal...');
-                    
+
                     // Wait a moment for the backend to process
-                    await Future.delayed(const Duration(milliseconds: 1000));
-                    
+                    await Future.delayed(const Duration(milliseconds: 1500));
+
                     // Force refresh directly from API bypassing all cache
                     await _forceRefreshFromAPI();
                   }
