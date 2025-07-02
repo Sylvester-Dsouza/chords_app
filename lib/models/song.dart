@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'karaoke.dart';
 
 class Song {
   final String id;
@@ -24,6 +25,7 @@ class Song {
   double averageRating; // Average rating (1-5 stars)
   int ratingCount; // Number of ratings
   int? userRating; // Current user's rating (1-5 stars), null if not rated
+  final Karaoke? karaoke; // Karaoke track for this song
 
   Song({
     required this.id,
@@ -49,6 +51,7 @@ class Song {
     this.averageRating = 0.0,
     this.ratingCount = 0,
     this.userRating,
+    this.karaoke,
   });
 
   factory Song.fromJson(Map<String, dynamic> json) {
@@ -115,6 +118,7 @@ class Song {
       averageRating: json['averageRating'] != null ? double.tryParse(json['averageRating'].toString()) ?? 0.0 : 0.0,
       ratingCount: json['ratingCount'] != null ? int.tryParse(json['ratingCount'].toString()) ?? 0 : 0,
       userRating: json['userRating'] != null ? int.tryParse(json['userRating'].toString()) : null,
+      karaoke: json['karaoke'] != null ? Karaoke.fromJson(json['karaoke']) : null,
     );
   }
 
@@ -143,6 +147,7 @@ class Song {
       'averageRating': averageRating,
       'ratingCount': ratingCount,
       'userRating': userRating,
+      if (karaoke != null) 'karaoke': karaoke!.toJson(),
     };
   }
 }

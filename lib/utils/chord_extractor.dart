@@ -18,6 +18,36 @@ class ChordExtractor {
     caseSensitive: true,
   );
 
+  /// Regex to match section headers like {verse}, {chorus}, etc.
+  static final RegExp _sectionRegex = RegExp(r'\{[^}]+\}');
+
+  /// Extracts lyrics from a chord sheet by removing chords and section headers
+  static String extractLyrics(String chordSheet) {
+    if (chordSheet.isEmpty) {
+      return '';
+    }
+
+    String lyrics = chordSheet;
+
+    // Remove section headers like {verse}, {chorus}
+    lyrics = lyrics.replaceAll(_sectionRegex, '');
+
+    // Remove bracketed chords [C] [Am] [G/B] etc.
+    lyrics = lyrics.replaceAll(_bracketedChordRegex, '');
+
+    // Remove standalone chord patterns
+    lyrics = lyrics.replaceAll(_chordRegex, '');
+
+    // Clean up extra whitespace and empty lines
+    lyrics = lyrics
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .join('\n');
+
+    return lyrics;
+  }
+
   /// Extracts unique chords from a chord sheet
   ///
   /// Returns a sorted list of unique chord names

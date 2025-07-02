@@ -20,6 +20,7 @@ import '../utils/chord_extractor.dart';
 import './song_presentation_screen.dart';
 import './practice_mode_screen.dart';
 import '../widgets/enhanced_song_share_dialog.dart';
+import './karaoke_player_screen.dart';
 
 class SongDetailScreen extends StatefulWidget {
   final Song? song;
@@ -487,6 +488,21 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
     );
   }
 
+  // Open karaoke mode
+  void _openKaraokeMode() {
+    if (_song.karaoke == null) return;
+
+    // Navigate directly to karaoke player
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => KaraokePlayerScreen(
+          song: _song,
+          karaokeUrl: _song.karaoke!.fileUrl,
+        ),
+      ),
+    );
+  }
+
   // Build floating action button
   Widget _buildFloatingActionButton() {
     return FloatingActionButton(
@@ -552,6 +568,29 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                   _openPresentationMode();
                 },
               ),
+              // Karaoke option (only show if song has karaoke)
+              if (_song.karaoke != null)
+                ListTile(
+                  leading: const Icon(Icons.mic, color: Color(0xFF9BB5FF)),
+                  title: const Text(
+                    'Karaoke Mode',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  subtitle: Text(
+                    _song.karaoke!.isActive
+                        ? 'Sing along with backing track'
+                        : 'Karaoke not available',
+                    style: TextStyle(
+                      color: _song.karaoke!.isActive
+                          ? Colors.white70
+                          : Colors.red.shade300,
+                    ),
+                  ),
+                  onTap: _song.karaoke!.isActive ? () {
+                    Navigator.pop(context);
+                    _openKaraokeMode();
+                  } : null,
+                ),
             ],
           ),
         );

@@ -17,6 +17,7 @@ import '../screens/courses_screen.dart';
 import '../screens/crashlytics_test_screen.dart';
 import '../screens/community_screen.dart';
 import '../screens/community_setlists_screen.dart';
+import '../screens/karaoke_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -43,6 +44,12 @@ class AppDrawer extends StatelessWidget {
 
                     // Features Section
                     _buildSectionHeader(context, 'Features'),
+                    _buildMenuItem(
+                      context,
+                      Icons.mic,
+                      'Karaoke',
+                      routeName: '/karaoke',
+                    ),
                     _buildMenuItem(
                       context,
                       Icons.people_outline,
@@ -382,6 +389,9 @@ class AppDrawer extends StatelessWidget {
         break;
       case '/song_request':
         page = const SongRequestScreen();
+        break;
+      case '/karaoke':
+        page = const KaraokeScreen();
         break;
       case '/community':
         page = const CommunityScreen();
