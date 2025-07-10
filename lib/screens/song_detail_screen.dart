@@ -21,6 +21,7 @@ import './song_presentation_screen.dart';
 import './practice_mode_screen.dart';
 import '../widgets/enhanced_song_share_dialog.dart';
 import './karaoke_player_screen.dart';
+import './multi_track_karaoke_player_screen.dart';
 
 class SongDetailScreen extends StatefulWidget {
   final Song? song;
@@ -492,15 +493,29 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
   void _openKaraokeMode() {
     if (_song.karaoke == null) return;
 
-    // Navigate directly to karaoke player
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => KaraokePlayerScreen(
-          song: _song,
-          karaokeUrl: _song.karaoke!.fileUrl,
+    // Check if song has multi-track karaoke
+    final hasMultiTrack = _song.karaoke!.tracks.isNotEmpty;
+
+    if (hasMultiTrack) {
+      // Navigate to multi-track karaoke player
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => MultiTrackKaraokePlayerScreen(
+            song: _song,
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      // Navigate to traditional karaoke player
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => KaraokePlayerScreen(
+            song: _song,
+            karaokeUrl: _song.karaoke!.fileUrl,
+          ),
+        ),
+      );
+    }
   }
 
   // Build floating action button
@@ -571,14 +586,41 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
               // Karaoke option (only show if song has karaoke)
               if (_song.karaoke != null)
                 ListTile(
-                  leading: const Icon(Icons.mic, color: Color(0xFF9BB5FF)),
-                  title: const Text(
-                    'Karaoke Mode',
-                    style: TextStyle(color: Colors.white),
+                  leading: Icon(
+                    _song.karaoke!.tracks.isNotEmpty ? Icons.multitrack_audio : Icons.mic,
+                    color: const Color(0xFF9BB5FF),
+                  ),
+                  title: Row(
+                    children: [
+                      const Text(
+                        'Karaoke Mode',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      if (_song.karaoke!.tracks.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF9BB5FF).withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'AI Multi-Track',
+                            style: TextStyle(
+                              color: Color(0xFF9BB5FF),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   subtitle: Text(
                     _song.karaoke!.isActive
-                        ? 'Sing along with backing track'
+                        ? _song.karaoke!.tracks.isNotEmpty
+                            ? 'AI-separated tracks with individual controls'
+                            : 'Sing along with backing track'
                         : 'Karaoke not available',
                     style: TextStyle(
                       color: _song.karaoke!.isActive

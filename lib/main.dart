@@ -25,6 +25,7 @@ import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/song_request_screen.dart';
+import 'screens/feature_request_screen.dart';
 import 'screens/about_us_screen.dart';
 import 'screens/notification_screen.dart';
 import 'screens/comments_screen.dart';
@@ -225,6 +226,8 @@ class _MyAppState extends State<MyApp> {
         return const ForgotPasswordScreen();
       case '/song_request':
         return const SongRequestScreen();
+      case '/feature_request':
+        return const FeatureRequestScreen();
       case '/about_us':
         return const AboutUsScreen();
       case '/notifications':
@@ -259,6 +262,7 @@ class _MyAppState extends State<MyApp> {
         '/vocals': (context) => const MainNavigation(),
         '/profile': (context) => const MainNavigation(),
         '/song_request': (context) => const SongRequestScreen(),
+        '/feature_request': (context) => const FeatureRequestScreen(),
         '/comments':
             (context) => CommentsScreen(
               song: ModalRoute.of(context)!.settings.arguments as Song,

@@ -8,6 +8,7 @@ import '../screens/profile_screen.dart';
 import '../screens/resources_screen.dart';
 import '../screens/search_screen.dart';
 import '../screens/song_request_screen.dart';
+import '../screens/feature_request_screen.dart';
 import '../screens/about_us_screen.dart';
 import '../screens/notification_screen.dart';
 import '../screens/login_screen.dart';
@@ -61,6 +62,12 @@ class AppDrawer extends StatelessWidget {
                       Icons.music_note_outlined,
                       'Request a Song',
                       routeName: '/song_request',
+                    ),
+                    _buildMenuItem(
+                      context,
+                      Icons.lightbulb_outline,
+                      'Request Feature',
+                      routeName: '/feature_request',
                     ),
 
                     const SizedBox(height: 16),
@@ -263,6 +270,9 @@ class AppDrawer extends StatelessWidget {
             case 'Request a Song':
               _navigateWithTransition(context, '/song_request');
               break;
+            case 'Request Feature':
+              _navigateWithTransition(context, '/feature_request');
+              break;
             case 'Liked Collections':
               _navigateWithTransition(context, '/liked-collections');
               break;
@@ -389,6 +399,9 @@ class AppDrawer extends StatelessWidget {
         break;
       case '/song_request':
         page = const SongRequestScreen();
+        break;
+      case '/feature_request':
+        page = const FeatureRequestScreen();
         break;
       case '/karaoke':
         page = const KaraokeScreen();

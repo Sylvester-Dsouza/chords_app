@@ -505,14 +505,16 @@ class _HomeScreenNewState extends State<HomeScreenNew>
         backgroundColor: AppTheme.appBar,
         elevation: 0,
         scrolledUnderElevation: 0, // Prevents elevation change when scrolling
-        surfaceTintColor: Colors.transparent, // Prevents blue tinting from primary color
+        surfaceTintColor:
+            Colors.transparent, // Prevents blue tinting from primary color
         leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu, color: AppTheme.textPrimary),
-            onPressed: () {
-              Scaffold.of(context).openDrawer();
-            },
-          ),
+          builder:
+              (context) => IconButton(
+                icon: const Icon(Icons.menu, color: AppTheme.textPrimary),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer();
+                },
+              ),
         ),
         title: const Text(
           'Stuthi Chords & Lyrics',
@@ -551,7 +553,9 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                     height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.textPrimary),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        AppTheme.textPrimary,
+                      ),
                     ),
                   ),
                 )
@@ -592,7 +596,7 @@ class _HomeScreenNewState extends State<HomeScreenNew>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Top spacing
-            const SizedBox(height: 16.0),
+            const SizedBox(height: 12.0),
 
             // Beta version alert banner
             _buildBetaVersionBanner(),
@@ -605,21 +609,24 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                 // 2. We have connectivity issues AND
                 // 3. We don't have any cached data to show
                 final hasDataToShow = appDataProvider.homeSections.isNotEmpty;
-                final isLoadingOrRefreshing = appDataProvider.homeState == DataState.loading ||
-                                            appDataProvider.homeState == DataState.refreshing;
+                final isLoadingOrRefreshing =
+                    appDataProvider.homeState == DataState.loading ||
+                    appDataProvider.homeState == DataState.refreshing;
                 final hasError = appDataProvider.homeState == DataState.error;
 
                 // Only show connectivity widget when we have an error AND no data to show
-                final shouldShowConnectivity = hasError && !hasDataToShow && !isLoadingOrRefreshing;
+                final shouldShowConnectivity =
+                    hasError && !hasDataToShow && !isLoadingOrRefreshing;
 
                 return ConnectivityStatusWidget(
                   showWhenOnline: false,
-                  margin: shouldShowConnectivity
-                    ? const EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 8.0,
-                      )
-                    : EdgeInsets.zero,
+                  margin:
+                      shouldShowConnectivity
+                          ? const EdgeInsets.symmetric(
+                            horizontal: 16.0,
+                            vertical: 8.0,
+                          )
+                          : EdgeInsets.zero,
                   onRetryPressed: () {
                     // Retry loading home sections when connectivity is restored
                     _fetchHomeSections(forceRefresh: true);
@@ -647,7 +654,7 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                     _buildSectionContent(section),
                   ],
                   // Add spacing between sections
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 24),
                 ],
 
             // Support Us section
@@ -662,57 +669,44 @@ class _HomeScreenNewState extends State<HomeScreenNew>
   }
 
   Widget _buildSectionHeader(String title, {SectionType? sectionType}) {
-    return Padding(
-      padding: const EdgeInsets.only(
-        top: 16.0,
-      ), // Add consistent top padding between sections
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 8.0,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                  fontFamily: AppTheme.primaryFontFamily,
                 ),
-                GestureDetector(
-                  onTap: () {
-                    // Navigate to the appropriate list screen based on the section title and type
-                    _navigateToSeeMore(title, sectionType: sectionType);
-                  },
-                  child: Text(
-                    'See all',
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  // Navigate to the appropriate list screen based on the section title and type
+                  _navigateToSeeMore(title, sectionType: sectionType);
+                },
+                child: Text(
+                  'See all',
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: AppTheme.primaryFontFamily,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-
-          // Add consistent spacing between section header and content
-          const SizedBox(
-            height: 8.0,
-          ), // Standard spacing between header and content
-        ],
-      ),
+        ),
+        // Consistent spacing between header and content
+        const SizedBox(height: 12.0),
+      ],
     );
   }
 
@@ -720,13 +714,29 @@ class _HomeScreenNewState extends State<HomeScreenNew>
     return Container(
       constraints: const BoxConstraints(
         minHeight: 120, // Minimum height for content
-        maxHeight: 170, // Maximum height for content
+        maxHeight: 170, // Original height for songs and artists
       ),
       height: 10, // Default height
       margin: const EdgeInsets.only(bottom: 8.0), // Consistent bottom margin
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 8.0,
+        ), // Keep padding for songs and artists
+        children: items,
+      ),
+    );
+  }
+
+  // Special scroll section for collections with larger images
+  Widget _buildCollectionScrollSection(List<Widget> items) {
+    return Container(
+      height:
+          180, // Updated height to match new collection images (160 + margin)
+      margin: const EdgeInsets.only(bottom: 8.0), // Consistent bottom margin
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.zero, // No padding to show full image size
         children: items,
       ),
     );
@@ -737,40 +747,60 @@ class _HomeScreenNewState extends State<HomeScreenNew>
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       decoration: BoxDecoration(
-        color: AppTheme.primary.withValues(alpha: 0.1),
-        border: Border.all(
-          color: AppTheme.primary.withValues(alpha: 0.3),
-          width: 1,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color.fromARGB(255, 244, 37, 116),
+            const Color.fromARGB(255, 28, 28, 185),
+          ],
         ),
         borderRadius: BorderRadius.circular(8.0),
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.science_outlined,
-            color: AppTheme.primary,
-            size: 20,
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: const Color.fromARGB(
+                255,
+                255,
+                255,
+                255,
+              ).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Icon(
+              Icons.science_outlined,
+              color: Color.fromARGB(255, 255, 255, 255),
+              size: 16,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Beta Version',
                   style: TextStyle(
-                    color: AppTheme.primary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
+                    color: Color.fromARGB(255, 255, 255, 255),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
                     fontFamily: AppTheme.primaryFontFamily,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'This is a beta version of the app. Some features may be experimental.',
+                  'Experimental features and improvements in progress',
                   style: TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 12,
+                    color: const Color.fromARGB(
+                      255,
+                      255,
+                      255,
+                      255,
+                    ).withValues(alpha: 0.8),
+                    fontSize: 11,
                     fontFamily: AppTheme.primaryFontFamily,
                   ),
                 ),
@@ -845,47 +875,62 @@ class _HomeScreenNewState extends State<HomeScreenNew>
       },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8.0),
-        child: AspectRatio(
-          aspectRatio:
-              16 /
-              9, // 16:9 aspect ratio - this will automatically calculate height
-          child: Container(
-            decoration: BoxDecoration(
-              color: _getColorWithOpacity(color, 0.3),
-              borderRadius: BorderRadius.circular(5),
-              // No gradient overlay to keep image clear
-            ),
-            child:
-                collection?.imageUrl != null
-                    ? MemoryEfficientImage(
-                      imageUrl: collection!.imageUrl!,
-                      fit: BoxFit.contain,
-                      borderRadius: BorderRadius.circular(5),
-                      placeholder: Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Theme.of(context).colorScheme.primary,
+        child:
+            collection?.imageUrl != null
+                ? CachedNetworkImage(
+                  imageUrl: collection!.imageUrl!,
+                  // No width or height constraints to allow original size
+                  fit: BoxFit.contain,
+                  fadeInDuration: const Duration(milliseconds: 300),
+                  placeholder:
+                      (context, url) => Container(
+                        width: 320,
+                        height: 179,
+                        decoration: BoxDecoration(
+                          color: _getColorWithOpacity(color, 0.3),
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Theme.of(context).colorScheme.primary,
+                            ),
+                            strokeWidth: 2,
                           ),
-                          strokeWidth: 2,
                         ),
                       ),
-                      errorWidget: Center(
-                        child: Icon(
-                          Icons.collections_bookmark,
-                          color: AppTheme.textPrimary,
-                          size: 40,
+                  errorWidget:
+                      (context, url, error) => Container(
+                        width: 320,
+                        height: 179,
+                        decoration: BoxDecoration(
+                          color: _getColorWithOpacity(color, 0.3),
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.collections_bookmark,
+                            color: AppTheme.textPrimary,
+                            size: 40,
+                          ),
                         ),
                       ),
-                    )
-                    : Center(
-                      child: Icon(
-                        Icons.collections_bookmark,
-                        color: AppTheme.textPrimary,
-                        size: 40,
-                      ),
+                )
+                : Container(
+                  width: 320,
+                  height: 179,
+                  decoration: BoxDecoration(
+                    color: _getColorWithOpacity(color, 0.3),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.collections_bookmark,
+                      color: AppTheme.textPrimary,
+                      size: 40,
                     ),
-          ),
-        ),
+                  ),
+                ),
       ),
     );
   }
@@ -990,7 +1035,10 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                     height: textHeight,
                     child: Text(
                       title,
-                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                      style: const TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontSize: 14,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1218,88 +1266,131 @@ class _HomeScreenNewState extends State<HomeScreenNew>
   // Build a modern, minimal support section
   Widget _buildSupportUsSection() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 16.0),
+      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 0.0),
       child: Container(
         decoration: BoxDecoration(
-          // Very subtle gradient background
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [
-              Theme.of(context).colorScheme.primary.withAlpha(15),
-              Theme.of(context).colorScheme.primary.withAlpha(5),
+              const Color(0xFF10B981).withValues(alpha: 0.1),
+              const Color(0xFF059669).withValues(alpha: 0.05),
             ],
           ),
-          borderRadius: BorderRadius.circular(5),
-          // Thin border with primary color
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Theme.of(context).colorScheme.primary.withAlpha(50),
+            color: const Color(0xFF10B981).withValues(alpha: 0.2),
             width: 1.0,
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Simple row with heart icon and title
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.favorite,
-                    color: Theme.of(context).colorScheme.primary,
-                    size: 20,
+              // Icon with gradient background
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      const Color(0xFF10B981).withValues(alpha: 0.2),
+                      const Color(0xFF059669).withValues(alpha: 0.1),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Free Forever',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.favorite_rounded,
+                  color: Color(0xFF10B981),
+                  size: 24,
+                ),
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+
+              // Title
+              Text(
+                'Free Forever',
+                style: TextStyle(
+                  color: const Color(0xFF10B981),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                  fontFamily: AppTheme.primaryFontFamily,
+                  letterSpacing: -0.3,
+                ),
+              ),
+
+              const SizedBox(height: 8),
 
               // Description
-              const Text(
-                'Stuthi is and will always be free for everyone. If you find value in our app, consider supporting us to help with server costs and new features.',
+              Text(
+                'Stuthi is and will always be free for everyone. Support us to help with server costs and new features.',
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: AppTheme.textSecondary,
                   fontSize: 14,
                   height: 1.4,
+                  fontFamily: AppTheme.primaryFontFamily,
                 ),
                 textAlign: TextAlign.center,
               ),
 
               const SizedBox(height: 16),
 
-              // Minimal support button
-              OutlinedButton(
-                onPressed: () {
-                  // Show support options
-                  debugPrint('Support button tapped');
-                  _showSupportOptions();
-                },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                  side: BorderSide(
-                    color: Theme.of(context).colorScheme.primary,
+              // Support button with gradient
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      const Color(0xFF10B981).withValues(alpha: 0.15),
+                      const Color(0xFF059669).withValues(alpha: 0.1),
+                    ],
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 10,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                    width: 1,
                   ),
                 ),
-                child: const Text(
-                  'Support Us',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      debugPrint('Support button tapped');
+                      _showSupportOptions();
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.volunteer_activism_rounded,
+                            color: const Color(0xFF10B981),
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Support Us',
+                            style: TextStyle(
+                              color: const Color(0xFF10B981),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              fontFamily: AppTheme.primaryFontFamily,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -1445,7 +1536,7 @@ class _HomeScreenNewState extends State<HomeScreenNew>
       case SectionType.COLLECTIONS:
         return section.items.isEmpty
             ? _buildEmptyState('No collections available')
-            : _buildHorizontalScrollSection(
+            : _buildCollectionScrollSection(
               section.items
                   .map(
                     (collection) => _buildCollectionItem(

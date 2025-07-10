@@ -21,7 +21,7 @@ class AppTheme {
   /// ⭐ PRIMARY BRAND COLOR - SINGLE SOURCE OF TRUTH ⭐
   /// 🎨 CHANGE THIS ONE LINE TO UPDATE THE ENTIRE APP'S PRIMARY COLOR 🎨
   /// This color is used for buttons, highlights, active states, and key UI elements
-  static const Color primary = Color.fromARGB(255, 253, 156, 37);
+  static const Color primary = Color.fromARGB(255, 59, 255, 203);
 
   /// Examples of other colors you can use:
   /// static const Color primary = Color(0xFF007AFF); // iOS Blue
@@ -138,30 +138,35 @@ class AppTheme {
           fontWeight: FontWeight.bold,
           fontFamily: displayFontFamily,
           color: textPrimary,
+          letterSpacing: -0.5, // Tighter spacing for bold, clean look
         ),
         displayMedium: TextStyle(
           fontSize: 24.0,
           fontWeight: FontWeight.bold,
           fontFamily: displayFontFamily,
           color: textPrimary,
+          letterSpacing: -0.4, // Tighter spacing for bold, clean look
         ),
         displaySmall: TextStyle(
           fontSize: 20.0,
           fontWeight: FontWeight.bold,
           fontFamily: displayFontFamily,
           color: textPrimary,
+          letterSpacing: -0.3, // Tighter spacing for bold, clean look
         ),
         headlineMedium: TextStyle(
           fontSize: 18.0,
           fontWeight: FontWeight.w600,
           fontFamily: displayFontFamily,
           color: textPrimary,
+          letterSpacing: -0.2, // Tighter spacing for bold, clean look
         ),
         titleLarge: TextStyle(
           fontSize: 16.0,
           fontWeight: FontWeight.w500,
           fontFamily: primaryFontFamily,
           color: textPrimary,
+          letterSpacing: -0.1, // Tighter spacing for clean look
         ),
         bodyLarge: TextStyle(
           fontSize: 14.0,
@@ -219,6 +224,7 @@ class AppTheme {
           fontWeight: FontWeight.w600,
           fontFamily: primaryFontFamily,
           color: textPrimary,
+          letterSpacing: -0.1, // Tighter spacing for clean look
         ),
         iconTheme: IconThemeData(
           color: textPrimary,
@@ -350,7 +356,7 @@ class AppTheme {
     fontWeight: FontWeight.w600,
     fontFamily: displayFontFamily,
     color: textPrimary,
-    letterSpacing: -0.2,
+    letterSpacing: -0.3, // Tighter for bold, clean look
   );
 
   static const TextStyle artistNameStyle = TextStyle(
@@ -365,7 +371,7 @@ class AppTheme {
     fontWeight: FontWeight.w600,
     fontFamily: primaryFontFamily,
     color: textPrimary,
-    letterSpacing: -0.1,
+    letterSpacing: -0.2, // Tighter for bold, clean look
   );
 
   static const TextStyle chordSheetStyle = TextStyle(

@@ -29,8 +29,11 @@ class ChordExtractor {
 
     String lyrics = chordSheet;
 
-    // Remove section headers like {verse}, {chorus}
-    lyrics = lyrics.replaceAll(_sectionRegex, '');
+    // Format section headers nicely instead of removing them
+    lyrics = lyrics.replaceAllMapped(_sectionRegex, (match) {
+      final sectionName = match.group(0)?.replaceAll(RegExp(r'[{}]'), '').toUpperCase() ?? '';
+      return '\n--- $sectionName ---\n';
+    });
 
     // Remove bracketed chords [C] [Am] [G/B] etc.
     lyrics = lyrics.replaceAll(_bracketedChordRegex, '');

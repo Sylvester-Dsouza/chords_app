@@ -49,11 +49,11 @@ class MemoryEfficientImage extends StatelessWidget {
         debugPrint('Error loading image: $url - $error');
         return errorWidget ?? _defaultErrorWidget;
       },
-      // Aggressive memory management options
+      // Memory management options - allow higher quality for larger images
       memCacheWidth: _calculateMemCacheSize(width),
       memCacheHeight: _calculateMemCacheSize(height),
-      maxWidthDiskCache: 300, // Further reduced for memory efficiency
-      maxHeightDiskCache: 300, // Further reduced for memory efficiency
+      maxWidthDiskCache: _calculateDiskCacheSize(width), // Dynamic based on image size
+      maxHeightDiskCache: _calculateDiskCacheSize(height), // Dynamic based on image size
       // Add cache key for better memory management
       cacheKey: _generateCacheKey(imageUrl!, width, height),
     );
@@ -114,14 +114,33 @@ class MemoryEfficientImage extends StatelessWidget {
 
     // Handle infinity values
     if (size.isInfinite || size.isNaN) {
-      return 200; // Further reduced default size for memory efficiency
+      return 200; // Default size for memory efficiency
     }
 
     // Get device pixel ratio (default to 2.0 if not available)
     final pixelRatio = WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
 
-    // Calculate size based on pixel ratio, with a maximum of 300 pixels (further reduced)
-    return (size * pixelRatio).round().clamp(0, 300);
+    // Calculate size based on pixel ratio, with a higher maximum for better quality
+    return (size * pixelRatio).round().clamp(0, 600); // Increased from 300 to 600
+  }
+
+  // Calculate appropriate disk cache size for better image quality
+  int? _calculateDiskCacheSize(double? size) {
+    if (size == null) return null;
+
+    // Handle infinity values
+    if (size.isInfinite || size.isNaN) {
+      return 400; // Default size for disk cache
+    }
+
+    // For larger images (like collections), allow higher disk cache sizes
+    if (size >= 250) {
+      return 800; // High quality for collection images
+    } else if (size >= 150) {
+      return 600; // Medium quality for medium images
+    } else {
+      return 400; // Standard quality for smaller images
+    }
   }
 
   // Generate cache key for better memory management

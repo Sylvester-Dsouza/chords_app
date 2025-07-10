@@ -1,11 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/karaoke.dart';
 import '../services/karaoke_service.dart';
 import '../services/karaoke_download_manager.dart';
 import '../services/auth_service.dart';
 import '../screens/karaoke_player_screen.dart';
+import '../screens/multi_track_karaoke_player_screen.dart';
 import '../models/song.dart';
 import '../config/theme.dart';
 
@@ -30,9 +31,6 @@ class _KaraokeScreenState extends State<KaraokeScreen>
 
   bool _isLoading = true;
   String _searchQuery = '';
-  String? _selectedKey;
-  String? _selectedDifficulty;
-  KaraokeSortOption _sortOption = KaraokeSortOption.popular;
 
   @override
   void initState() {
@@ -70,14 +68,12 @@ class _KaraokeScreenState extends State<KaraokeScreen>
       final results = await Future.wait([
         _karaokeService.getKaraokeSongs(
           search: _searchQuery.isEmpty ? null : _searchQuery,
-          key: _selectedKey,
-          difficulty: _selectedDifficulty,
-          sort: _sortOption,
+          sort: KaraokeSortOption.popular,
           page: 1,
-          limit: 20,
+          limit: 50,
         ),
-        _karaokeService.getPopularKaraokeSongs(limit: 10),
-        _karaokeService.getRecentKaraokeSongs(limit: 10),
+        _karaokeService.getPopularKaraokeSongs(limit: 20),
+        _karaokeService.getRecentKaraokeSongs(limit: 20),
       ]);
 
       debugPrint('🎤 Karaoke data loaded:');
@@ -90,14 +86,33 @@ class _KaraokeScreenState extends State<KaraokeScreen>
           _allSongs = results[0];
           _popularSongs = results[1];
           _recentSongs = results[2];
+
+          // Fallback: if All Songs is empty but we have popular/recent, combine them
+          if (_allSongs.isEmpty && (_popularSongs.isNotEmpty || _recentSongs.isNotEmpty)) {
+            debugPrint('🎤 All songs empty, using fallback with popular + recent');
+            final Set<String> seenIds = <String>{};
+            _allSongs = [
+              ..._popularSongs.where((song) => seenIds.add(song.id)),
+              ..._recentSongs.where((song) => seenIds.add(song.id)),
+            ];
+          }
+
           _isLoading = false;
         });
+
+        // Additional debug info
+        debugPrint('🎤 State updated - All songs count: ${_allSongs.length}');
+        if (_allSongs.isNotEmpty) {
+          debugPrint('🎤 First song: ${_allSongs.first.title} by ${_allSongs.first.artistName}');
+        }
       }
     } catch (e) {
       debugPrint('Error loading karaoke data: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -108,25 +123,9 @@ class _KaraokeScreenState extends State<KaraokeScreen>
     _loadInitialData();
   }
 
-  void _onFiltersChanged({
-    String? key,
-    String? difficulty,
-    KaraokeSortOption? sort,
-  }) {
-    setState(() {
-      if (key != null) _selectedKey = key.isEmpty ? null : key;
-      if (difficulty != null) _selectedDifficulty = difficulty.isEmpty ? null : difficulty;
-      if (sort != null) _sortOption = sort;
-    });
-    _loadInitialData();
-  }
-
   void _clearFilters() {
     setState(() {
       _searchQuery = '';
-      _selectedKey = null;
-      _selectedDifficulty = null;
-      _sortOption = KaraokeSortOption.popular;
     });
     _searchController.clear();
     _loadInitialData();
@@ -147,246 +146,156 @@ class _KaraokeScreenState extends State<KaraokeScreen>
       karaoke: karaokeSong.karaoke,
     );
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => KaraokePlayerScreen(
-          song: song,
-          karaokeUrl: karaokeSong.karaoke.fileUrl,
+    // Check if song has multi-track karaoke
+    final hasMultiTrack = karaokeSong.karaoke.tracks.isNotEmpty;
+
+    if (hasMultiTrack) {
+      // Navigate to multi-track karaoke player
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => MultiTrackKaraokePlayerScreen(
+            song: song,
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      // Navigate to traditional karaoke player
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => KaraokePlayerScreen(
+            song: song,
+            karaokeUrl: karaokeSong.karaoke.fileUrl,
+          ),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            _buildModernAppBar(),
-            _buildSearchAndFilters(),
-            _buildTabBar(),
-          ];
-        },
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _buildAllSongsTab(),
-            _buildPopularTab(),
-            _buildRecentTab(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModernAppBar() {
-    return SliverAppBar(
-      expandedHeight: 140,
-      floating: false,
-      pinned: true,
-      backgroundColor: AppTheme.background,
-      elevation: 0,
-      flexibleSpace: FlexibleSpaceBar(
+      appBar: AppBar(
+        backgroundColor: AppTheme.appBar,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         title: Text(
           'Karaoke',
           style: TextStyle(
+            fontFamily: AppTheme.primaryFontFamily,
+            fontWeight: FontWeight.w600,
             color: AppTheme.textPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-            fontFamily: AppTheme.displayFontFamily,
+            fontSize: 18,
           ),
         ),
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppTheme.primary.withOpacity(0.1),
-                AppTheme.background,
-              ],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(50),
-              ),
-              child: Icon(
-                Icons.mic_rounded,
-                size: 40,
-                color: AppTheme.primary,
-              ),
-            ),
-          ),
-        ),
+        centerTitle: true,
       ),
-    );
-  }
-
-  Widget _buildSearchAndFilters() {
-    return SliverToBoxAdapter(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        color: AppTheme.background,
-        child: Column(
-          children: [
-            // Search Bar
-            Container(
-              decoration: BoxDecoration(
-                color: AppTheme.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.border, width: 0.5),
-              ),
-              child: TextField(
-                controller: _searchController,
-                onChanged: _onSearchChanged,
-                style: TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontFamily: AppTheme.primaryFontFamily,
-                ),
-                decoration: InputDecoration(
-                  hintText: 'Search karaoke songs...',
-                  hintStyle: TextStyle(
-                    color: AppTheme.textPlaceholder,
-                    fontFamily: AppTheme.primaryFontFamily,
-                  ),
-                  prefixIcon: Icon(
-                    Icons.search_rounded,
-                    color: AppTheme.textSecondary,
-                  ),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: Icon(
-                            Icons.clear_rounded,
-                            color: AppTheme.textSecondary,
-                          ),
-                          onPressed: () {
-                            _searchController.clear();
-                            _onSearchChanged('');
-                          },
-                        )
-                      : null,
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            // Filter Chips
-            _buildFilterChips(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterChips() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
+      body: Column(
         children: [
-          // Sort Options
-          _buildFilterChip(
-            'Popular',
-            _sortOption == KaraokeSortOption.popular,
-            () => _onFiltersChanged(sort: KaraokeSortOption.popular),
-          ),
-          const SizedBox(width: 8),
-          _buildFilterChip(
-            'Recent',
-            _sortOption == KaraokeSortOption.recent,
-            () => _onFiltersChanged(sort: KaraokeSortOption.recent),
-          ),
-          const SizedBox(width: 8),
-          _buildFilterChip(
-            'A-Z',
-            _sortOption == KaraokeSortOption.title,
-            () => _onFiltersChanged(sort: KaraokeSortOption.title),
-          ),
-          const SizedBox(width: 8),
-          // Downloaded Filter
-          _buildFilterChip(
-            'Downloaded',
-            false, // We'll implement this later
-            () {
-              // Show downloaded songs
-            },
-            icon: Icons.download_rounded,
+          _buildSearchAndFilters(),
+          _buildTabBar(),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildAllSongsTab(),
+                _buildPopularTab(),
+                _buildRecentTab(),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(String label, bool isSelected, VoidCallback onTap, {IconData? icon}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primary : AppTheme.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? AppTheme.primary : AppTheme.border,
-            width: 0.5,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(
-                icon,
-                size: 14,
-                color: isSelected ? AppTheme.background : AppTheme.textSecondary,
-              ),
-              const SizedBox(width: 4),
-            ],
-            Text(
-              label,
+
+
+  Widget _buildSearchAndFilters() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: AppTheme.background,
+      child: Column(
+        children: [
+          // Search Bar
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.border, width: 0.5),
+            ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
               style: TextStyle(
-                color: isSelected ? AppTheme.background : AppTheme.textSecondary,
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: AppTheme.textPrimary,
                 fontFamily: AppTheme.primaryFontFamily,
+                fontSize: 14,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Search karaoke songs...',
+                hintStyle: TextStyle(
+                  color: AppTheme.textPlaceholder,
+                  fontFamily: AppTheme.primaryFontFamily,
+                  fontSize: 14,
+                ),
+                prefixIcon: Icon(
+                  Icons.search_rounded,
+                  color: AppTheme.textSecondary,
+                  size: 20,
+                ),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(
+                          Icons.clear_rounded,
+                          color: AppTheme.textSecondary,
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                          _onSearchChanged('');
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 12),
+
+        ],
       ),
     );
   }
 
+
+
   Widget _buildTabBar() {
-    return SliverToBoxAdapter(
-      child: Container(
-        color: AppTheme.background,
-        child: TabBar(
-          controller: _tabController,
-          indicatorColor: AppTheme.primary,
-          labelColor: AppTheme.primary,
-          unselectedLabelColor: AppTheme.textSecondary,
-          labelStyle: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-            fontFamily: AppTheme.primaryFontFamily,
-          ),
-          unselectedLabelStyle: TextStyle(
-            fontWeight: FontWeight.w400,
-            fontSize: 14,
-            fontFamily: AppTheme.primaryFontFamily,
-          ),
-          tabs: const [
-            Tab(text: 'All Songs'),
-            Tab(text: 'Popular'),
-            Tab(text: 'Recent'),
-          ],
+    return Container(
+      color: AppTheme.background,
+      child: TabBar(
+        controller: _tabController,
+        indicatorColor: AppTheme.primary,
+        indicatorWeight: 2,
+        labelColor: AppTheme.primary,
+        unselectedLabelColor: AppTheme.textSecondary,
+        labelStyle: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+          fontFamily: AppTheme.primaryFontFamily,
         ),
+        unselectedLabelStyle: TextStyle(
+          fontWeight: FontWeight.w400,
+          fontSize: 14,
+          fontFamily: AppTheme.primaryFontFamily,
+        ),
+        tabs: const [
+          Tab(text: 'All Songs'),
+          Tab(text: 'Popular'),
+          Tab(text: 'Recent'),
+        ],
       ),
     );
   }
@@ -481,22 +390,22 @@ class _KaraokeScreenState extends State<KaraokeScreen>
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppTheme.border, width: 0.5),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () => _openKaraokePlayer(song),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             child: Row(
               children: [
                 _buildModernLeadingWidget(song, showRank, rank),
-                const SizedBox(width: 16),
-                Expanded(child: _buildModernSongInfo(song)),
                 const SizedBox(width: 12),
+                Expanded(child: _buildModernSongInfo(song)),
+                const SizedBox(width: 8),
                 _buildModernTrailingWidget(song, isDownloaded, isDownloading, downloadProgress),
               ],
             ),
@@ -509,22 +418,18 @@ class _KaraokeScreenState extends State<KaraokeScreen>
   Widget _buildModernLeadingWidget(KaraokeSong song, bool showRank, int? rank) {
     if (showRank && rank != null) {
       return Container(
-        width: 56,
-        height: 56,
+        width: 40,
+        height: 40,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppTheme.primary, AppTheme.primary.withOpacity(0.8)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(12),
+          color: AppTheme.primary,
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Center(
           child: Text(
             '#$rank',
             style: TextStyle(
               color: AppTheme.background,
-              fontSize: 16,
+              fontSize: 12,
               fontWeight: FontWeight.bold,
               fontFamily: AppTheme.displayFontFamily,
             ),
@@ -534,10 +439,10 @@ class _KaraokeScreenState extends State<KaraokeScreen>
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(8),
       child: Container(
-        width: 56,
-        height: 56,
+        width: 40,
+        height: 40,
         color: AppTheme.surfaceSecondary,
         child: song.imageUrl != null
             ? CachedNetworkImage(
@@ -548,7 +453,7 @@ class _KaraokeScreenState extends State<KaraokeScreen>
                   child: Icon(
                     Icons.music_note_rounded,
                     color: AppTheme.textSecondary,
-                    size: 24,
+                    size: 18,
                   ),
                 ),
                 errorWidget: (context, url, error) => Container(
@@ -556,14 +461,14 @@ class _KaraokeScreenState extends State<KaraokeScreen>
                   child: Icon(
                     Icons.music_note_rounded,
                     color: AppTheme.textSecondary,
-                    size: 24,
+                    size: 18,
                   ),
                 ),
               )
             : Icon(
                 Icons.music_note_rounded,
                 color: AppTheme.textSecondary,
-                size: 24,
+                size: 18,
               ),
       ),
     );
@@ -572,12 +477,13 @@ class _KaraokeScreenState extends State<KaraokeScreen>
   Widget _buildModernSongInfo(KaraokeSong song) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           song.title,
           style: TextStyle(
             color: AppTheme.textPrimary,
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: FontWeight.w600,
             fontFamily: AppTheme.primaryFontFamily,
           ),
@@ -585,128 +491,92 @@ class _KaraokeScreenState extends State<KaraokeScreen>
           overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 4),
-        Text(
-          song.artistName,
-          style: TextStyle(
-            color: AppTheme.textSecondary,
-            fontSize: 14,
-            fontFamily: AppTheme.primaryFontFamily,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                song.artistName,
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 13,
+                  fontFamily: AppTheme.primaryFontFamily,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (song.karaoke.tracks.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.multitrack_audio,
+                      size: 10,
+                      color: AppTheme.primary,
+                    ),
+                    const SizedBox(width: 2),
+                    Text(
+                      'AI',
+                      style: TextStyle(
+                        color: AppTheme.primary,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: AppTheme.primaryFontFamily,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ),
-        const SizedBox(height: 8),
-        _buildModernSongDetails(song),
       ],
     );
   }
 
-  Widget _buildModernSongDetails(KaraokeSong song) {
-    final details = <Widget>[];
 
-    if (song.songKey != null) {
-      details.add(_buildModernDetailChip('Key: ${song.songKey}', AppTheme.primary));
-    }
-
-    if (song.karaoke.duration != null) {
-      details.add(_buildModernDetailChip(song.karaoke.formattedDuration, AppTheme.textSecondary));
-    }
-
-    if (song.karaoke.quality != null) {
-      details.add(_buildModernDetailChip(
-        '${song.karaoke.quality} Quality',
-        _getModernQualityColor(song.karaoke.quality!),
-      ));
-    }
-
-    if (song.difficulty != null) {
-      details.add(_buildModernDetailChip(song.difficulty!, AppTheme.textSecondary));
-    }
-
-    return Wrap(
-      spacing: 6,
-      runSpacing: 4,
-      children: details,
-    );
-  }
-
-  Widget _buildModernDetailChip(String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.3), width: 0.5),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-          fontFamily: AppTheme.primaryFontFamily,
-        ),
-      ),
-    );
-  }
-
-  Color _getModernQualityColor(String quality) {
-    switch (quality.toUpperCase()) {
-      case 'HIGH':
-        return const Color(0xFF4CAF50); // Green
-      case 'MEDIUM':
-        return AppTheme.primary; // Orange
-      case 'LOW':
-        return const Color(0xFFF44336); // Red
-      default:
-        return AppTheme.textSecondary;
-    }
-  }
 
   Widget _buildModernTrailingWidget(KaraokeSong song, bool isDownloaded, bool isDownloading, double downloadProgress) {
-    return Column(
+    if (isDownloading) {
+      return Container(
+        width: 32,
+        height: 32,
+        padding: const EdgeInsets.all(6),
+        child: CircularProgressIndicator(
+          value: downloadProgress,
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
+        ),
+      );
+    }
+
+    return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Play/Download Button
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: AppTheme.primary,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: isDownloading
-              ? Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: CircularProgressIndicator(
-                    value: downloadProgress,
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.background),
-                  ),
-                )
-              : Icon(
-                  isDownloaded ? Icons.play_arrow_rounded : Icons.mic_rounded,
-                  color: AppTheme.background,
-                  size: 20,
-                ),
-        ),
-        const SizedBox(height: 4),
-        // Download Status
-        if (isDownloaded)
-          Icon(
-            Icons.download_done_rounded,
-            color: AppTheme.primary,
-            size: 16,
-          )
-        else if (!isDownloading)
+        if (!isDownloaded)
           GestureDetector(
             onTap: () => _downloadKaraokeTrack(song),
-            child: Icon(
-              Icons.download_rounded,
-              color: AppTheme.textSecondary,
-              size: 16,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              child: Icon(
+                Icons.download_rounded,
+                color: AppTheme.textSecondary,
+                size: 18,
+              ),
             ),
           ),
+        Icon(
+          Icons.arrow_forward_ios_rounded,
+          color: AppTheme.textSecondary,
+          size: 14,
+        ),
       ],
     );
   }
@@ -848,8 +718,8 @@ class _KaraokeScreenState extends State<KaraokeScreen>
             ),
             const SizedBox(height: 12),
             Text(
-              _searchQuery.isNotEmpty || _selectedKey != null || _selectedDifficulty != null
-                  ? 'Try adjusting your search or filters'
+              _searchQuery.isNotEmpty
+                  ? 'Try adjusting your search'
                   : 'No karaoke songs are available yet',
               style: TextStyle(
                 color: AppTheme.textSecondary,
@@ -858,7 +728,7 @@ class _KaraokeScreenState extends State<KaraokeScreen>
               ),
               textAlign: TextAlign.center,
             ),
-            if (_searchQuery.isNotEmpty || _selectedKey != null || _selectedDifficulty != null) ...[
+            if (_searchQuery.isNotEmpty) ...[
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _clearFilters,
@@ -885,117 +755,5 @@ class _KaraokeScreenState extends State<KaraokeScreen>
     );
   }
 
-  void _showFiltersBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => _buildFiltersBottomSheet(),
-    );
-  }
 
-  Widget _buildFiltersBottomSheet() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade900,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue.shade600, Colors.purple.shade600],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.tune, color: Colors.white, size: 24),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'Filter Karaoke Songs',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close, color: Colors.white),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Sort By',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: KaraokeSortOption.values.map((option) {
-                    final isSelected = _sortOption == option;
-                    return FilterChip(
-                      label: Text(option.displayName),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        _onFiltersChanged(sort: option);
-                        Navigator.of(context).pop();
-                      },
-                      backgroundColor: Colors.grey.shade800,
-                      selectedColor: Colors.blue.withValues(alpha: 0.2),
-                      checkmarkColor: Colors.blue,
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.blue : Colors.white70,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                      ),
-                      side: BorderSide(
-                        color: isSelected ? Colors.blue : Colors.grey.shade600,
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {
-                          _clearFilters();
-                          Navigator.of(context).pop();
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white70,
-                          side: BorderSide(color: Colors.grey.shade600),
-                        ),
-                        child: const Text('Clear All'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

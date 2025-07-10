@@ -93,76 +93,45 @@ class _ListScreenState extends State<ListScreen> {
     }
   }
 
-  // Load items from a specific section using cached data
+  // Load ALL items from a specific section using API (for "See all" functionality)
   Future<void> _loadSectionItems() async {
     try {
-      debugPrint('Loading items from section ${widget.sectionId} using cached data');
+      debugPrint('Loading ALL items from section ${widget.sectionId} via API');
 
-      final appDataProvider = Provider.of<AppDataProvider>(context, listen: false);
-
-      // Find the section in cached home sections
-      final homeSections = appDataProvider.homeSections;
-      final section = homeSections.firstWhere(
-        (s) => s.id == widget.sectionId,
-        orElse: () => throw Exception('Section not found in cache'),
+      // Always use API to get ALL items for "See all" functionality
+      // Don't use cached data as it only contains limited items (itemCount)
+      final items = await _homeSectionService.getSectionItems(
+        widget.sectionId!,
+        widget.sectionType!,
       );
 
       if (mounted) {
         setState(() {
           switch (widget.listType) {
             case ListType.songs:
-              _songs = section.items.cast<Song>();
+              _songs = items.cast<Song>();
               break;
             case ListType.artists:
-              _artists = section.items.cast<Artist>();
+              _artists = items.cast<Artist>();
               break;
             case ListType.collections:
-              _collections = section.items.cast<Collection>();
+              _collections = items.cast<Collection>();
               break;
           }
           _isLoading = false;
         });
 
         debugPrint(
-          'Loaded ${section.items.length} cached items from section ${widget.sectionId}',
+          'Loaded ${items.length} items from API for section ${widget.sectionId}',
         );
       }
     } catch (e) {
-      debugPrint('Error loading from cache, falling back to API: $e');
-      // Fallback to API if cache fails
-      try {
-        final items = await _homeSectionService.getSectionItems(
-          widget.sectionId!,
-          widget.sectionType!,
-        );
-
-        if (mounted) {
-          setState(() {
-            switch (widget.listType) {
-              case ListType.songs:
-                _songs = items.cast<Song>();
-                break;
-              case ListType.artists:
-                _artists = items.cast<Artist>();
-                break;
-              case ListType.collections:
-                _collections = items.cast<Collection>();
-                break;
-            }
-            _isLoading = false;
-          });
-
-          debugPrint(
-            'Fallback: Loaded ${items.length} items from API for section ${widget.sectionId}',
-          );
-        }
-      } catch (apiError) {
-        if (mounted) {
-          setState(() {
-            _errorMessage = 'Error loading section items: $apiError';
-            _isLoading = false;
-          });
-        }
+      debugPrint('Error loading section items from API: $e');
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error loading section items: $e';
+          _isLoading = false;
+        });
       }
     }
   }

@@ -1,3 +1,155 @@
+enum TrackType {
+  vocals,
+  bass,
+  drums,
+  other,
+}
+
+extension TrackTypeExtension on TrackType {
+  String get displayName {
+    switch (this) {
+      case TrackType.vocals:
+        return 'Vocals';
+      case TrackType.bass:
+        return 'Bass';
+      case TrackType.drums:
+        return 'Drums';
+      case TrackType.other:
+        return 'Other';
+    }
+  }
+
+  String get apiValue {
+    switch (this) {
+      case TrackType.vocals:
+        return 'VOCALS';
+      case TrackType.bass:
+        return 'BASS';
+      case TrackType.drums:
+        return 'DRUMS';
+      case TrackType.other:
+        return 'OTHER';
+    }
+  }
+
+  static TrackType fromApiValue(String value) {
+    switch (value.toUpperCase()) {
+      case 'VOCALS':
+        return TrackType.vocals;
+      case 'BASS':
+        return TrackType.bass;
+      case 'DRUMS':
+        return TrackType.drums;
+      case 'OTHER':
+        return TrackType.other;
+      default:
+        return TrackType.other;
+    }
+  }
+}
+
+class KaraokeTrack {
+  final String id;
+  final String karaokeId;
+  final TrackType trackType;
+  final String fileUrl;
+  final int? fileSize;
+  final int? duration;
+  final double volume;
+  final bool isMuted;
+  final DateTime uploadedAt;
+  final DateTime updatedAt;
+  final String? quality;
+  final String? notes;
+  final String status;
+
+  const KaraokeTrack({
+    required this.id,
+    required this.karaokeId,
+    required this.trackType,
+    required this.fileUrl,
+    this.fileSize,
+    this.duration,
+    required this.volume,
+    required this.isMuted,
+    required this.uploadedAt,
+    required this.updatedAt,
+    this.quality,
+    this.notes,
+    required this.status,
+  });
+
+  factory KaraokeTrack.fromJson(Map<String, dynamic> json) {
+    return KaraokeTrack(
+      id: json['id'] as String,
+      karaokeId: json['karaokeId'] as String,
+      trackType: TrackTypeExtension.fromApiValue(json['trackType'] as String),
+      fileUrl: json['fileUrl'] as String,
+      fileSize: json['fileSize'] as int?,
+      duration: json['duration'] as int?,
+      volume: (json['volume'] as num).toDouble(),
+      isMuted: json['isMuted'] as bool,
+      uploadedAt: DateTime.parse(json['uploadedAt'] as String),
+      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      quality: json['quality'] as String?,
+      notes: json['notes'] as String?,
+      status: json['status'] as String,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'karaokeId': karaokeId,
+      'trackType': trackType.apiValue,
+      'fileUrl': fileUrl,
+      'fileSize': fileSize,
+      'duration': duration,
+      'volume': volume,
+      'isMuted': isMuted,
+      'uploadedAt': uploadedAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+      'quality': quality,
+      'notes': notes,
+      'status': status,
+    };
+  }
+
+  KaraokeTrack copyWith({
+    String? id,
+    String? karaokeId,
+    TrackType? trackType,
+    String? fileUrl,
+    int? fileSize,
+    int? duration,
+    double? volume,
+    bool? isMuted,
+    DateTime? uploadedAt,
+    DateTime? updatedAt,
+    String? quality,
+    String? notes,
+    String? status,
+  }) {
+    return KaraokeTrack(
+      id: id ?? this.id,
+      karaokeId: karaokeId ?? this.karaokeId,
+      trackType: trackType ?? this.trackType,
+      fileUrl: fileUrl ?? this.fileUrl,
+      fileSize: fileSize ?? this.fileSize,
+      duration: duration ?? this.duration,
+      volume: volume ?? this.volume,
+      isMuted: isMuted ?? this.isMuted,
+      uploadedAt: uploadedAt ?? this.uploadedAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      quality: quality ?? this.quality,
+      notes: notes ?? this.notes,
+      status: status ?? this.status,
+    );
+  }
+
+  bool get isActive => status == 'ACTIVE';
+}
+
 class Karaoke {
   final String id;
   final String songId;
@@ -12,6 +164,7 @@ class Karaoke {
   final String status;
   final String? quality;
   final String? notes;
+  final List<KaraokeTrack> tracks;
 
   const Karaoke({
     required this.id,
@@ -27,6 +180,7 @@ class Karaoke {
     required this.status,
     this.quality,
     this.notes,
+    this.tracks = const [],
   });
 
   factory Karaoke.fromJson(Map<String, dynamic> json) {
@@ -44,6 +198,11 @@ class Karaoke {
       status: json['status'] as String,
       quality: json['quality'] as String?,
       notes: json['notes'] as String?,
+      tracks: json['tracks'] != null
+          ? (json['tracks'] as List)
+              .map((trackJson) => KaraokeTrack.fromJson(trackJson as Map<String, dynamic>))
+              .toList()
+          : [],
     );
   }
 
@@ -62,6 +221,7 @@ class Karaoke {
       'status': status,
       'quality': quality,
       'notes': notes,
+      'tracks': tracks.map((track) => track.toJson()).toList(),
     };
   }
 
