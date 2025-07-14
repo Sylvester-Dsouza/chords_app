@@ -123,17 +123,10 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppTheme.primary.withValues(alpha: 0.15),
-                    AppTheme.primary.withValues(alpha: 0.08),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppTheme.primary.withValues(alpha: 0.2),
+                  color: AppTheme.border,
                   width: 1,
                 ),
               ),
@@ -142,13 +135,13 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.primary.withValues(alpha: 0.1),
+                      color: AppTheme.surfaceSecondary,
                       borderRadius: BorderRadius.circular(50),
                     ),
                     child: Icon(
                       Icons.group_add,
                       size: 32,
-                      color: AppTheme.primary,
+                      color: AppTheme.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -163,28 +156,37 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'Enter the 4-digit share code from your team leader',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.textMuted,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: AppTheme.textMuted),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: AppTheme.primary.withValues(alpha: 0.1),
+                      color: AppTheme.surfaceSecondary,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: AppTheme.border,
+                      ),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.info_outline, color: AppTheme.primary, size: 16),
+                        Icon(
+                          Icons.info_outline,
+                          color: AppTheme.info,
+                          size: 16,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Ask your team leader for the share code',
                             style: TextStyle(
-                              color: AppTheme.primary,
+                              color: AppTheme.textSecondary,
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
@@ -224,9 +226,9 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                   icon: const Icon(Icons.qr_code_scanner, size: 18),
                   label: const Text('Scan QR'),
                   style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: AppTheme.primary, width: 1.5),
-                    foregroundColor: AppTheme.primary,
-                    backgroundColor: AppTheme.primary.withValues(alpha: 0.05),
+                    side: BorderSide(color: AppTheme.border, width: 1.5),
+                    foregroundColor: AppTheme.textSecondary,
+                    backgroundColor: AppTheme.surfaceSecondary,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 10,
@@ -265,26 +267,26 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                     margin: const EdgeInsets.all(12),
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppTheme.primary.withValues(alpha: 0.1),
+                      color: AppTheme.surfaceSecondary,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       Icons.vpn_key,
-                      color: AppTheme.primary,
+                      color: AppTheme.textSecondary,
                       size: 20,
                     ),
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
-                      color: AppTheme.primary.withValues(alpha: 0.3),
+                      color: AppTheme.border,
                       width: 1.5,
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
-                      color: AppTheme.primary.withValues(alpha: 0.3),
+                      color: AppTheme.border,
                       width: 1.5,
                     ),
                   ),
@@ -332,16 +334,17 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: _isLoading ? null : _previewSetlistData,
-                icon: _isLoading
-                    ? SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppTheme.primary,
-                        ),
-                      )
-                    : const Icon(Icons.preview, size: 20),
+                icon:
+                    _isLoading
+                        ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppTheme.primary,
+                          ),
+                        )
+                        : const Icon(Icons.preview, size: 20),
                 label: Text(
                   _isLoading ? 'Loading...' : 'Preview Setlist',
                   style: const TextStyle(
@@ -351,9 +354,9 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                 ),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: BorderSide(color: AppTheme.primary, width: 1.5),
-                  foregroundColor: AppTheme.primary,
-                  backgroundColor: AppTheme.primary.withValues(alpha: 0.05),
+                  side: BorderSide(color: AppTheme.border, width: 1.5),
+                  foregroundColor: AppTheme.textSecondary,
+                  backgroundColor: AppTheme.surfaceSecondary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -370,7 +373,7 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                   color: AppTheme.surface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: AppTheme.primary.withValues(alpha: 0.2),
+                    color: AppTheme.border,
                     width: 1,
                   ),
                   boxShadow: [
@@ -389,12 +392,12 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppTheme.primary.withValues(alpha: 0.1),
+                            color: AppTheme.surfaceSecondary,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
                             Icons.queue_music,
-                            color: AppTheme.primary,
+                            color: AppTheme.textSecondary,
                             size: 24,
                           ),
                         ),
@@ -405,10 +408,9 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                             children: [
                               Text(
                                 _previewSetlist!.name,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleLarge
-                                    ?.copyWith(
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.titleLarge?.copyWith(
                                   color: AppTheme.text,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -418,12 +420,8 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                                 const SizedBox(height: 4),
                                 Text(
                                   _previewSetlist!.description!,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.copyWith(
-                                    color: AppTheme.textMuted,
-                                  ),
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(color: AppTheme.textMuted),
                                 ),
                               ],
                             ],
@@ -451,16 +449,17 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: _isJoining ? null : _joinSetlist,
-                        icon: _isJoining
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.black,
-                                ),
-                              )
-                            : const Icon(Icons.group_add, size: 20),
+                        icon:
+                            _isJoining
+                                ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.black,
+                                  ),
+                                )
+                                : const Icon(Icons.group_add, size: 20),
                         label: Text(
                           _isJoining ? 'Joining...' : 'Join Setlist',
                           style: const TextStyle(
@@ -493,22 +492,22 @@ class _JoinSetlistScreenState extends State<JoinSetlistScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppTheme.primary.withValues(alpha: 0.1),
+        color: AppTheme.surfaceSecondary,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: AppTheme.primary.withValues(alpha: 0.3),
+          color: AppTheme.border,
           width: 1,
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: AppTheme.primary),
+          Icon(icon, size: 16, color: AppTheme.textSecondary),
           const SizedBox(width: 6),
           Text(
             text,
             style: TextStyle(
-              color: AppTheme.primary,
+              color: AppTheme.textSecondary,
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),

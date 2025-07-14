@@ -276,211 +276,223 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Container(
-            decoration: BoxDecoration(
-              color: Colors.black.withAlpha(100),
-              shape: BoxShape.circle,
-            ),
-            child: const Padding(
-              padding: EdgeInsets.all(4.0),
-              child: Icon(Icons.arrow_back, color: Colors.white),
-            ),
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        body: _buildLoadingSkeleton(),
+      );
+    }
+    
+    if (_hasError) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          backgroundColor: AppTheme.background,
+          elevation: 0,
+          title: Text(
+            widget.artistName,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontFamily: AppTheme.displayFontFamily,
+                  fontWeight: FontWeight.w700,
+                ),
           ),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          iconTheme: IconThemeData(color: AppTheme.textPrimary),
         ),
-        actions: [
-          // Bio info icon in top right app bar
-          if (_artist?.bio != null && _artist!.bio!.isNotEmpty)
-            IconButton(
-              icon: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withAlpha(100),
-                  shape: BoxShape.circle,
-                ),
-                child: const Padding(
-                  padding: EdgeInsets.all(4.0),
-                  child: Icon(Icons.info_outline, color: Colors.white),
-                ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                color: AppTheme.error,
+                size: 48,
               ),
-              onPressed: () {
-                // Show artist bio
-                if (mounted) {
-                  showDialog(
-                    context: context,
-                    builder: (dialogContext) => AlertDialog(
-                      backgroundColor: const Color(0xFF1E1E1E),
-                      title: Text(
-                        _artist?.name ?? widget.artistName,
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      content: SingleChildScrollView(
-                        child: Text(
-                          _artist?.bio ?? '',
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ),
-                      actions: [
-                        TextButton(
-                          child: const Text('Close'),
-                          onPressed: () => Navigator.of(dialogContext).pop(),
-                        ),
-                      ],
+              const SizedBox(height: 16),
+              Text(
+                'Failed to load artist data',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.textSecondary,
                     ),
-                  );
-                }
-              },
-            ),
-        ],
-      ),
-      body:
-          _isLoading
-              ? _buildLoadingSkeleton()
-              : _hasError
-              ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      color: Colors.red,
-                      size: 48,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Failed to load artist data',
-                      style: const TextStyle(color: Colors.white, fontSize: 18),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _errorMessage,
-                      style: const TextStyle(color: Colors.grey),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: Colors.black,
-                      ),
-                      onPressed: _loadArtistData,
-                      child: const Text('Retry'),
-                    ),
-                  ],
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.black,
                 ),
-              )
-              : Column(
+                onPressed: _loadArtistData,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    // Main content with collapsing header
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      body: CustomScrollView(
+        slivers: [
+          // Collapsing App Bar
+          SliverAppBar(
+            expandedHeight: 250.0,
+            floating: false,
+            pinned: true,
+            backgroundColor: AppTheme.background,
+            elevation: 0,
+            leadingWidth: 56.0, // Ensure enough space for the back button
+            titleSpacing: 0, // Remove default title spacing
+            flexibleSpace: FlexibleSpaceBar(
+              centerTitle: false,
+              titlePadding: const EdgeInsets.only(left: 56.0, bottom: 16.0), // Position after back button with less spacing
+              title: Text(
+                _artist?.name ?? widget.artistName,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontFamily: AppTheme.displayFontFamily,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
+              ),
+              background: Stack(
+                fit: StackFit.expand,
                 children: [
-                  // Artist header with image
-                  _buildArtistHeader(),
-
-                  // Artist info
-                  _buildArtistInfo(),
-
-                  // Divider
-                  const Divider(
-                    color: Color(0xFF333333),
-                    thickness: 1,
-                    height: 1,
-                  ),
-
-                  // Songs list
-                  Expanded(
-                    child:
-                        _songs.isEmpty
-                            ? Center(
-                              child: Text(
-                                'No songs found for ${_artist?.name ?? widget.artistName}',
-                                style: const TextStyle(color: Colors.grey),
-                              ),
-                            )
-                            : ListView.builder(
-                              padding: EdgeInsets.zero,
-                              itemCount: _songs.length,
-                              itemBuilder: (context, index) {
-                                final song = _songs[index];
-                                return _buildSongItem(
-                                  song.title,
-                                  song.artist,
-                                  song.key,
-                                  song.isLiked,
-                                  song: song,
-                                );
-                              },
+                  // Artist image
+                  _artist?.imageUrl != null
+                      ? MemoryEfficientImage(
+                          imageUrl: _artist!.imageUrl!,
+                          width: 800,
+                          height: 250,
+                          fit: BoxFit.cover,
+                          backgroundColor: AppTheme.surface,
+                          errorWidget: Container(
+                            color: AppTheme.surface,
+                            child: Center(
+                              child: Icon(Icons.person, color: AppTheme.textPrimary, size: 64),
                             ),
+                          ),
+                        )
+                      : Container(
+                          color: AppTheme.surface,
+                          child: Center(
+                            child: Icon(Icons.person, color: AppTheme.textPrimary, size: 64),
+                          ),
+                        ),
+                  // Gradient overlay
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          AppTheme.background.withAlpha(180),
+                          AppTheme.background,
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
-      // Bottom navigation bar removed from inner screens
-    );
-  }
-
-  Widget _buildArtistHeader() {
-    return SizedBox(
-      height: 250,
-      width: double.infinity,
-      child: Stack(
-        children: [
-          // Background image or fallback
-          _artist?.imageUrl != null
-              ? MemoryEfficientImage(
-                imageUrl: _artist!.imageUrl!,
-                width: 800, // Use reasonable fixed size instead of infinity
-                height: 250,
-                fit: BoxFit.cover,
-                backgroundColor: Colors.grey[800]!,
-                errorWidget: Container(
-                  color: Colors.grey[800],
+            ),
+            actions: [
+              // Bio info icon in top right app bar
+              if (_artist?.bio != null && _artist!.bio!.isNotEmpty)
+                IconButton(
+                  icon: Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.surface.withAlpha(100),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: Icon(Icons.info_outline, color: AppTheme.textPrimary),
+                    ),
+                  ),
+                  onPressed: () {
+                    // Show artist bio
+                    if (mounted) {
+                      showDialog(
+                        context: context,
+                        builder: (dialogContext) => AlertDialog(
+                          backgroundColor: AppTheme.surface,
+                          title: Text(
+                            _artist?.name ?? widget.artistName,
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          content: SingleChildScrollView(
+                            child: Text(
+                              _artist?.bio ?? '',
+                              style: Theme.of(context).textTheme.bodyLarge,
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              child: Text('Close', style: TextStyle(color: AppTheme.primary)),
+                              onPressed: () => Navigator.of(dialogContext).pop(),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  },
+                ),
+            ],
+          ),
+          
+          // Artist info section
+          SliverToBoxAdapter(
+            child: _buildArtistInfo(),
+          ),
+          
+          // Divider
+          SliverToBoxAdapter(
+            child: Divider(
+              color: AppTheme.separator,
+              thickness: 1,
+              height: 1,
+            ),
+          ),
+          
+          // Songs list
+          _songs.isEmpty
+              ? SliverFillRemaining(
                   child: Center(
-                    child: Icon(Icons.person, color: Colors.white, size: 64),
+                    child: Text(
+                      'No songs found for ${_artist?.name ?? widget.artistName}',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.textSecondary,
+                          ),
+                    ),
+                  ),
+                )
+              : SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final song = _songs[index];
+                      return _buildSongItem(
+                        song.title,
+                        song.artist,
+                        song.key,
+                        song.isLiked,
+                        song: song,
+                      );
+                    },
+                    childCount: _songs.length,
                   ),
                 ),
-              )
-              : Container(
-                color: Colors.grey[800],
-                child: Center(
-                  child: Icon(Icons.person, color: Colors.white, size: 64),
-                ),
-              ),
-          // Gradient overlay
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withAlpha(180),
-                  Colors.black,
-                ],
-              ),
-            ),
-          ),
-          // Artist name
-          Positioned(
-            left: 16.0,
-            bottom: 16.0,
-            child: Text(
-              _artist?.name ?? widget.artistName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
         ],
       ),
-    );
+    ); // Bottom navigation bar removed from inner screens
   }
+
+  // Artist header is now handled by SliverAppBar
 
   Widget _buildArtistInfo() {
     return Padding(
@@ -501,15 +513,15 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                             width: 40,
                             height: 40,
                             fit: BoxFit.cover,
-                            backgroundColor: Colors.grey[800]!,
+                            backgroundColor: AppTheme.surface,
                             errorWidget: Container(
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.grey[800],
+                                color: AppTheme.surface,
                               ),
                               child: Icon(
                                 Icons.person,
-                                color: Colors.white,
+                                color: AppTheme.textPrimary,
                                 size: 20,
                               ),
                             ),
@@ -518,11 +530,11 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                         : Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.grey[800],
+                            color: AppTheme.surface,
                           ),
                           child: Icon(
                             Icons.person,
-                            color: Colors.white,
+                            color: AppTheme.textPrimary,
                             size: 20,
                           ),
                         ),
@@ -531,16 +543,17 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Total Songs',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   Text(
                     '${_songs.length} ${_songs.length == 1 ? 'song' : 'songs'}',
-                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
                   ),
                 ],
               ),
@@ -612,7 +625,14 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
         debugPrint('Adding Facebook icon for: ${socialLinks.facebook}');
         socialIcons.add(
           IconButton(
-            icon: const Text('f', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+            icon: const Text(
+              'f',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             onPressed: () => _launchUrl(socialLinks.facebook!),
             tooltip: 'Facebook',
             iconSize: 24,
@@ -642,7 +662,14 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
         debugPrint('Adding Twitter/X icon for: ${socialLinks.twitter}');
         socialIcons.add(
           IconButton(
-            icon: const Text('𝕏', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+            icon: const Text(
+              '𝕏',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             onPressed: () => _launchUrl(socialLinks.twitter!),
             tooltip: 'Twitter/X',
             iconSize: 24,
@@ -688,7 +715,9 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
       return Row(children: socialIcons);
     } else {
       // Show a debug message if no social icons are found
-      debugPrint('No social icons to display - check if backend data is being parsed correctly');
+      debugPrint(
+        'No social icons to display - check if backend data is being parsed correctly',
+      );
       return const SizedBox.shrink();
     }
   }
@@ -701,9 +730,9 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
     Song? song,
   }) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Color(0xFF333333), width: 1.0),
+          bottom: BorderSide(color: AppTheme.separator, width: 1.0),
         ),
       ),
       child: ListTile(
@@ -714,17 +743,17 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
         leading: const SongPlaceholder(size: 40),
         title: Text(
           title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 15,
-          ),
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(
           artist,
-          style: const TextStyle(color: Colors.grey, fontSize: 13),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textSecondary,
+              ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -738,16 +767,14 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                 vertical: 3.0,
               ),
               decoration: BoxDecoration(
-                color: const Color(0xFF333333),
+                color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(5),
               ),
               child: Text(
                 key,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
               ),
             ),
             const SizedBox(width: 8),
@@ -755,7 +782,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
             IconButton(
               icon: Icon(
                 isLiked ? Icons.favorite : Icons.favorite_border,
-                color: isLiked ? Colors.red : Colors.grey[400],
+                color: isLiked ? AppTheme.error : AppTheme.textSecondary,
                 size: 20,
               ),
               padding: const EdgeInsets.all(8),

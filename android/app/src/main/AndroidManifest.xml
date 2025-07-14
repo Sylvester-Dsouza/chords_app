@@ -28,7 +28,7 @@
     <application
         android:name=".ChordsApplication"
         android:label="Stuthi"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/launcher_icon"
         android:requestLegacyExternalStorage="true"
         tools:replace="android:label">
         <activity

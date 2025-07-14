@@ -49,7 +49,25 @@ class MultiTrackDownloadManager extends ChangeNotifier {
 
   /// Get local path for a downloaded track
   String? getLocalPath(String songId, TrackType trackType) {
-    return _downloadedTracks[songId]?[trackType]?.localPath;
+    debugPrint('🎤 MultiTrackDownloadManager.getLocalPath called with songId: $songId, trackType: ${trackType.displayName}');
+    debugPrint('🎤 Available song IDs in _downloadedTracks: ${_downloadedTracks.keys.toList()}');
+
+    final songTracks = _downloadedTracks[songId];
+    if (songTracks == null) {
+      debugPrint('🎤 No tracks found for song ID: $songId');
+      return null;
+    }
+
+    debugPrint('🎤 Available track types for song $songId: ${songTracks.keys.map((k) => k.displayName).toList()}');
+
+    final track = songTracks[trackType];
+    if (track == null) {
+      debugPrint('🎤 No track found for type: ${trackType.displayName}');
+      return null;
+    }
+
+    debugPrint('🎤 Found track path: ${track.localPath}');
+    return track.localPath;
   }
 
   /// Get all local paths for a song

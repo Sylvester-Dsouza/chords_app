@@ -9,7 +9,6 @@ class CommunityScreen extends StatefulWidget {
 }
 
 class _CommunityScreenState extends State<CommunityScreen> {
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,10 +42,6 @@ class _CommunityScreenState extends State<CommunityScreen> {
             _buildCommunityFeatures(),
             const SizedBox(height: 24),
 
-            // Quick stats section
-            _buildQuickStats(),
-            const SizedBox(height: 24),
-
             // Coming soon section
             _buildComingSoonSection(),
           ],
@@ -78,11 +73,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.people_outline,
-                color: AppTheme.primary,
-                size: 28,
-              ),
+              Icon(Icons.people_outline, color: AppTheme.primary, size: 28),
               const SizedBox(width: 12),
               const Text(
                 'Welcome to Community',
@@ -136,32 +127,33 @@ class _CommunityScreenState extends State<CommunityScreen> {
               icon: Icons.queue_music,
               title: 'Setlists',
               description: 'Discover and share worship setlists',
-              color: AppTheme.primary,
-              onTap: () => _navigateToCommunitySetlists(),
+              color: AppTheme.primary.withValues(alpha: 0.9),
+              onTap: _navigateToCommunitySetlists,
+              isActive: true,
             ),
             _buildFeatureCard(
-              icon: Icons.people_alt_outlined,
-              title: 'Musicians',
-              description: 'Connect with worship musicians',
-              color: Colors.green,
-              onTap: () => _showComingSoon('Musicians'),
-              isComingSoon: true,
-            ),
-            _buildFeatureCard(
-              icon: Icons.library_music,
-              title: 'Song Library',
-              description: 'Community song contributions',
-              color: Colors.orange,
-              onTap: () => _showComingSoon('Song Library'),
-              isComingSoon: true,
+              icon: Icons.group,
+              title: 'Collaborations',
+              description: 'Collaborate with other musicians',
+              color: AppTheme.textSecondary,
+              onTap: () => _showComingSoon('Collaborations'),
+              isActive: false,
             ),
             _buildFeatureCard(
               icon: Icons.event,
               title: 'Events',
-              description: 'Worship events and gatherings',
-              color: Colors.purple,
+              description: 'Find worship events near you',
+              color: AppTheme.textSecondary,
               onTap: () => _showComingSoon('Events'),
-              isComingSoon: true,
+              isActive: false,
+            ),
+            _buildFeatureCard(
+              icon: Icons.forum,
+              title: 'Forums',
+              description: 'Discuss worship music and techniques',
+              color: AppTheme.textSecondary,
+              onTap: () => _showComingSoon('Forums'),
+              isActive: false,
             ),
           ],
         ),
@@ -175,27 +167,30 @@ class _CommunityScreenState extends State<CommunityScreen> {
     required String description,
     required Color color,
     required VoidCallback onTap,
-    bool isComingSoon = false,
+    bool isActive = false,
   }) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: AppTheme.border.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      color: AppTheme.surface,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
+    final isComingSoon = !isActive;
+
+    return InkWell(
+      onTap: isActive ? onTap : () => _showComingSoon(title),
+      borderRadius: BorderRadius.circular(12),
+      child: Opacity(
+        opacity: isActive ? 1.0 : 0.7,
+        child: Container(
           padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.border.withValues(alpha: 0.3),
+              width: 1,
+            ),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
@@ -203,22 +198,20 @@ class _CommunityScreenState extends State<CommunityScreen> {
                       color: color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(
-                      icon,
-                      color: color,
-                      size: 20,
-                    ),
+                    child: Icon(icon, color: color, size: 20),
                   ),
-                  const Spacer(),
                   if (isComingSoon)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
-                        color: AppTheme.textSecondary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        color: AppTheme.textSecondary.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(4),
                       ),
                       child: const Text(
-                        'Soon',
+                        'Coming Soon',
                         style: TextStyle(
                           color: AppTheme.textSecondary,
                           fontSize: 10,
@@ -232,8 +225,9 @@ class _CommunityScreenState extends State<CommunityScreen> {
               const SizedBox(height: 12),
               Text(
                 title,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
+                style: TextStyle(
+                  color:
+                      isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   fontFamily: AppTheme.primaryFontFamily,
@@ -242,112 +236,19 @@ class _CommunityScreenState extends State<CommunityScreen> {
               const SizedBox(height: 4),
               Text(
                 description,
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
+                style: TextStyle(
+                  color:
+                      isActive
+                          ? AppTheme.textSecondary
+                          : AppTheme.textSecondary.withValues(alpha: 0.7),
                   fontSize: 12,
                   fontFamily: AppTheme.primaryFontFamily,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildQuickStats() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.border.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Community Stats',
-            style: TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              fontFamily: AppTheme.primaryFontFamily,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatItem(
-                  icon: Icons.queue_music,
-                  label: 'Public Setlists',
-                  value: '150+',
-                  color: AppTheme.primary,
-                ),
-              ),
-              Expanded(
-                child: _buildStatItem(
-                  icon: Icons.people,
-                  label: 'Active Users',
-                  value: '500+',
-                  color: Colors.green,
-                ),
-              ),
-              Expanded(
-                child: _buildStatItem(
-                  icon: Icons.favorite,
-                  label: 'Total Likes',
-                  value: '1.2K+',
-                  color: Colors.red,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Column(
-      children: [
-        Icon(
-          icon,
-          color: color,
-          size: 24,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            fontFamily: AppTheme.primaryFontFamily,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppTheme.textSecondary,
-            fontSize: 12,
-            fontFamily: AppTheme.primaryFontFamily,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
     );
   }
 
@@ -361,6 +262,11 @@ class _CommunityScreenState extends State<CommunityScreen> {
           color: AppTheme.border.withValues(alpha: 0.3),
           width: 1,
         ),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppTheme.surface.withValues(alpha: 0.8), AppTheme.surface],
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -369,14 +275,14 @@ class _CommunityScreenState extends State<CommunityScreen> {
             children: [
               Icon(
                 Icons.rocket_launch_outlined,
-                color: AppTheme.primary,
+                color: AppTheme.textSecondary,
                 size: 20,
               ),
               const SizedBox(width: 8),
               const Text(
                 'Coming Soon',
                 style: TextStyle(
-                  color: AppTheme.textPrimary,
+                  color: AppTheme.textSecondary,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   fontFamily: AppTheme.primaryFontFamily,
@@ -407,11 +313,10 @@ class _CommunityScreenState extends State<CommunityScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('$feature feature coming soon!'),
-        backgroundColor: AppTheme.primary,
+        backgroundColor: AppTheme.surface,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        duration: const Duration(seconds: 2),
       ),
     );
   }

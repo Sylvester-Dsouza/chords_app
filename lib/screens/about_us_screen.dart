@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/theme.dart';
 
 class AboutUsScreen extends StatelessWidget {
   const AboutUsScreen({super.key});
@@ -6,16 +7,19 @@ class AboutUsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'About Us',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            fontFamily: AppTheme.displayFontFamily,
+          ),
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: AppTheme.textPrimary),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -27,32 +31,29 @@ class AboutUsScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
+                  color: AppTheme.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.music_note,
                   size: 60,
-                  color: Colors.white,
+                  color: AppTheme.primary,
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'Stuthi',
-                style: TextStyle(
-                  color: Colors.white,
+                style: Theme.of(context).textTheme.displayLarge?.copyWith(
                   fontSize: 36,
-                  fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Chords & Lyrics',
-                style: TextStyle(
-                  color: Color(0xFF9E9E9E),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppTheme.textSecondary,
                   fontSize: 18,
-                  fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 40),
@@ -99,8 +100,8 @@ class AboutUsScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Theme.of(context).primaryColor.withValues(alpha: 0.2),
-                      Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                      AppTheme.primary.withValues(alpha: 0.2),
+                      AppTheme.primary.withValues(alpha: 0.1),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -109,19 +110,17 @@ class AboutUsScreen extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    const Text(
+                    Text(
                       'Join Our Worship Community',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: Theme.of(context).textTheme.headlineMedium,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
-                    const Text(
+                    Text(
                       'Be part of a growing community of worship leaders and musicians. Share, learn, and grow together in your worship journey.',
-                      style: TextStyle(color: Color(0xB3FFFFFF), fontSize: 14),
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: AppTheme.textPrimary.withValues(alpha: 0.7),
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),
@@ -130,7 +129,7 @@ class AboutUsScreen extends StatelessWidget {
                         // TODO: Implement join community action
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
+                        backgroundColor: AppTheme.primary,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 32,
                           vertical: 12,
@@ -139,11 +138,12 @@ class AboutUsScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(25),
                         ),
                       ),
-                      child: const Text(
-                        'Get Started',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
+                      child: Text(
+                        'Join Community',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppTheme.getTextColorForBackground(
+                            AppTheme.primary,
+                          ),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -155,14 +155,18 @@ class AboutUsScreen extends StatelessWidget {
               const SizedBox(height: 40),
 
               // Version and Copyright
-              const Text(
+              Text(
                 'Version 1.0.0',
-                style: TextStyle(color: Color(0x80FFFFFF), fontSize: 12),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textPrimary.withValues(alpha: 0.5),
+                ),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 '© 2024 Stuthi. All rights reserved.',
-                style: TextStyle(color: Color(0x80FFFFFF), fontSize: 12),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textPrimary.withValues(alpha: 0.5),
+                ),
               ),
               const SizedBox(height: 24),
             ],
@@ -211,9 +215,8 @@ class AboutUsScreen extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             content,
-            style: const TextStyle(
-              color: Color(0xB3FFFFFF),
-              fontSize: 14,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: AppTheme.textPrimary.withValues(alpha: 0.7),
               height: 1.6,
             ),
           ),
@@ -267,16 +270,18 @@ class AboutUsScreen extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     '• ',
-                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                    style: TextStyle(
+                      color: AppTheme.textPrimary.withValues(alpha: 0.7),
+                      fontSize: 16,
+                    ),
                   ),
                   Expanded(
                     child: Text(
                       feature,
-                      style: const TextStyle(
-                        color: Color(0xB3FFFFFF),
-                        fontSize: 14,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: AppTheme.textPrimary.withValues(alpha: 0.7),
                         height: 1.6,
                       ),
                     ),

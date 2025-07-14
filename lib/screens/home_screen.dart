@@ -681,9 +681,13 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                 title,
                 style: const TextStyle(
                   color: AppTheme.textPrimary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
-                  fontFamily: AppTheme.primaryFontFamily,
+                  fontWeight:
+                      FontWeight
+                          .w700, // Increased from w600 to w700 for bolder font
+                  fontSize: 22, // Increased from 18 to 22 for bigger text
+                  fontFamily:
+                      AppTheme
+                          .displayFontFamily, // Using display font family for more impact
                 ),
               ),
               GestureDetector(

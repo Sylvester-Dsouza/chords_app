@@ -172,6 +172,35 @@ class FeatureRequestService {
       return false;
     }
   }
+  
+  // Check if a user has already upvoted a feature request
+  // This is used to handle the case where the upvote API returns a 400 error
+  Future<bool> checkIfAlreadyUpvoted(String featureRequestId) async {
+    try {
+      // Try to get the feature request details to check if it's already upvoted
+      final response = await _apiService.get('/feature-requests/$featureRequestId');
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final featureRequest = FeatureRequest.fromJson(data);
+        return featureRequest.hasUpvoted;
+      } else {
+        return false;
+      }
+    } on DioException catch (dioError) {
+      if (dioError.response?.statusCode == 400 && 
+          dioError.response?.data != null && 
+          dioError.response!.data['message'] != null && 
+          dioError.response!.data['message'].toString().contains('already upvoted')) {
+        // If the error message contains 'already upvoted', then the user has already upvoted
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error checking if already upvoted: $e');
+      return false;
+    }
+  }
 
   // Remove upvote from a feature request
   Future<bool> removeUpvote(String featureRequestId) async {

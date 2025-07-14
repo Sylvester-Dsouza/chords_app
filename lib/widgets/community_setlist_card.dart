@@ -7,6 +7,7 @@ class CommunitySetlistCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onLike;
   final bool showTrendingBadge;
+  final bool showLikedBadge;
 
   const CommunitySetlistCard({
     super.key,
@@ -14,31 +15,26 @@ class CommunitySetlistCard extends StatelessWidget {
     required this.onTap,
     required this.onLike,
     this.showTrendingBadge = false,
+    this.showLikedBadge = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 400;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 16),
       child: Card(
         elevation: 2,
         shadowColor: AppTheme.primary.withValues(alpha: 0.08),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: AppTheme.border.withValues(alpha: 0.15),
-            width: 1,
-          ),
         ),
         color: AppTheme.surface,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: EdgeInsets.all(isSmallScreen ? 14 : 16),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -49,13 +45,13 @@ class CommunitySetlistCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         setlist.name,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: AppTheme.textPrimary,
-                          fontSize: isSmallScreen ? 18 : 20,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
                           fontFamily: AppTheme.primaryFontFamily,
                           letterSpacing: -0.3,
-                          height: 1.2,
+                          height: 1.3,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -64,36 +60,24 @@ class CommunitySetlistCard extends StatelessWidget {
                     if (showTrendingBadge) ...[
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppTheme.primary,
-                              AppTheme.primary.withValues(alpha: 0.8),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.primary.withValues(alpha: 0.2),
-                              blurRadius: 4,
-                              offset: const Offset(0, 1),
-                            ),
-                          ],
+                          color: AppTheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
+                          children: const [
+                            Icon(
                               Icons.trending_up,
                               size: 12,
-                              color: Colors.white,
+                              color: AppTheme.primary,
                             ),
-                            const SizedBox(width: 3),
-                            const Text(
-                              'Hot',
+                            SizedBox(width: 3),
+                            Text(
+                              'Trending',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: AppTheme.primary,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
                                 fontFamily: AppTheme.primaryFontFamily,
@@ -108,13 +92,14 @@ class CommunitySetlistCard extends StatelessWidget {
 
               // Description (if available)
               if (setlist.description != null && setlist.description!.isNotEmpty) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   setlist.description!,
                   style: const TextStyle(
                     color: AppTheme.textSecondary,
-                    fontSize: 14,
+                    fontSize: 13,
                     fontFamily: AppTheme.primaryFontFamily,
+                    height: 1.4,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -123,36 +108,16 @@ class CommunitySetlistCard extends StatelessWidget {
 
                 const SizedBox(height: 12),
 
-                // Creator info - compact and responsive
+                // Creator info and stats in a more compact layout
                 Row(
                   children: [
-                    CircleAvatar(
-                      radius: isSmallScreen ? 12 : 14,
-                      backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-                      backgroundImage: setlist.creator.profilePicture != null
-                          ? NetworkImage(setlist.creator.profilePicture!)
-                          : null,
-                      child: setlist.creator.profilePicture == null
-                          ? Text(
-                              setlist.creator.name.isNotEmpty
-                                  ? setlist.creator.name[0].toUpperCase()
-                                  : '?',
-                              style: TextStyle(
-                                color: AppTheme.primary,
-                                fontSize: isSmallScreen ? 10 : 12,
-                                fontWeight: FontWeight.w600,
-                                fontFamily: AppTheme.primaryFontFamily,
-                              ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 8),
+                    // Creator name
                     Expanded(
                       child: Text(
-                        setlist.creator.name,
-                        style: TextStyle(
+                        'By ${setlist.creator.name}',
+                        style: const TextStyle(
                           color: AppTheme.textSecondary,
-                          fontSize: isSmallScreen ? 12 : 13,
+                          fontSize: 12,
                           fontWeight: FontWeight.w500,
                           fontFamily: AppTheme.primaryFontFamily,
                         ),
@@ -160,77 +125,62 @@ class CommunitySetlistCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    // Date
                     Text(
-                      '• ${_formatDate(setlist.sharedAt)}',
-                      style: TextStyle(
+                      _formatDate(setlist.sharedAt),
+                      style: const TextStyle(
                         color: AppTheme.textSecondary,
-                        fontSize: isSmallScreen ? 11 : 12,
+                        fontSize: 11,
                         fontFamily: AppTheme.primaryFontFamily,
                       ),
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
 
-                // Stats and actions row - responsive layout
-                Row(
-                  children: [
-                    // Stats - responsive spacing
-                    Expanded(
-                      child: Row(
-                        children: [
-                          _buildCompactStat(
-                            icon: Icons.queue_music,
-                            value: setlist.songCount.toString(),
-                            color: AppTheme.primary,
-                            isSmall: isSmallScreen,
-                          ),
-                          SizedBox(width: isSmallScreen ? 12 : 16),
-                          _buildCompactStat(
-                            icon: Icons.visibility_outlined,
-                            value: _formatNumber(setlist.viewCount),
-                            color: Colors.blue,
-                            isSmall: isSmallScreen,
-                          ),
-                          SizedBox(width: isSmallScreen ? 12 : 16),
-                          _buildCompactStat(
+
+                // Stats row - simplified and more compact
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.border.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      // Song count
+                      _buildCompactStat(
+                        icon: Icons.queue_music,
+                        value: '${setlist.songCount} songs',
+                        color: AppTheme.textSecondary,
+                        isSmall: true,
+                      ),
+                      const Spacer(),
+                      // Views
+                      _buildCompactStat(
+                        icon: Icons.visibility_outlined,
+                        value: _formatNumber(setlist.viewCount),
+                        color: AppTheme.textSecondary,
+                        isSmall: true,
+                      ),
+                      const SizedBox(width: 16),
+                      // Likes with action
+                      InkWell(
+                        onTap: onLike,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          child: _buildCompactStat(
                             icon: setlist.isLikedByUser ? Icons.favorite : Icons.favorite_border,
                             value: _formatNumber(setlist.likeCount),
                             color: setlist.isLikedByUser ? Colors.red : AppTheme.textSecondary,
-                            isSmall: isSmallScreen,
+                            isSmall: true,
                           ),
-                        ],
-                      ),
-                    ),
-
-                    // Like button - responsive size
-                    Container(
-                      width: isSmallScreen ? 36 : 40,
-                      height: isSmallScreen ? 36 : 40,
-                      decoration: BoxDecoration(
-                        color: setlist.isLikedByUser
-                            ? Colors.red.withValues(alpha: 0.1)
-                            : AppTheme.surface,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: setlist.isLikedByUser
-                              ? Colors.red.withValues(alpha: 0.3)
-                              : AppTheme.border.withValues(alpha: 0.3),
-                          width: 1,
                         ),
                       ),
-                      child: IconButton(
-                        onPressed: onLike,
-                        padding: EdgeInsets.zero,
-                        icon: Icon(
-                          setlist.isLikedByUser ? Icons.favorite : Icons.favorite_border,
-                          color: setlist.isLikedByUser ? Colors.red : AppTheme.textSecondary,
-                          size: isSmallScreen ? 18 : 20,
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),

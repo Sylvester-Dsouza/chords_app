@@ -583,28 +583,21 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       width: double.infinity,
       child: Stack(
         children: [
-          // Background image or color
-          _collection?.imageUrl != null
-              ? MemoryEfficientImage(
+          // Background color
+          Container(
+            width: double.infinity,
+            height: 200,
+            color: _collection?.color ?? Colors.grey[800]!,
+          ),
+
+          // Image without explicit dimensions to avoid stretching
+          if (_collection?.imageUrl != null)
+            Positioned.fill(
+              child: MemoryEfficientImage(
                 imageUrl: _collection!.imageUrl!,
-                width: 800, // Use reasonable fixed size instead of infinity
-                height: 200,
-                fit: BoxFit.cover,
-                backgroundColor: _collection?.color ?? Colors.grey[800]!,
-                errorWidget: Container(
-                  color: _collection?.color ?? Colors.grey[800],
-                  child: Center(
-                    child: Icon(
-                      Icons.collections_bookmark,
-                      color: Colors.white,
-                      size: 64,
-                    ),
-                  ),
-                ),
-              )
-              : Container(
-                color: _collection?.color ?? Colors.grey[800],
-                child: Center(
+                fit: BoxFit.contain,
+                backgroundColor: Colors.transparent,
+                errorWidget: Center(
                   child: Icon(
                     Icons.collections_bookmark,
                     color: Colors.white,
@@ -612,6 +605,19 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                   ),
                 ),
               ),
+            ),
+          // Fallback if no image URL
+          if (_collection?.imageUrl == null)
+            Container(
+              color: _collection?.color ?? Colors.grey[800],
+              child: Center(
+                child: Icon(
+                  Icons.collections_bookmark,
+                  color: Colors.white,
+                  size: 64,
+                ),
+              ),
+            ),
           // Gradient overlay
           Container(
             decoration: BoxDecoration(

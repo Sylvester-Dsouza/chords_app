@@ -12,7 +12,8 @@ class CommunitySetlistsScreen extends StatefulWidget {
   const CommunitySetlistsScreen({super.key});
 
   @override
-  State<CommunitySetlistsScreen> createState() => _CommunitySetlistsScreenState();
+  State<CommunitySetlistsScreen> createState() =>
+      _CommunitySetlistsScreenState();
 }
 
 class _CommunitySetlistsScreenState extends State<CommunitySetlistsScreen>
@@ -27,12 +28,13 @@ class _CommunitySetlistsScreenState extends State<CommunitySetlistsScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    
+
     // Load initial data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = Provider.of<CommunityProvider>(context, listen: false);
       provider.loadCommunitySetlists();
-      provider.loadTrendingSetlists();
+      provider.loadTrendingSetlists(); // Load trending setlists (most viewed)
+      provider.loadLikedSetlists(); // Load liked setlists (most liked)
     });
 
     // Setup infinite scroll
@@ -107,14 +109,15 @@ class _CommunitySetlistsScreenState extends State<CommunitySetlistsScreen>
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
+        centerTitle: false,
         title: const Text(
           'Community Setlists',
           style: TextStyle(
             color: AppTheme.textPrimary,
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
             fontFamily: AppTheme.primaryFontFamily,
-            letterSpacing: -0.2,
+            letterSpacing: -0.5,
           ),
         ),
         actions: [
@@ -122,15 +125,10 @@ class _CommunitySetlistsScreenState extends State<CommunitySetlistsScreen>
             PopupMenuButton<String>(
               icon: const Icon(Icons.sort, color: AppTheme.textPrimary),
               onSelected: _onSortChanged,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'newest',
-                  child: Text('Newest'),
-                ),
-                const PopupMenuItem(
-                  value: 'oldest',
-                  child: Text('Oldest'),
-                ),
+                const PopupMenuItem(value: 'newest', child: Text('Newest')),
+                const PopupMenuItem(value: 'oldest', child: Text('Oldest')),
                 const PopupMenuItem(
                   value: 'mostLiked',
                   child: Text('Most Liked'),
@@ -145,14 +143,18 @@ class _CommunitySetlistsScreenState extends State<CommunitySetlistsScreen>
             icon: const Icon(Icons.refresh, color: AppTheme.textPrimary),
             onPressed: _onRefresh,
           ),
+          const SizedBox(width: 8),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(120),
+          preferredSize: const Size.fromHeight(110),
           child: Column(
             children: [
               // Search bar
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: TextField(
                   controller: _searchController,
                   onChanged: _onSearchChanged,
@@ -161,16 +163,19 @@ class _CommunitySetlistsScreenState extends State<CommunitySetlistsScreen>
                     hintStyle: const TextStyle(
                       color: AppTheme.textSecondary,
                       fontFamily: AppTheme.primaryFontFamily,
+                      fontSize: 14,
                     ),
                     prefixIcon: const Icon(
                       Icons.search,
                       color: AppTheme.textSecondary,
+                      size: 20,
                     ),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
                             icon: const Icon(
                               Icons.clear,
                               color: AppTheme.textSecondary,
+                              size: 18,
                             ),
                             onPressed: () {
                               _searchController.clear();
@@ -180,53 +185,67 @@ class _CommunitySetlistsScreenState extends State<CommunitySetlistsScreen>
                         : null,
                     filled: true,
                     fillColor: AppTheme.surface,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                        color: AppTheme.border.withValues(alpha: 0.3),
+                        color: AppTheme.border.withValues(alpha: 0.2),
+                        width: 0.5,
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                        color: AppTheme.border.withValues(alpha: 0.3),
+                        color: AppTheme.border.withValues(alpha: 0.2),
+                        width: 0.5,
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                        color: AppTheme.primary,
-                      ),
+                      borderSide: const BorderSide(color: AppTheme.primary, width: 1),
                     ),
                   ),
                   style: const TextStyle(
                     color: AppTheme.textPrimary,
                     fontFamily: AppTheme.primaryFontFamily,
+                    fontSize: 14,
                   ),
                 ),
               ),
-              
+
               // Tab bar
-              TabBar(
-                controller: _tabController,
-                labelColor: AppTheme.primary,
-                unselectedLabelColor: AppTheme.textSecondary,
-                indicatorColor: AppTheme.primary,
-                labelStyle: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  fontFamily: AppTheme.primaryFontFamily,
+              Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: AppTheme.border.withValues(alpha: 0.1),
+                      width: 1,
+                    ),
+                  ),
                 ),
-                unselectedLabelStyle: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
-                  fontFamily: AppTheme.primaryFontFamily,
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: AppTheme.primary,
+                  unselectedLabelColor: AppTheme.textSecondary,
+                  indicatorColor: AppTheme.primary,
+                  indicatorWeight: 2,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    fontFamily: AppTheme.primaryFontFamily,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                    fontFamily: AppTheme.primaryFontFamily,
+                  ),
+                  tabs: const [
+                    Tab(text: 'All'),
+                    Tab(text: 'Trending'),
+                    Tab(text: 'Liked'),
+                  ],
                 ),
-                tabs: const [
-                  Tab(text: 'All'),
-                  Tab(text: 'Trending'),
-                  Tab(text: 'Liked'),
-                ],
               ),
             ],
           ),
@@ -250,12 +269,12 @@ class _CommunitySetlistsScreenState extends State<CommunitySetlistsScreen>
           return _buildLoadingState();
         }
 
-        if (provider.error != null && provider.communitySetlists.isEmpty) {
+        if (provider.error != null) {
           return _buildErrorState(provider.error!);
         }
 
         if (provider.communitySetlists.isEmpty) {
-          return _buildEmptyState('No community setlists found');
+          return _buildEmptyState('No setlists found');
         }
 
         return RefreshIndicator(
@@ -263,22 +282,30 @@ class _CommunitySetlistsScreenState extends State<CommunitySetlistsScreen>
           color: AppTheme.primary,
           child: ListView.builder(
             controller: _scrollController,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             itemCount: provider.communitySetlists.length +
-                      (provider.hasMoreCommunity ? 1 : 0),
+                (provider.hasMoreCommunity ? 1 : 0),
             itemBuilder: (context, index) {
               if (index >= provider.communitySetlists.length) {
-                return const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Center(child: CircularProgressIndicator()),
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.primary.withValues(alpha: 0.8),
+                      strokeWidth: 3,
+                    ),
+                  ),
                 );
               }
 
               final setlist = provider.communitySetlists[index];
-              return CommunitySetlistCard(
-                setlist: setlist,
-                onTap: () => _navigateToSetlistDetail(setlist),
-                onLike: () => _toggleLike(setlist),
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: CommunitySetlistCard(
+                  setlist: setlist,
+                  onTap: () => _navigateToSetlistDetail(setlist),
+                  onLike: () => _toggleLike(setlist),
+                ),
               );
             },
           ),
@@ -301,18 +328,61 @@ class _CommunitySetlistsScreenState extends State<CommunitySetlistsScreen>
         return RefreshIndicator(
           onRefresh: () async => _onRefresh(),
           color: AppTheme.primary,
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            itemCount: provider.trendingSetlists.length,
-            itemBuilder: (context, index) {
-              final setlist = provider.trendingSetlists[index];
-              return CommunitySetlistCard(
-                setlist: setlist,
-                onTap: () => _navigateToSetlistDetail(setlist),
-                onLike: () => _toggleLike(setlist),
-                showTrendingBadge: true,
-              );
-            },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header explaining trending
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.trending_up,
+                        color: AppTheme.primary,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Most viewed setlists from the community',
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: AppTheme.primaryFontFamily,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  itemCount: provider.trendingSetlists.length,
+                  itemBuilder: (context, index) {
+                    final setlist = provider.trendingSetlists[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: CommunitySetlistCard(
+                        setlist: setlist,
+                        onTap: () => _navigateToSetlistDetail(setlist),
+                        onLike: () => _toggleLike(setlist),
+                        showTrendingBadge: true,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -333,26 +403,75 @@ class _CommunitySetlistsScreenState extends State<CommunitySetlistsScreen>
         return RefreshIndicator(
           onRefresh: () async => _onRefresh(),
           color: AppTheme.primary,
-          child: ListView.builder(
-            controller: _scrollController,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            itemCount: provider.likedSetlists.length +
-                      (provider.hasMoreLiked ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (index >= provider.likedSetlists.length) {
-                return const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header explaining liked
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.favorite,
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Most liked setlists from the community',
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: AppTheme.primaryFontFamily,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  itemCount:
+                      provider.likedSetlists.length + (provider.hasMoreLiked ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index >= provider.likedSetlists.length) {
+                      return Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: AppTheme.primary.withValues(alpha: 0.8),
+                            strokeWidth: 3,
+                          ),
+                        ),
+                      );
+                    }
 
-              final setlist = provider.likedSetlists[index];
-              return CommunitySetlistCard(
-                setlist: setlist,
-                onTap: () => _navigateToSetlistDetail(setlist),
-                onLike: () => _toggleLike(setlist),
-              );
-            },
+                    final setlist = provider.likedSetlists[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: CommunitySetlistCard(
+                        setlist: setlist,
+                        onTap: () => _navigateToSetlistDetail(setlist),
+                        onLike: () => _toggleLike(setlist),
+                        showLikedBadge: true,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -363,19 +482,19 @@ class _CommunitySetlistsScreenState extends State<CommunitySetlistsScreen>
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: 5,
-      itemBuilder: (context, index) => const Padding(
-        padding: EdgeInsets.only(bottom: 16),
-        child: LoadingSkeleton(height: 120),
+      itemBuilder: (context, index) => Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: LoadingSkeleton(
+          height: 140,
+          borderRadius: BorderRadius.circular(12),
+        ),
       ),
     );
   }
 
   Widget _buildErrorState(String error) {
     return Center(
-      child: CustomErrorWidget(
-        message: error,
-        onRetry: _onRefresh,
-      ),
+      child: CustomErrorWidget(message: error, onRetry: _onRefresh),
     );
   }
 
@@ -384,20 +503,53 @@ class _CommunitySetlistsScreenState extends State<CommunitySetlistsScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.music_note_outlined,
-            size: 64,
-            color: AppTheme.textSecondary.withValues(alpha: 0.5),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            style: const TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 16,
-              fontFamily: AppTheme.primaryFontFamily,
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(40),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primary.withValues(alpha: 0.08),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            textAlign: TextAlign.center,
+            child: Icon(
+              Icons.music_note_outlined,
+              size: 40,
+              color: AppTheme.primary.withValues(alpha: 0.5),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppTheme.border.withValues(alpha: 0.1),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primary.withValues(alpha: 0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                fontFamily: AppTheme.primaryFontFamily,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
         ],
       ),
@@ -413,9 +565,8 @@ class _CommunitySetlistsScreenState extends State<CommunitySetlistsScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CommunitySetlistDetailScreen(
-          setlistId: setlist.id,
-        ),
+        builder:
+            (context) => CommunitySetlistDetailScreen(setlistId: setlist.id),
       ),
     );
   }

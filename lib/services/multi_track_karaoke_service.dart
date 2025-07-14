@@ -19,7 +19,7 @@ class MultiTrackKaraokeService {
       }
 
       final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/karaoke/songs/$songId/tracks/download'),
+        Uri.parse('${ApiConfig.baseUrl}/karaoke/songs/$songId/tracks/download-all'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

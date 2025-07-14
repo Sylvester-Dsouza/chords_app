@@ -166,7 +166,9 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Lyrics will appear here when available',
+            widget.song.chords == null || widget.song.chords!.isEmpty
+                ? 'Chord sheet data is not available for this song'
+                : 'Lyrics will appear here when available',
             style: TextStyle(
               fontSize: 14,
               color: AppTheme.textSecondary.withValues(alpha: 0.7),

@@ -5,7 +5,9 @@ import 'package:audioplayers/audioplayers.dart';
 import '../models/song.dart';
 import '../models/karaoke.dart';
 import '../services/multi_track_download_manager.dart';
+import '../services/multi_track_karaoke_service.dart';
 import '../services/auth_service.dart';
+import '../services/song_service.dart';
 import '../config/theme.dart';
 import '../widgets/karaoke_lyrics_view.dart';
 
@@ -26,6 +28,11 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
   late TabController _tabController;
   late MultiTrackDownloadManager _downloadManager;
   final AuthService _authService = AuthService();
+  final SongService _songService = SongService();
+  late MultiTrackKaraokeService _multiTrackService;
+
+  // Song data with complete chord sheet
+  Song? _songWithChords;
 
   // Audio players for each track
   final Map<TrackType, AudioPlayer> _audioPlayers = {};
@@ -54,6 +61,13 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
   Timer? _syncVerificationTimer;
   int _playingTrackCount = 0;
 
+  // Enhanced synchronization
+  Timer? _positionTimer;
+  bool _isSeeking = false;
+  Duration _lastKnownPosition = Duration.zero;
+  final Map<TrackType, Duration> _trackPositions = {};
+  bool _isPreloaded = false;
+
   // Track icons and colors
   final Map<TrackType, IconData> _trackIcons = {
     TrackType.vocals: Icons.mic,
@@ -81,6 +95,7 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
     _tabController.dispose();
     _trackHealthTimer?.cancel();
     _syncVerificationTimer?.cancel();
+    _positionTimer?.cancel();
     for (final player in _audioPlayers.values) {
       player.dispose();
     }
@@ -90,8 +105,37 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
   Future<void> _initializeServices() async {
     await _authService.initializeFirebase();
     _downloadManager = MultiTrackDownloadManager();
+    _multiTrackService = MultiTrackKaraokeService(_authService);
     await _downloadManager.initialize();
     await _initializePlayer();
+    await _fetchChordSheetIfNeeded();
+  }
+
+  Future<void> _fetchChordSheetIfNeeded() async {
+    try {
+      // Check if the song already has chord sheet data
+      if (widget.song.chords != null && widget.song.chords!.isNotEmpty) {
+        debugPrint('🎵 Song already has chord sheet data (${widget.song.chords!.length} chars)');
+        _songWithChords = widget.song;
+        return;
+      }
+
+      debugPrint('🎵 Song missing chord sheet data, fetching from backend...');
+
+      // Fetch fresh song data with chord sheet
+      final freshSong = await _songService.getSongById(widget.song.id);
+
+      if (freshSong.chords != null && freshSong.chords!.isNotEmpty) {
+        debugPrint('🎵 Successfully fetched chord sheet data (${freshSong.chords!.length} chars)');
+        _songWithChords = freshSong;
+      } else {
+        debugPrint('🎵 No chord sheet data available in backend');
+        _songWithChords = widget.song;
+      }
+    } catch (e) {
+      debugPrint('🎵 Error fetching chord sheet data: $e');
+      _songWithChords = widget.song;
+    }
   }
 
   Future<void> _initializePlayer() async {
@@ -100,9 +144,30 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
         _loadingMessage = 'Scanning for AI-separated tracks...';
       });
 
+      // Check if song has karaoke data
+      if (widget.song.karaoke == null) {
+        debugPrint('🎤 No karaoke data available for this song');
+        setState(() {
+          _isLoading = false;
+          _loadingMessage = 'No karaoke data available for this song.';
+        });
+        return;
+      }
+      
+      // Debug the karaoke data
+      debugPrint('🎤 Karaoke data: ${widget.song.karaoke!.tracks.length} tracks available');
+      for (final track in widget.song.karaoke!.tracks) {
+        debugPrint('🎤 Track: ${track.trackType.displayName}, URL: ${track.fileUrl}');
+      }
+      
       // Check if song has multi-track karaoke
-      if (widget.song.karaoke?.tracks.isEmpty ?? true) {
-        throw Exception('No multi-track karaoke available for this song');
+      if (widget.song.karaoke!.tracks.isEmpty) {
+        debugPrint('🎤 No multi-track karaoke available for this song');
+        setState(() {
+          _isLoading = false;
+          _loadingMessage = 'No multi-track karaoke available for this song.';
+        });
+        return;
       }
 
       // Initialize audio players for each track type
@@ -146,8 +211,143 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
         _isDownloading = true;
       });
 
+      // Debug song information
+      debugPrint('🎤 Loading tracks for song: ${widget.song.title} (ID: ${widget.song.id})');
+      debugPrint('🎤 Song has chord sheet: ${widget.song.chords != null && widget.song.chords!.isNotEmpty}');
+
+      // Check if karaoke data exists
+      if (widget.song.karaoke == null) {
+        debugPrint('🎤 No karaoke data available for song: ${widget.song.id}');
+        setState(() {
+          _isLoading = false;
+          _isDownloading = false;
+          _loadingMessage = 'No karaoke data available for this song.';
+        });
+        return;
+      }
+
       final tracks = widget.song.karaoke!.tracks;
+
+      // Check if there are any tracks available
+      if (tracks.isEmpty) {
+        setState(() {
+          _isLoading = false;
+          _isDownloading = false;
+          _loadingMessage = 'No AI-separated tracks available for this song yet.';
+        });
+        return;
+      }
+
+      // First, try to get all track download URLs from the API
+      debugPrint('🎤 Fetching track download URLs from API for song: ${widget.song.id}');
+      Map<TrackType, KaraokeTrackDownload>? trackDownloads;
+
+      try {
+        trackDownloads = await _multiTrackService.getAllTracksDownloadUrls(widget.song.id);
+      } catch (e) {
+        debugPrint('🎤 Error fetching track download URLs from API: $e');
+      }
+
+      if (trackDownloads == null || trackDownloads.isEmpty) {
+        debugPrint('🎤 No track download URLs available from API, falling back to song karaoke data');
+
+        // Fallback: use the track URLs from the song's karaoke data
+        if (tracks.isNotEmpty) {
+          debugPrint('🎤 Using fallback track URLs from song karaoke data');
+          await _loadTracksFromSongData(tracks);
+          return;
+        } else {
+          debugPrint('🎤 No tracks available in song karaoke data either');
+          setState(() {
+            _isLoading = false;
+            _isDownloading = false;
+            _loadingMessage = 'No track download URLs available from server or song data.';
+          });
+          return;
+        }
+      }
+
+      debugPrint('🎤 Got ${trackDownloads.length} track download URLs from API');
+
       int completedTracks = 0;
+      final totalTracks = trackDownloads.length;
+
+      for (final entry in trackDownloads.entries) {
+        final trackType = entry.key;
+        final trackDownload = entry.value;
+
+        setState(() {
+          _loadingMessage = 'Processing ${trackType.displayName.toLowerCase()} track...';
+        });
+
+        // Check if track is already downloaded
+        debugPrint('🎤 Checking for local track: ${trackType.displayName} for song ID: ${widget.song.id}');
+        final localPath = _downloadManager.getLocalPath(widget.song.id, trackType);
+        debugPrint('🎤 Download manager returned path: $localPath');
+
+        if (localPath != null) {
+          final fileExists = await File(localPath).exists();
+          debugPrint('🎤 File exists at path: $fileExists');
+
+          if (fileExists) {
+            _trackPaths[trackType] = localPath;
+            debugPrint('🎤 ✅ Found local ${trackType.displayName} track: $localPath');
+          } else {
+            debugPrint('🎤 ❌ File does not exist at path: $localPath');
+          }
+        } else {
+          debugPrint('🎤 ❌ No local path found for ${trackType.displayName}');
+        }
+
+        if (localPath == null || !await File(localPath).exists()) {
+          // Download the track using the API download URL
+          debugPrint('🎤 Downloading ${trackType.displayName} track from: ${trackDownload.downloadUrl}');
+          final success = await _downloadManager.downloadTrack(
+            widget.song.id,
+            trackType,
+            trackDownload.downloadUrl,
+            fileSize: trackDownload.fileSize,
+            duration: trackDownload.duration,
+          );
+
+          if (success) {
+            final downloadedPath = _downloadManager.getLocalPath(widget.song.id, trackType);
+            if (downloadedPath != null) {
+              _trackPaths[trackType] = downloadedPath;
+              debugPrint('🎤 ✅ Downloaded ${trackType.displayName} track: $downloadedPath');
+            } else {
+              debugPrint('🎤 ❌ Failed to get downloaded path for ${trackType.displayName}');
+            }
+          } else {
+            debugPrint('🎤 ❌ Failed to download ${trackType.displayName} track');
+          }
+        }
+
+        completedTracks++;
+        setState(() {
+          _downloadProgress = completedTracks / totalTracks;
+        });
+      }
+
+      // Set up audio sources for all tracks
+      await _setupAudioSources(trackDownloads: trackDownloads);
+
+      debugPrint('🎤 Multi-track karaoke player initialized successfully');
+    } catch (e) {
+      debugPrint('🎤 Error loading tracks: $e');
+      setState(() {
+        _isLoading = false;
+        _isDownloading = false;
+        _loadingMessage = 'Error loading tracks: $e';
+      });
+    }
+  }
+
+  /// Fallback method to load tracks from song karaoke data
+  Future<void> _loadTracksFromSongData(List<KaraokeTrack> tracks) async {
+    try {
+      int completedTracks = 0;
+      final totalTracks = tracks.length;
 
       for (final track in tracks) {
         setState(() {
@@ -155,12 +355,15 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
         });
 
         // Check if track is already downloaded
+        debugPrint('🎤 [Fallback] Checking for local track: ${track.trackType.displayName} for song ID: ${widget.song.id}');
         final localPath = _downloadManager.getLocalPath(widget.song.id, track.trackType);
+
         if (localPath != null && await File(localPath).exists()) {
           _trackPaths[track.trackType] = localPath;
-          debugPrint('🎤 Found local ${track.trackType.displayName} track: $localPath');
+          debugPrint('🎤 [Fallback] ✅ Found local ${track.trackType.displayName} track: $localPath');
         } else {
-          // Download the track
+          // Download the track using the song's track URL
+          debugPrint('🎤 [Fallback] Downloading ${track.trackType.displayName} track from: ${track.fileUrl}');
           final success = await _downloadManager.downloadTrack(
             widget.song.id,
             track.trackType,
@@ -173,102 +376,132 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
             final downloadedPath = _downloadManager.getLocalPath(widget.song.id, track.trackType);
             if (downloadedPath != null) {
               _trackPaths[track.trackType] = downloadedPath;
-              debugPrint('🎤 Downloaded ${track.trackType.displayName} track: $downloadedPath');
+              debugPrint('🎤 [Fallback] ✅ Downloaded ${track.trackType.displayName} track: $downloadedPath');
             }
           }
         }
 
         completedTracks++;
         setState(() {
-          _downloadProgress = completedTracks / tracks.length;
+          _downloadProgress = completedTracks / totalTracks;
         });
       }
 
       // Set up audio sources for all tracks
-      setState(() {
-        _loadingMessage = 'Synchronizing AI-separated tracks...';
-      });
+      await _setupAudioSources(tracks: tracks);
 
-      int successfulTracks = 0;
-      for (final entry in _trackPaths.entries) {
-        if (entry.value != null) {
-          try {
-            debugPrint('🎤 Setting up audio source for ${entry.key.displayName}: ${entry.value}');
-
-            // Set the source but don't start playing yet
-            await _audioPlayers[entry.key]!.setSourceDeviceFile(entry.value!);
-
-            // Set initial volume based on track settings
-            final track = tracks.firstWhere((t) => t.trackType == entry.key);
-            _trackVolumes[entry.key] = track.volume;
-            _trackMuted[entry.key] = track.isMuted;
-
-            final initialVolume = track.isMuted ? 0.0 : track.volume;
-            await _audioPlayers[entry.key]!.setVolume(initialVolume);
-
-            // Set player mode to allow multiple instances
-            await _audioPlayers[entry.key]!.setPlayerMode(PlayerMode.mediaPlayer);
-
-            // Set audio context to allow simultaneous playback
-            await _audioPlayers[entry.key]!.setAudioContext(AudioContext(
-              android: AudioContextAndroid(
-                isSpeakerphoneOn: false,
-                stayAwake: true,
-                contentType: AndroidContentType.music,
-                usageType: AndroidUsageType.media,
-                audioFocus: AndroidAudioFocus.none, // Don't request audio focus to allow multiple players
-              ),
-              iOS: AudioContextIOS(
-                category: AVAudioSessionCategory.playback,
-                options: {
-                  AVAudioSessionOptions.mixWithOthers, // Allow mixing with other audio
-                },
-              ),
-            ));
-
-            debugPrint('🎤 Successfully set up ${entry.key.displayName} track (volume: $initialVolume, muted: ${track.isMuted})');
-            successfulTracks++;
-          } catch (e) {
-            debugPrint('🎤 Error setting up ${entry.key.displayName} track: $e');
-            // Remove the failed track from our paths so it won't be used in playback
-            _trackPaths.remove(entry.key);
-          }
-        } else {
-          debugPrint('🎤 No path available for ${entry.key.displayName} track');
-        }
-      }
-
-      debugPrint('🎤 Successfully set up $successfulTracks out of ${tracks.length} tracks');
-      debugPrint('🎤 Available tracks for playback: ${_trackPaths.keys.map((k) => k.displayName).join(', ')}');
-
-      if (successfulTracks == 0) {
-        throw Exception('No tracks were successfully loaded');
-      }
-
-      // Set up master track for synchronization (prefer vocals, then first available)
-      _setupMasterTrack();
-
-      // Start track health monitoring
-      _startTrackHealthMonitoring();
-
-      // Start continuous sync verification
-      _startSyncVerification();
-
-      setState(() {
-        _isLoading = false;
-        _isDownloading = false;
-        _loadingMessage = '';
-      });
-
-      debugPrint('🎤 Multi-track karaoke player initialized successfully with $successfulTracks tracks');
     } catch (e) {
-      debugPrint('🎤 Error loading tracks: $e');
+      debugPrint('🎤 Error in fallback track loading: $e');
       setState(() {
         _isLoading = false;
         _isDownloading = false;
         _loadingMessage = 'Error loading tracks: $e';
       });
     }
+  }
+
+  /// Set up audio sources for all downloaded tracks
+  Future<void> _setupAudioSources({
+    Map<TrackType, KaraokeTrackDownload>? trackDownloads,
+    List<KaraokeTrack>? tracks,
+  }) async {
+    setState(() {
+      _loadingMessage = 'Synchronizing AI-separated tracks...';
+    });
+
+    int successfulTracks = 0;
+    for (final entry in _trackPaths.entries) {
+      if (entry.value != null) {
+        try {
+          debugPrint('🎤 Setting up audio source for ${entry.key.displayName}: ${entry.value}');
+
+          // Set the source but don't start playing yet
+          await _audioPlayers[entry.key]!.setSourceDeviceFile(entry.value!);
+
+          // Set initial volume based on track settings
+          if (trackDownloads != null && trackDownloads.containsKey(entry.key)) {
+            // Use API track download data
+            final trackDownload = trackDownloads[entry.key]!;
+            _trackVolumes[entry.key] = trackDownload.volume;
+            _trackMuted[entry.key] = trackDownload.isMuted;
+
+            final initialVolume = trackDownload.isMuted ? 0.0 : trackDownload.volume;
+            await _audioPlayers[entry.key]!.setVolume(initialVolume);
+
+            debugPrint('🎤 Set ${entry.key.displayName} volume: $initialVolume (muted: ${trackDownload.isMuted})');
+          } else if (tracks != null) {
+            // Use song karaoke track data
+            final track = tracks.firstWhere((t) => t.trackType == entry.key, orElse: () => tracks.first);
+            _trackVolumes[entry.key] = track.volume;
+            _trackMuted[entry.key] = track.isMuted;
+
+            final initialVolume = track.isMuted ? 0.0 : track.volume;
+            await _audioPlayers[entry.key]!.setVolume(initialVolume);
+
+            debugPrint('🎤 Set ${entry.key.displayName} volume: $initialVolume (muted: ${track.isMuted})');
+          } else {
+            // Fallback to default settings
+            _trackVolumes[entry.key] = 1.0;
+            _trackMuted[entry.key] = false;
+            await _audioPlayers[entry.key]!.setVolume(1.0);
+
+            debugPrint('🎤 Set ${entry.key.displayName} to default volume: 1.0');
+          }
+
+          // Set player mode to allow multiple instances
+          await _audioPlayers[entry.key]!.setPlayerMode(PlayerMode.mediaPlayer);
+
+          // Set audio context to allow simultaneous playback
+          await _audioPlayers[entry.key]!.setAudioContext(AudioContext(
+            android: AudioContextAndroid(
+              isSpeakerphoneOn: false,
+              stayAwake: true,
+              contentType: AndroidContentType.music,
+              usageType: AndroidUsageType.media,
+              audioFocus: AndroidAudioFocus.none, // Don't request audio focus to allow multiple players
+            ),
+            iOS: AudioContextIOS(
+              category: AVAudioSessionCategory.playback,
+              options: {
+                AVAudioSessionOptions.mixWithOthers, // Allow mixing with other audio
+              },
+            ),
+          ));
+
+          debugPrint('🎤 Successfully set up ${entry.key.displayName} track');
+          successfulTracks++;
+        } catch (e) {
+          debugPrint('🎤 Error setting up ${entry.key.displayName} track: $e');
+          // Remove the failed track from our paths so it won't be used in playback
+          _trackPaths.remove(entry.key);
+        }
+      } else {
+        debugPrint('🎤 No path available for ${entry.key.displayName} track');
+      }
+    }
+
+    final totalExpected = trackDownloads?.length ?? tracks?.length ?? 0;
+    debugPrint('🎤 Successfully set up $successfulTracks out of $totalExpected tracks');
+    debugPrint('🎤 Available tracks for playback: ${_trackPaths.keys.map((k) => k.displayName).join(', ')}');
+
+    if (successfulTracks == 0) {
+      throw Exception('No tracks were successfully loaded');
+    }
+
+    // Set up master track for synchronization (prefer vocals, then first available)
+    _setupMasterTrack();
+
+    // Start track health monitoring
+    _startTrackHealthMonitoring();
+
+    // Start continuous sync verification
+    _startSyncVerification();
+
+    setState(() {
+      _isLoading = false;
+      _isDownloading = false;
+      _loadingMessage = '';
+    });
   }
 
   void _setupMasterTrack() {
@@ -281,22 +514,8 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
 
     debugPrint('🎤 Setting up master track: ${_masterTrack!.displayName}');
 
-    // Set up position and duration listeners only on master track
-    _audioPlayers[_masterTrack]!.onPositionChanged.listen((position) {
-      if (mounted) {
-        setState(() {
-          _position = position;
-        });
-      }
-    });
-
-    _audioPlayers[_masterTrack]!.onDurationChanged.listen((duration) {
-      if (mounted) {
-        setState(() {
-          _duration = duration;
-        });
-      }
-    });
+    // Set up duration detection from all tracks to get the longest duration
+    _detectAndSetDuration();
 
     // Set up player state listener on master track (for debugging only)
     _audioPlayers[_masterTrack]!.onPlayerStateChanged.listen((state) {
@@ -305,6 +524,172 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
     });
 
     debugPrint('🎤 Master track listeners set up successfully');
+
+    // Start enhanced position tracking
+    _startEnhancedPositionTracking();
+  }
+
+  Future<void> _detectAndSetDuration() async {
+    debugPrint('🎤 🕐 Detecting duration from all tracks...');
+
+    // Get duration from all tracks and use the longest one
+    Duration longestDuration = Duration.zero;
+    final trackDurations = <TrackType, Duration>{};
+
+    for (final entry in _trackPaths.entries) {
+      if (entry.value != null && _audioPlayers[entry.key] != null) {
+        try {
+          // Try to get duration immediately
+          Duration? duration = await _audioPlayers[entry.key]!.getDuration();
+
+          // If duration is not available yet, set up a listener
+          if (duration == null || duration == Duration.zero) {
+            _audioPlayers[entry.key]!.onDurationChanged.listen((newDuration) {
+              if (mounted && newDuration > Duration.zero) {
+                trackDurations[entry.key] = newDuration;
+                debugPrint('🎤 ${entry.key.displayName} duration: ${newDuration.inSeconds}s');
+
+                // Update the longest duration
+                Duration currentLongest = Duration.zero;
+                for (final d in trackDurations.values) {
+                  if (d > currentLongest) {
+                    currentLongest = d;
+                  }
+                }
+
+                if (currentLongest > _duration) {
+                  setState(() {
+                    _duration = currentLongest;
+                  });
+                  debugPrint('🎤 ✅ Updated song duration to: ${_duration.inSeconds}s from ${entry.key.displayName}');
+                }
+              }
+            });
+          } else {
+            trackDurations[entry.key] = duration;
+            debugPrint('🎤 ${entry.key.displayName} duration: ${duration.inSeconds}s');
+
+            if (duration > longestDuration) {
+              longestDuration = duration;
+            }
+          }
+        } catch (e) {
+          debugPrint('🎤 ❌ Error getting duration for ${entry.key.displayName}: $e');
+        }
+      }
+    }
+
+    // Set the longest duration found
+    if (longestDuration > Duration.zero) {
+      setState(() {
+        _duration = longestDuration;
+      });
+      debugPrint('🎤 ✅ Set song duration to: ${_duration.inSeconds}s (longest track)');
+    }
+
+    // Log all track durations
+    debugPrint('🎤 📊 TRACK DURATIONS:');
+    for (final entry in trackDurations.entries) {
+      debugPrint('🎤   ${entry.key.displayName}: ${entry.value.inSeconds}s');
+    }
+  }
+
+  void _startEnhancedPositionTracking() {
+    _positionTimer?.cancel();
+
+    // Use high-frequency polling for accurate position updates
+    _positionTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) async {
+      if (!mounted || _isSeeking) return;
+
+      try {
+        // Get position from master track
+        final masterPosition = await _audioPlayers[_masterTrack]?.getCurrentPosition();
+
+        if (masterPosition != null) {
+          // Update position if it's different from last known
+          if ((masterPosition.inMilliseconds - _lastKnownPosition.inMilliseconds).abs() > 50) {
+            _lastKnownPosition = masterPosition;
+
+            if (mounted) {
+              setState(() {
+                _position = masterPosition;
+              });
+            }
+          }
+
+          // Store position for this track
+          _trackPositions[_masterTrack!] = masterPosition;
+
+          // Periodically verify sync (every 2 seconds during playback)
+          if (_isPlaying && timer.tick % 20 == 0) {
+            _verifyAndCorrectSync();
+          }
+        }
+      } catch (e) {
+        debugPrint('🎤 Error in position tracking: $e');
+      }
+    });
+  }
+
+  Future<void> _verifyAndCorrectSync() async {
+    if (_isSeeking || !_isPlaying) return;
+
+    try {
+      // Get positions from all tracks
+      final positions = <TrackType, Duration>{};
+      for (final trackType in _trackPaths.keys) {
+        if (_audioPlayers[trackType] != null) {
+          final pos = await _audioPlayers[trackType]!.getCurrentPosition();
+          if (pos != null) {
+            positions[trackType] = pos;
+          }
+        }
+      }
+
+      if (positions.isEmpty) return;
+
+      // Find the reference position (master track)
+      final masterPos = positions[_masterTrack];
+      if (masterPos == null) return;
+
+      // Check for tracks that are out of sync (reduced to 100ms for tighter sync)
+      final outOfSyncTracks = <TrackType>[];
+      for (final entry in positions.entries) {
+        final diff = (entry.value.inMilliseconds - masterPos.inMilliseconds).abs();
+        if (diff > 100) {
+          debugPrint('🎤 ⚠️ SYNC DRIFT: ${entry.key.displayName} out of sync by ${diff}ms (master: ${masterPos.inMilliseconds}ms)');
+          outOfSyncTracks.add(entry.key);
+        }
+      }
+
+      // Correct out-of-sync tracks immediately
+      if (outOfSyncTracks.isNotEmpty) {
+        debugPrint('🎤 🔧 AUTO-CORRECTING ${outOfSyncTracks.length} out-of-sync tracks to ${masterPos.inMilliseconds}ms');
+        final correctionFutures = <Future>[];
+        for (final trackType in outOfSyncTracks) {
+          if (_audioPlayers[trackType] != null) {
+            correctionFutures.add(_audioPlayers[trackType]!.seek(masterPos));
+          }
+        }
+        await Future.wait(correctionFutures);
+
+        // Verify correction worked
+        await Future.delayed(const Duration(milliseconds: 50));
+        for (final trackType in outOfSyncTracks) {
+          if (_audioPlayers[trackType] != null) {
+            final newPos = await _audioPlayers[trackType]!.getCurrentPosition();
+            final newDiff = (newPos?.inMilliseconds ?? 0 - masterPos.inMilliseconds).abs();
+            if (newDiff <= 100) {
+              debugPrint('🎤 ✅ ${trackType.displayName} corrected successfully (diff: ${newDiff}ms)');
+            } else {
+              debugPrint('🎤 ❌ ${trackType.displayName} correction failed (diff: ${newDiff}ms)');
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('🎤 ❌ Error in sync verification: $e');
+    }
   }
 
   void _startTrackHealthMonitoring() {
@@ -425,69 +810,15 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
       debugPrint('🎤 Has played before: $_hasPlayedBefore');
 
       if (currentlyPlaying) {
-        // Pause all tracks that have valid sources
-        debugPrint('🎤 Pausing all tracks...');
-        final pauseFutures = <Future>[];
-        for (final entry in _trackPaths.entries) {
-          if (entry.value != null && _audioPlayers[entry.key] != null) {
-            debugPrint('🎤 Pausing ${entry.key.displayName} track');
-            pauseFutures.add(_audioPlayers[entry.key]!.pause());
-          }
-        }
-        await Future.wait(pauseFutures);
-        debugPrint('🎤 All tracks paused successfully');
-
-        setState(() {
-          _isPlaying = false;
-        });
+        // Pause all tracks simultaneously
+        await _pauseAllTracks();
       } else {
-        // Start/resume all tracks that have valid sources simultaneously
-        debugPrint('🎤 Starting all tracks...');
-
+        // Start/resume all tracks
         if (!_hasPlayedBefore) {
-          // First time playing - start tracks with minimal delays for better sync
-          debugPrint('🎤 First time play - starting tracks with minimal delays');
-
-          // Prepare all tracks first
-          final trackEntries = _trackPaths.entries.where((entry) =>
-              entry.value != null && _audioPlayers[entry.key] != null).toList();
-
-          // Start all tracks with very small delays (10ms) for better sync
-          for (int i = 0; i < trackEntries.length; i++) {
-            final entry = trackEntries[i];
-            final delayMs = i * 10; // Reduced to 10ms for better sync
-
-            debugPrint('🎤 Starting ${entry.key.displayName} track (delay: ${delayMs}ms)');
-
-            if (delayMs > 0) {
-              await Future.delayed(Duration(milliseconds: delayMs));
-            }
-
-            // Use play() with DeviceFileSource for first time
-            await _audioPlayers[entry.key]!.play(DeviceFileSource(entry.value!));
-          }
-
-          // After all tracks are started, seek all to position 0 to ensure sync
-          await Future.delayed(const Duration(milliseconds: 100));
-          final syncFutures = <Future>[];
-          for (final entry in trackEntries) {
-            syncFutures.add(_audioPlayers[entry.key]!.seek(Duration.zero));
-          }
-          await Future.wait(syncFutures);
-
-          _hasPlayedBefore = true;
-          debugPrint('🎤 All tracks started and synced to position 0');
+          await _startAllTracksFirstTime();
         } else {
-          // Resume from current position with sync verification
-          debugPrint('🎤 Resuming from current position with sync verification');
-          await _synchronizedResume();
-          return; // _synchronizedResume handles state update
+          await _resumeAllTracks();
         }
-        debugPrint('🎤 All tracks started successfully');
-
-        setState(() {
-          _isPlaying = true;
-        });
       }
 
       debugPrint('🎤 Play/Pause completed. New state: _isPlaying = $_isPlaying');
@@ -496,52 +827,167 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
     }
   }
 
+  Future<void> _pauseAllTracks() async {
+    debugPrint('🎤 Pausing all tracks simultaneously...');
+
+    final pauseFutures = <Future>[];
+    for (final entry in _trackPaths.entries) {
+      if (entry.value != null && _audioPlayers[entry.key] != null) {
+        pauseFutures.add(_audioPlayers[entry.key]!.pause());
+      }
+    }
+
+    await Future.wait(pauseFutures);
+
+    setState(() {
+      _isPlaying = false;
+    });
+
+    debugPrint('🎤 All tracks paused successfully');
+  }
+
+  Future<void> _startAllTracksFirstTime() async {
+    debugPrint('🎤 🚀 Starting all tracks for the first time - ZERO delay approach');
+
+    // Preload all tracks first
+    if (!_isPreloaded) {
+      await _preloadAllTracks();
+    }
+
+    // Get all valid track entries
+    final trackEntries = _trackPaths.entries.where((entry) =>
+        entry.value != null && _audioPlayers[entry.key] != null).toList();
+
+    debugPrint('🎤 Starting ${trackEntries.length} tracks simultaneously...');
+
+    // Start ALL tracks at exactly the same time - no delays
+    final startFutures = <Future>[];
+    for (final entry in trackEntries) {
+      debugPrint('🎤 Queuing start for ${entry.key.displayName} track');
+      startFutures.add(_audioPlayers[entry.key]!.play(DeviceFileSource(entry.value!)));
+    }
+
+    // Wait for all tracks to start
+    await Future.wait(startFutures);
+
+    // Log positions immediately after start
+    await _logAllTrackPositions("IMMEDIATELY AFTER START");
+
+    // Immediate sync to position 0 to ensure perfect alignment
+    debugPrint('🎤 Performing immediate sync to position 0');
+    await _synchronizeAllTracksToPosition(Duration.zero);
+
+    _hasPlayedBefore = true;
+    setState(() {
+      _isPlaying = true;
+    });
+
+    // Final position check
+    await _logAllTrackPositions("FINAL FIRST-TIME START");
+
+    debugPrint('🎤 ✅ All tracks started and synced perfectly');
+  }
+
+  Future<void> _preloadAllTracks() async {
+    debugPrint('🎤 Preloading all tracks for instant startup...');
+
+    final preloadFutures = <Future>[];
+    for (final entry in _trackPaths.entries) {
+      if (entry.value != null && _audioPlayers[entry.key] != null) {
+        // Set source but don't play yet
+        preloadFutures.add(_audioPlayers[entry.key]!.setSourceDeviceFile(entry.value!));
+      }
+    }
+
+    await Future.wait(preloadFutures);
+    _isPreloaded = true;
+
+    debugPrint('🎤 All tracks preloaded successfully');
+  }
+
+  Future<void> _resumeAllTracks() async {
+    debugPrint('🎤 🔄 Resuming all tracks from position: ${_position.inSeconds}s (${_position.inMilliseconds}ms)');
+
+    // First, ensure all tracks are at the exact same position
+    await _synchronizeAllTracksToPosition(_position);
+
+    // Log positions before resume
+    await _logAllTrackPositions("BEFORE RESUME");
+
+    // Then resume all tracks simultaneously
+    debugPrint('🎤 Starting simultaneous resume of all tracks...');
+    final resumeFutures = <Future>[];
+    for (final entry in _trackPaths.entries) {
+      if (entry.value != null && _audioPlayers[entry.key] != null) {
+        debugPrint('🎤 Queuing resume for ${entry.key.displayName}');
+        resumeFutures.add(_audioPlayers[entry.key]!.resume());
+      }
+    }
+
+    // Wait for all tracks to resume
+    await Future.wait(resumeFutures);
+
+    setState(() {
+      _isPlaying = true;
+    });
+
+    // Verify sync after resume
+    await Future.delayed(const Duration(milliseconds: 100));
+    await _logAllTrackPositions("AFTER RESUME");
+
+    debugPrint('🎤 ✅ All tracks resumed successfully');
+  }
+
   Future<void> _seek(Duration position) async {
     try {
-      debugPrint('🎤 Seeking to position: ${position.inSeconds}s');
+      debugPrint('🎤 🎯 SEEKING to position: ${position.inSeconds}s (${position.inMilliseconds}ms)');
 
-      // If seeking to beginning, reset the played flag
-      if (position.inMilliseconds <= 100) {
-        _hasPlayedBefore = false;
-        debugPrint('🎤 Reset _hasPlayedBefore flag due to seek to beginning');
-      }
+      _isSeeking = true;
 
-      // Pause all tracks first to ensure clean seek
+      // Store the playing state
       final wasPlaying = _isPlaying;
+
+      // Pause all tracks first for clean seeking
       if (wasPlaying) {
-        debugPrint('🎤 Pausing tracks before seek for better sync');
-        final pauseFutures = <Future>[];
-        for (final entry in _trackPaths.entries) {
-          if (entry.value != null && _audioPlayers[entry.key] != null) {
-            pauseFutures.add(_audioPlayers[entry.key]!.pause());
-          }
-        }
-        await Future.wait(pauseFutures);
+        debugPrint('🎤 Pausing all tracks before seek...');
+        await _pauseAllTracks();
       }
 
-      // Seek all tracks to the same position with enhanced synchronization
-      await _synchronizedSeek(position);
+      // Perform synchronized seek to exact position
+      debugPrint('🎤 Synchronizing all tracks to position: ${position.inSeconds}s');
+      await _synchronizeAllTracksToPosition(position);
 
-      // If was playing, resume all tracks with proper sync
+      // Update UI position immediately
+      setState(() {
+        _position = position;
+        _lastKnownPosition = position;
+      });
+
+      // Resume if was playing
       if (wasPlaying) {
-        debugPrint('🎤 Resuming tracks after seek with sync verification');
-        await _synchronizedResume();
+        debugPrint('🎤 Resuming all tracks after seek...');
+        await _resumeAllTracks();
       }
 
-      debugPrint('🎤 Seek completed with sync verification');
+      _isSeeking = false;
+      debugPrint('🎤 ✅ Seek completed successfully to ${position.inSeconds}s');
     } catch (e) {
-      debugPrint('🎤 Error seeking: $e');
+      _isSeeking = false;
+      debugPrint('🎤 ❌ Error seeking: $e');
     }
   }
 
-  Future<void> _synchronizedSeek(Duration position) async {
-    debugPrint('🎤 Performing synchronized seek to ${position.inSeconds}s');
+  Future<void> _synchronizeAllTracksToPosition(Duration position) async {
+    debugPrint('🎤 🎯 Synchronizing all tracks to position: ${position.inSeconds}s (${position.inMilliseconds}ms)');
 
-    // First pass: Seek all tracks
+    // Log current positions before seeking
+    await _logAllTrackPositions("BEFORE SEEK");
+
+    // Seek all tracks simultaneously to the exact position
     final seekFutures = <Future>[];
     for (final entry in _trackPaths.entries) {
       if (entry.value != null && _audioPlayers[entry.key] != null) {
-        debugPrint('🎤 Seeking ${entry.key.displayName} track to ${position.inSeconds}s');
+        debugPrint('🎤 Seeking ${entry.key.displayName} to ${position.inMilliseconds}ms');
         seekFutures.add(_audioPlayers[entry.key]!.seek(position));
       }
     }
@@ -552,77 +998,101 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
     // Small delay to ensure all players have processed the seek
     await Future.delayed(const Duration(milliseconds: 50));
 
-    // Second pass: Verify and correct positions
-    await _verifySyncAndCorrect(position);
+    // Log positions after seeking
+    await _logAllTrackPositions("AFTER SEEK");
+
+    // Verify all tracks are at the correct position
+    await _verifyPositionSync(position);
   }
 
-  Future<void> _verifySyncAndCorrect(Duration targetPosition) async {
-    debugPrint('🎤 Verifying sync at position ${targetPosition.inSeconds}s');
+  Future<void> _logAllTrackPositions(String context) async {
+    debugPrint('🎤 📊 TRACK POSITIONS - $context:');
+    for (final entry in _trackPaths.entries) {
+      if (entry.value != null && _audioPlayers[entry.key] != null) {
+        try {
+          final currentPos = await _audioPlayers[entry.key]!.getCurrentPosition();
+          final duration = await _audioPlayers[entry.key]!.getDuration();
+          debugPrint('🎤   ${entry.key.displayName}: ${currentPos?.inMilliseconds ?? 0}ms / ${duration?.inMilliseconds ?? 0}ms');
+        } catch (e) {
+          debugPrint('🎤   ${entry.key.displayName}: ERROR - $e');
+        }
+      }
+    }
+  }
 
-    // Check current positions of all tracks
+  Future<void> _verifyPositionSync(Duration targetPosition) async {
+    debugPrint('🎤 🔍 Verifying position sync at ${targetPosition.inSeconds}s (${targetPosition.inMilliseconds}ms)');
+
     final positions = <TrackType, Duration>{};
     for (final entry in _trackPaths.entries) {
       if (entry.value != null && _audioPlayers[entry.key] != null) {
         try {
           final currentPos = await _audioPlayers[entry.key]!.getCurrentPosition();
           positions[entry.key] = currentPos ?? Duration.zero;
-          debugPrint('🎤 ${entry.key.displayName} position: ${currentPos?.inMilliseconds ?? 0}ms');
+          debugPrint('🎤   ${entry.key.displayName}: ${currentPos?.inMilliseconds ?? 0}ms (target: ${targetPosition.inMilliseconds}ms)');
         } catch (e) {
-          debugPrint('🎤 Error getting position for ${entry.key.displayName}: $e');
-          positions[entry.key] = Duration.zero;
+          debugPrint('🎤 ❌ Error getting position for ${entry.key.displayName}: $e');
         }
       }
     }
 
-    // Find tracks that are significantly out of sync (>100ms difference)
+    // Check for tracks that are out of sync (reduced tolerance to 50ms for better sync)
     final targetMs = targetPosition.inMilliseconds;
     final outOfSyncTracks = <TrackType>[];
 
     for (final entry in positions.entries) {
       final diff = (entry.value.inMilliseconds - targetMs).abs();
-      if (diff > 100) {
-        debugPrint('🎤 ${entry.key.displayName} out of sync by ${diff}ms');
+      if (diff > 50) {
+        debugPrint('🎤 ⚠️ ${entry.key.displayName} out of sync by ${diff}ms (tolerance: 50ms)');
         outOfSyncTracks.add(entry.key);
+      } else {
+        debugPrint('🎤 ✅ ${entry.key.displayName} in sync (diff: ${diff}ms)');
       }
     }
 
-    // Correct out-of-sync tracks
+    // Correct out-of-sync tracks with multiple attempts
     if (outOfSyncTracks.isNotEmpty) {
-      debugPrint('🎤 Correcting ${outOfSyncTracks.length} out-of-sync tracks');
-      final correctionFutures = <Future>[];
-      for (final trackType in outOfSyncTracks) {
-        if (_audioPlayers[trackType] != null) {
-          correctionFutures.add(_audioPlayers[trackType]!.seek(targetPosition));
+      debugPrint('🎤 🔧 Correcting ${outOfSyncTracks.length} out-of-sync tracks');
+
+      for (int attempt = 1; attempt <= 2; attempt++) {
+        debugPrint('🎤 Correction attempt $attempt');
+        final correctionFutures = <Future>[];
+        for (final trackType in outOfSyncTracks) {
+          if (_audioPlayers[trackType] != null) {
+            correctionFutures.add(_audioPlayers[trackType]!.seek(targetPosition));
+          }
+        }
+        await Future.wait(correctionFutures);
+
+        // Small delay between attempts
+        await Future.delayed(const Duration(milliseconds: 30));
+
+        // Verify correction worked
+        bool allCorrected = true;
+        for (final trackType in outOfSyncTracks) {
+          if (_audioPlayers[trackType] != null) {
+            final newPos = await _audioPlayers[trackType]!.getCurrentPosition();
+            final newDiff = (newPos?.inMilliseconds ?? 0 - targetMs).abs();
+            if (newDiff > 50) {
+              allCorrected = false;
+              debugPrint('🎤 ⚠️ ${trackType.displayName} still out of sync by ${newDiff}ms after attempt $attempt');
+            } else {
+              debugPrint('🎤 ✅ ${trackType.displayName} corrected (diff: ${newDiff}ms)');
+            }
+          }
+        }
+
+        if (allCorrected) {
+          debugPrint('🎤 ✅ All tracks corrected successfully');
+          break;
         }
       }
-      await Future.wait(correctionFutures);
-
-      // Small delay after correction
-      await Future.delayed(const Duration(milliseconds: 30));
+    } else {
+      debugPrint('🎤 ✅ All tracks are in perfect sync');
     }
   }
 
-  Future<void> _synchronizedResume() async {
-    debugPrint('🎤 Performing synchronized resume');
 
-    // Resume all tracks simultaneously
-    final resumeFutures = <Future>[];
-    for (final entry in _trackPaths.entries) {
-      if (entry.value != null && _audioPlayers[entry.key] != null) {
-        resumeFutures.add(_audioPlayers[entry.key]!.resume());
-      }
-    }
-
-    await Future.wait(resumeFutures);
-
-    setState(() {
-      _isPlaying = true;
-    });
-
-    // Verify sync after resume
-    await Future.delayed(const Duration(milliseconds: 100));
-    await _verifySyncAndCorrect(_position);
-  }
 
   Future<void> _stopAllTracks() async {
     try {
@@ -1239,10 +1709,13 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
   }
 
   Widget _buildLyricsTab() {
+    // Use the song with chord sheet data if available, otherwise use the original song
+    final songToUse = _songWithChords ?? widget.song;
+
     return Container(
       padding: const EdgeInsets.all(24),
       child: KaraokeLyricsView(
-        song: widget.song,
+        song: songToUse,
         position: _position,
         duration: _duration,
         isPlaying: _isPlaying,

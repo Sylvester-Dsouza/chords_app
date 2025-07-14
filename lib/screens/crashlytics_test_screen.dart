@@ -45,14 +45,14 @@ class _CrashlyticsTestScreenState extends State<CrashlyticsTestScreen> {
                 children: [
                   // Status Card
                   _buildStatusCard(),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Test Actions
                   _buildTestSection(),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Last Action
                   if (_lastAction.isNotEmpty) _buildLastActionCard(),
                 ],
@@ -72,9 +72,10 @@ class _CrashlyticsTestScreenState extends State<CrashlyticsTestScreen> {
         color: AppTheme.surface,
         borderRadius: BorderRadius.circular(5),
         border: Border.all(
-          color: _crashlytics.isEnabled 
-              ? Colors.green.withValues(alpha: 0.3)
-              : Colors.red.withValues(alpha: 0.3),
+          color:
+              _crashlytics.isEnabled
+                  ? Colors.green.withValues(alpha: 0.3)
+                  : Colors.red.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -163,7 +164,7 @@ class _CrashlyticsTestScreenState extends State<CrashlyticsTestScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        
+
         // Test Buttons
         _buildTestButton(
           title: 'Log Test Event',
@@ -172,9 +173,9 @@ class _CrashlyticsTestScreenState extends State<CrashlyticsTestScreen> {
           color: AppTheme.primary,
           onPressed: _logTestEvent,
         ),
-        
+
         const SizedBox(height: 12),
-        
+
         _buildTestButton(
           title: 'Record Test Error',
           description: 'Send a non-fatal error to Crashlytics',
@@ -182,9 +183,9 @@ class _CrashlyticsTestScreenState extends State<CrashlyticsTestScreen> {
           color: AppTheme.warning,
           onPressed: _recordTestError,
         ),
-        
+
         const SizedBox(height: 12),
-        
+
         _buildTestButton(
           title: 'Test User Info',
           description: 'Set test user information',
@@ -238,10 +239,7 @@ class _CrashlyticsTestScreenState extends State<CrashlyticsTestScreen> {
       decoration: BoxDecoration(
         color: AppTheme.surface,
         borderRadius: BorderRadius.circular(5),
-        border: Border.all(
-          color: color.withValues(alpha: 0.3),
-          width: 1,
-        ),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
       ),
       child: Material(
         color: Colors.transparent,
@@ -259,11 +257,7 @@ class _CrashlyticsTestScreenState extends State<CrashlyticsTestScreen> {
                     color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(5),
                   ),
-                  child: Icon(
-                    icon,
-                    color: color,
-                    size: 20,
-                  ),
+                  child: Icon(icon, color: color, size: 20),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -366,7 +360,8 @@ class _CrashlyticsTestScreenState extends State<CrashlyticsTestScreen> {
       });
 
       setState(() {
-        _lastAction = '✅ Test event logged successfully at ${DateTime.now().toString().substring(11, 19)}';
+        _lastAction =
+            '✅ Test event logged successfully at ${DateTime.now().toString().substring(11, 19)}';
       });
 
       _showSuccessSnackBar('Test event sent to Crashlytics');
@@ -399,7 +394,8 @@ class _CrashlyticsTestScreenState extends State<CrashlyticsTestScreen> {
       );
 
       setState(() {
-        _lastAction = '✅ Test error recorded successfully at ${DateTime.now().toString().substring(11, 19)}';
+        _lastAction =
+            '✅ Test error recorded successfully at ${DateTime.now().toString().substring(11, 19)}';
       });
 
       _showSuccessSnackBar('Test error sent to Crashlytics');
@@ -430,7 +426,8 @@ class _CrashlyticsTestScreenState extends State<CrashlyticsTestScreen> {
       );
 
       setState(() {
-        _lastAction = '✅ Test user info set successfully at ${DateTime.now().toString().substring(11, 19)}';
+        _lastAction =
+            '✅ Test user info set successfully at ${DateTime.now().toString().substring(11, 19)}';
       });
 
       _showSuccessSnackBar('Test user info sent to Crashlytics');
@@ -456,10 +453,13 @@ class _CrashlyticsTestScreenState extends State<CrashlyticsTestScreen> {
       await notificationService.testLocalNotification();
 
       setState(() {
-        _lastAction = '✅ Test notification sent at ${DateTime.now().toString().substring(11, 19)} - Check notification drawer!';
+        _lastAction =
+            '✅ Test notification sent at ${DateTime.now().toString().substring(11, 19)} - Check notification drawer!';
       });
 
-      _showSuccessSnackBar('Test notification sent! Check your notification drawer.');
+      _showSuccessSnackBar(
+        'Test notification sent! Check your notification drawer.',
+      );
     } catch (e) {
       _showErrorSnackBar('Failed to send test notification: $e');
     } finally {
@@ -478,7 +478,8 @@ class _CrashlyticsTestScreenState extends State<CrashlyticsTestScreen> {
       await _crashlytics.forceReinitialize();
 
       setState(() {
-        _lastAction = '✅ Crashlytics re-initialized at ${DateTime.now().toString().substring(11, 19)}';
+        _lastAction =
+            '✅ Crashlytics re-initialized at ${DateTime.now().toString().substring(11, 19)}';
       });
 
       _showSuccessSnackBar('Crashlytics re-initialized successfully!');
@@ -494,48 +495,49 @@ class _CrashlyticsTestScreenState extends State<CrashlyticsTestScreen> {
   void _showCrashConfirmation() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.surface,
-        title: Text(
-          '⚠️ Force Crash',
-          style: TextStyle(
-            color: Colors.red,
-            fontFamily: AppTheme.primaryFontFamily,
-          ),
-        ),
-        content: Text(
-          'This will force the app to crash and send a crash report to Firebase Crashlytics.\n\nThe app will close immediately.\n\nAre you sure you want to continue?',
-          style: TextStyle(
-            color: AppTheme.text,
-            fontFamily: AppTheme.primaryFontFamily,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: AppTheme.textMuted,
-                fontFamily: AppTheme.primaryFontFamily,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _forceCrash();
-            },
-            child: Text(
-              'Force Crash',
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: AppTheme.surface,
+            title: Text(
+              '⚠️ Force Crash',
               style: TextStyle(
                 color: Colors.red,
                 fontFamily: AppTheme.primaryFontFamily,
               ),
             ),
+            content: Text(
+              'This will force the app to crash and send a crash report to Firebase Crashlytics.\n\nThe app will close immediately.\n\nAre you sure you want to continue?',
+              style: TextStyle(
+                color: AppTheme.text,
+                fontFamily: AppTheme.primaryFontFamily,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: AppTheme.textMuted,
+                    fontFamily: AppTheme.primaryFontFamily,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _forceCrash();
+                },
+                child: Text(
+                  'Force Crash',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontFamily: AppTheme.primaryFontFamily,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 

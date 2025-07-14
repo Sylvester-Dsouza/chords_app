@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../config/theme.dart';
 import '../models/feature_request.dart';
 import '../services/feature_request_service.dart';
 import '../providers/user_provider.dart';
@@ -11,7 +13,8 @@ class FeatureRequestScreen extends StatefulWidget {
   State<FeatureRequestScreen> createState() => _FeatureRequestScreenState();
 }
 
-class _FeatureRequestScreenState extends State<FeatureRequestScreen> {
+class _FeatureRequestScreenState extends State<FeatureRequestScreen>
+    with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   final FeatureRequestService _featureRequestService = FeatureRequestService();
   List<FeatureRequest> _featureRequests = [];
   bool _isLoading = true;
@@ -20,9 +23,34 @@ class _FeatureRequestScreenState extends State<FeatureRequestScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkLoginStatus();
     _fetchFeatureRequests();
   }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Refresh data when app is resumed
+      _fetchFeatureRequests();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // This will be called when the screen becomes visible after navigation
+    _fetchFeatureRequests();
+  }
+
+  @override
+  bool get wantKeepAlive => true;
 
   void _checkLoginStatus() {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
@@ -42,7 +70,9 @@ class _FeatureRequestScreenState extends State<FeatureRequestScreen> {
       // Debug the hasUpvoted property for each request
       debugPrint('📋 Loaded ${requests.length} feature requests from API:');
       for (var request in requests) {
-        debugPrint('  💡 ${request.title} - hasUpvoted: ${request.hasUpvoted} (${request.upvotes} votes)');
+        debugPrint(
+          '  💡 ${request.title} - hasUpvoted: ${request.hasUpvoted} (${request.upvotes} votes)',
+        );
       }
 
       setState(() {
@@ -61,20 +91,24 @@ class _FeatureRequestScreenState extends State<FeatureRequestScreen> {
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
     );
+  }
+
+  void _showInfoSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.blue),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return DateFormat('MMM d, yyyy').format(date);
   }
 
   void _showAddFeatureRequestBottomSheet() {
@@ -90,50 +124,54 @@ class _FeatureRequestScreenState extends State<FeatureRequestScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) => _AddFeatureRequestForm(
-        onFeatureRequestAdded: (newRequest) {
-          setState(() {
-            _featureRequests.add(newRequest);
-          });
-          _showSuccessSnackBar('Feature request submitted successfully');
-        },
-      ),
+      builder:
+          (context) => _AddFeatureRequestForm(
+            onFeatureRequestAdded: (newRequest) {
+              setState(() {
+                _featureRequests.add(newRequest);
+              });
+              _showSuccessSnackBar('Feature request submitted successfully');
+            },
+          ),
     );
   }
 
   void _showLoginPrompt() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        title: const Text(
-          'Login Required',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: const Text(
-          'You need to be logged in to request features.',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Colors.grey),
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: const Color(0xFF1E1E1E),
+            title: const Text(
+              'Login Required',
+              style: TextStyle(color: Colors.white),
             ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, '/login');
-            },
-            child: Text(
-              'Login',
-              style: TextStyle(color: Theme.of(context).colorScheme.primary),
+            content: const Text(
+              'You need to be logged in to request features.',
+              style: TextStyle(color: Colors.white70),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/login');
+                },
+                child: Text(
+                  'Login',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -143,11 +181,17 @@ class _FeatureRequestScreenState extends State<FeatureRequestScreen> {
       return;
     }
 
-    debugPrint('Handling upvote for feature request: ${request.id} - Current hasUpvoted: ${request.hasUpvoted}');
+    debugPrint(
+      'Handling upvote for feature request: ${request.id} - Current hasUpvoted: ${request.hasUpvoted}',
+    );
 
-    // Update the UI immediately before API call to provide instant feedback
-    bool newUpvoteState = !request.hasUpvoted; // Toggle the state
-    int newUpvoteCount = newUpvoteState ? request.upvotes + 1 : request.upvotes - 1;
+    // Toggle the upvote state
+    bool newUpvoteState = !request.hasUpvoted;
+    int newUpvoteCount =
+        newUpvoteState ? request.upvotes + 1 : request.upvotes - 1;
+
+    // Ensure upvote count doesn't go below 0
+    if (newUpvoteCount < 0) newUpvoteCount = 0;
 
     // Create updated request object
     final updatedRequest = FeatureRequest(
@@ -169,26 +213,46 @@ class _FeatureRequestScreenState extends State<FeatureRequestScreen> {
       final index = _featureRequests.indexWhere((r) => r.id == request.id);
       if (index != -1) {
         _featureRequests[index] = updatedRequest;
-        debugPrint('Updated UI for feature request: ${request.id} - New hasUpvoted: $newUpvoteState');
+        debugPrint(
+          'Updated UI for feature request: ${request.id} - New hasUpvoted: $newUpvoteState',
+        );
       }
     });
 
-    // Make API call in the background without refreshing the list
+    // Make API call in the background
     try {
       bool success;
 
-      if (!newUpvoteState) {
-        // We're removing an upvote
-        success = await _featureRequestService.removeUpvote(request.id);
-        debugPrint('Removed upvote, success: $success');
-      } else {
-        // We're adding an upvote
+      if (newUpvoteState) {
+        // Adding an upvote
         success = await _featureRequestService.upvoteFeatureRequest(request.id);
         debugPrint('Added upvote, success: $success');
+      } else {
+        // Removing an upvote
+        success = await _featureRequestService.removeUpvote(request.id);
+        debugPrint('Removed upvote, success: $success');
       }
 
-      if (!success) {
-        // If API call failed, revert the UI change
+      if (success) {
+        // If successful, refresh the feature requests list from the server
+        // to ensure we have the correct upvote state
+        await _fetchFeatureRequests();
+        debugPrint('Refreshed feature requests after successful upvote toggle');
+      } else {
+        // If API call failed, check if it's because the user already upvoted
+        final alreadyUpvoted = await _featureRequestService
+            .checkIfAlreadyUpvoted(request.id);
+
+        if (alreadyUpvoted) {
+          // If already upvoted, show info notification instead of error
+          debugPrint('User has already upvoted this feature request');
+          _showInfoSnackBar('You have already voted for this feature');
+          // Refresh data to ensure UI is correct
+          await _fetchFeatureRequests();
+          return;
+        }
+
+        // For other errors, revert the UI change
         debugPrint('API call failed, reverting UI change');
         setState(() {
           final index = _featureRequests.indexWhere((r) => r.id == request.id);
@@ -240,99 +304,320 @@ class _FeatureRequestScreenState extends State<FeatureRequestScreen> {
   Widget _buildFeatureRequestItem(FeatureRequest request) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      color: const Color(0xFF1E1E1E),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        title: Text(
-          request.title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text(
-              request.description,
-              style: const TextStyle(
-                color: Color(0xB3FFFFFF), // White with 70% opacity
-                fontSize: 14,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                if (request.category != null) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+      color: AppTheme.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: InkWell(
+        onTap: () => _showFeatureRequestDetails(request),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
                     child: Text(
-                      request.categoryDisplayName,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
+                      request.title,
+                      style: const TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        fontFamily: AppTheme.primaryFontFamily,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(width: 8),
-                ],
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(request.status).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
+                  // Upvote button and count
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: () => _handleUpvote(request),
+                        child: Icon(
+                          request.hasUpvoted
+                              ? Icons.thumb_up
+                              : Icons.thumb_up_outlined,
+                          color:
+                              request.hasUpvoted
+                                  ? AppTheme.primary
+                                  : AppTheme.textSecondary,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${request.upvotes}',
+                        style: TextStyle(
+                          color:
+                              request.hasUpvoted
+                                  ? AppTheme.primary
+                                  : AppTheme.textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: AppTheme.primaryFontFamily,
+                        ),
+                      ),
+                    ],
                   ),
-                  child: Text(
-                    request.statusDisplayName,
-                    style: TextStyle(
-                      color: _getStatusColor(request.status),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                request.description,
+                style: const TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 14,
+                  fontFamily: AppTheme.primaryFontFamily,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  if (request.category != null) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        request.categoryDisplayName,
+                        style: const TextStyle(
+                          color: AppTheme.primary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: AppTheme.primaryFontFamily,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(
+                        request.status,
+                      ).withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      request.statusDisplayName,
+                      style: TextStyle(
+                        color: _getStatusColor(request.status),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        fontFamily: AppTheme.primaryFontFamily,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        trailing: SizedBox(
-          width: 60,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              GestureDetector(
-                onTap: () => _handleUpvote(request),
-                child: Icon(
-                  request.hasUpvoted ? Icons.thumb_up : Icons.thumb_up_outlined,
-                  color: request.hasUpvoted ? Theme.of(context).colorScheme.primary : Colors.grey,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${request.upvotes}',
-                style: TextStyle(
-                  color: request.hasUpvoted ? Theme.of(context).colorScheme.primary : Colors.grey,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
+                ],
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  void _showFeatureRequestDetails(FeatureRequest request) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => Dialog(
+            backgroundColor: AppTheme.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header with title and close button
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          request.title,
+                          style: const TextStyle(
+                            color: AppTheme.textPrimary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 18,
+                            fontFamily: AppTheme.primaryFontFamily,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.close,
+                          color: AppTheme.textSecondary,
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Status and category
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      if (request.category != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            request.categoryDisplayName,
+                            style: const TextStyle(
+                              color: AppTheme.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              fontFamily: AppTheme.primaryFontFamily,
+                            ),
+                          ),
+                        ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(
+                            request.status,
+                          ).withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          request.statusDisplayName,
+                          style: TextStyle(
+                            color: _getStatusColor(request.status),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: AppTheme.primaryFontFamily,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Description
+                  const Text(
+                    'Description',
+                    style: TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      fontFamily: AppTheme.primaryFontFamily,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceSecondary,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      request.description,
+                      style: const TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontSize: 14,
+                        fontFamily: AppTheme.primaryFontFamily,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Upvote section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Submitted on ${_formatDate(request.createdAt)}',
+                        style: const TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 12,
+                          fontFamily: AppTheme.primaryFontFamily,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Text(
+                            '${request.upvotes} votes',
+                            style: TextStyle(
+                              color:
+                                  request.hasUpvoted
+                                      ? AppTheme.primary
+                                      : AppTheme.textSecondary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              fontFamily: AppTheme.primaryFontFamily,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              _handleUpvote(request);
+                              Navigator.pop(context);
+                            },
+                            icon: Icon(
+                              request.hasUpvoted
+                                  ? Icons.thumb_up
+                                  : Icons.thumb_up_outlined,
+                              size: 18,
+                              color: Colors.black,
+                            ),
+                            label: Text(
+                              request.hasUpvoted ? 'Upvoted' : 'Upvote',
+                              style: const TextStyle(color: Colors.black),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  request.hasUpvoted
+                                      ? AppTheme.primary.withValues(alpha: 0.2)
+                                      : AppTheme.primary,
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
     );
   }
 
@@ -355,6 +640,7 @@ class _FeatureRequestScreenState extends State<FeatureRequestScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required by AutomaticKeepAliveClientMixin
     return Scaffold(
       appBar: AppBar(
         title: const Text('Request Feature'),
@@ -392,7 +678,7 @@ class _FeatureRequestScreenState extends State<FeatureRequestScreen> {
                 label: const Text('Request New Feature'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
+                  foregroundColor: const Color.fromARGB(255, 0, 0, 0),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
@@ -403,33 +689,34 @@ class _FeatureRequestScreenState extends State<FeatureRequestScreen> {
 
           // Feature request list
           Expanded(
-            child: _isLoading
-                ? Center(
-                    child: CircularProgressIndicator(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  )
-                : _featureRequests.isEmpty
+            child:
+                _isLoading
                     ? Center(
-                        child: const Text(
-                          'No feature requests yet',
-                          style: TextStyle(
-                            color: Color(0xB3FFFFFF), // White with 70% opacity
-                            fontSize: 16,
-                          ),
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _fetchFeatureRequests,
+                      child: CircularProgressIndicator(
                         color: Theme.of(context).colorScheme.primary,
-                        child: ListView.builder(
-                          itemCount: _featureRequests.length,
-                          itemBuilder: (context, index) {
-                            final request = _featureRequests[index];
-                            return _buildFeatureRequestItem(request);
-                          },
+                      ),
+                    )
+                    : _featureRequests.isEmpty
+                    ? Center(
+                      child: const Text(
+                        'No feature requests yet',
+                        style: TextStyle(
+                          color: Color(0xB3FFFFFF), // White with 70% opacity
+                          fontSize: 16,
                         ),
                       ),
+                    )
+                    : RefreshIndicator(
+                      onRefresh: _fetchFeatureRequests,
+                      color: Theme.of(context).colorScheme.primary,
+                      child: ListView.builder(
+                        itemCount: _featureRequests.length,
+                        itemBuilder: (context, index) {
+                          final request = _featureRequests[index];
+                          return _buildFeatureRequestItem(request);
+                        },
+                      ),
+                    ),
           ),
         ],
       ),
@@ -440,9 +727,7 @@ class _FeatureRequestScreenState extends State<FeatureRequestScreen> {
 class _AddFeatureRequestForm extends StatefulWidget {
   final Function(FeatureRequest) onFeatureRequestAdded;
 
-  const _AddFeatureRequestForm({
-    required this.onFeatureRequestAdded,
-  });
+  const _AddFeatureRequestForm({required this.onFeatureRequestAdded});
 
   @override
   State<_AddFeatureRequestForm> createState() => _AddFeatureRequestFormState();
@@ -511,10 +796,7 @@ class _AddFeatureRequestFormState extends State<_AddFeatureRequestForm> {
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
@@ -630,15 +912,16 @@ class _AddFeatureRequestFormState extends State<_AddFeatureRequestForm> {
                 ),
               ),
               dropdownColor: const Color(0xFF1E1E1E),
-              items: _categories.map((category) {
-                return DropdownMenuItem<String>(
-                  value: category['value'],
-                  child: Text(
-                    category['label']!,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                );
-              }).toList(),
+              items:
+                  _categories.map((category) {
+                    return DropdownMenuItem<String>(
+                      value: category['value'],
+                      child: Text(
+                        category['label']!,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    );
+                  }).toList(),
               onChanged: (value) {
                 setState(() {
                   _selectedCategory = value;
@@ -651,29 +934,33 @@ class _AddFeatureRequestFormState extends State<_AddFeatureRequestForm> {
             ElevatedButton(
               onPressed: _isSubmitting ? null : _submitFeatureRequest,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Colors.white,
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.black,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: _isSubmitting
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              child:
+                  _isSubmitting
+                      ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.black,
+                          ),
+                        ),
+                      )
+                      : const Text(
+                        'Submit Feature Request',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black,
+                        ),
                       ),
-                    )
-                  : const Text(
-                      'Submit Feature Request',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
             ),
           ],
         ),

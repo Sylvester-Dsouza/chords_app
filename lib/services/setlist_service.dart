@@ -825,34 +825,128 @@ class SetlistService {
     try {
       // Check if user is authenticated
       if (!await isAuthenticated()) {
+        debugPrint('❌ Authentication check failed');
         throw Exception('Authentication required. Please log in.');
       }
 
       debugPrint('🎵 Adding song $songId to setlist $setlistId');
-      final response = await _apiService.post('/setlists/$setlistId/songs', data: {
-        'songId': songId,
-      });
-
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        throw Exception('Failed to add song to setlist');
+      
+      // Get current user ID for logging
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      final userId = firebaseUser?.uid;
+      if (firebaseUser != null) {
+        debugPrint('👤 Current Firebase user ID: $userId');
+      } else {
+        debugPrint('⚠️ No Firebase user found, but authentication check passed');
       }
-
-      // Clear cache to force refresh
-      await _clearSetlistCaches(setlistId);
-      debugPrint('✅ Song added and cache cleared');
-
-      // Verify the song was actually added by checking the API response
-      if (response.data != null) {
-        debugPrint('📋 API Response: ${response.data}');
-        if (response.data['songs'] != null) {
-          final songCount = response.data['songs'].length;
-          debugPrint('🎵 Setlist now has $songCount songs according to API');
+      
+      // Log the token being used
+      final firebaseToken = await _secureStorage.read(key: 'firebase_token');
+      final accessToken = await _secureStorage.read(key: 'access_token');
+      debugPrint('🔑 Firebase token available: ${firebaseToken != null}');
+      debugPrint('🔑 Access token available: ${accessToken != null}');
+      
+      // First, verify that the user owns this setlist to avoid permission errors
+      try {
+        // Get the setlist details to verify ownership
+        debugPrint('🔍 Verifying setlist ownership before adding song');
+        final setlistResponse = await _apiService.get('/setlists/$setlistId');
+        
+        if (setlistResponse.statusCode != 200) {
+          debugPrint('❌ Failed to get setlist details: ${setlistResponse.statusCode}');
+          throw Exception('Failed to verify setlist ownership');
         }
+        
+        final setlistData = setlistResponse.data;
+        final setlistOwnerId = setlistData['customerId'];
+        
+        debugPrint('📚 Setlist owner ID: $setlistOwnerId, Current user ID: $userId');
+        
+        // If the user doesn't own this setlist, we need to check if they have edit permissions
+        if (setlistOwnerId != userId) {
+          debugPrint('⚠️ User is not the owner of this setlist, checking permissions');
+          
+          // Check if user has collaborator permissions
+          final collaborators = setlistData['collaborators'] ?? [];
+          bool hasEditPermission = false;
+          
+          for (final collaborator in collaborators) {
+            if (collaborator['customerId'] == userId && 
+                (collaborator['permission'] == 'EDIT' || collaborator['permission'] == 'ADMIN')) {
+              hasEditPermission = true;
+              break;
+            }
+          }
+          
+          if (!hasEditPermission) {
+            debugPrint('❌ User does not have permission to edit this setlist');
+            throw Exception('You do not have permission to modify this setlist');
+          }
+          
+          debugPrint('✅ User has edit permission as collaborator');
+        } else {
+          debugPrint('✅ User is the owner of this setlist');
+        }
+      } catch (e) {
+        debugPrint('❌ Error verifying setlist ownership: $e');
+        // Continue anyway, as the backend will enforce permissions
+      }
+      
+      // Make the API call with detailed error handling
+      try {
+        // Use the standard endpoint for adding songs to setlists
+        final response = await _apiService.post('/setlists/$setlistId/songs', data: {
+          'songId': songId,
+        });
+
+        debugPrint('📊 Response status code: ${response.statusCode}');
+        
+        if (response.statusCode != 200 && response.statusCode != 201) {
+          debugPrint('❌ API returned error status: ${response.statusCode}');
+          debugPrint('❌ Response data: ${response.data}');
+          throw DioException(
+            requestOptions: RequestOptions(path: '/setlists/$setlistId/songs'),
+            response: response,
+            type: DioExceptionType.badResponse,
+          );
+        }
+
+        // Clear cache to force refresh
+        await _clearSetlistCaches(setlistId);
+        debugPrint('✅ Song added and cache cleared');
+
+        // Verify the song was actually added by checking the API response
+        if (response.data != null) {
+          debugPrint('📋 API Response: ${response.data}');
+          if (response.data['songs'] != null) {
+            final songCount = response.data['songs'].length;
+            debugPrint('🎵 Setlist now has $songCount songs according to API');
+          }
+        }
+      } catch (apiError) {
+        debugPrint('❌ API call error: $apiError');
+        if (apiError is DioException) {
+          debugPrint('❌ DioException type: ${apiError.type}');
+          debugPrint('❌ DioException message: ${apiError.message}');
+          debugPrint('❌ Response status: ${apiError.response?.statusCode}');
+          debugPrint('❌ Response data: ${apiError.response?.data}');
+          
+          if (apiError.response?.statusCode == 403) {
+            throw Exception('Permission denied: You don\'t have permission to modify this setlist');
+          } else if (apiError.response?.statusCode == 401) {
+            throw Exception('Authentication required. Please log in.');
+          }
+        }
+        rethrow;
       }
     } catch (e) {
-      debugPrint('Error adding song to setlist: $e');
-      if (e is DioException && e.response?.statusCode == 401) {
-        throw Exception('Authentication required. Please log in.');
+      debugPrint('❌ Error in addSongToSetlist: $e');
+      if (e is DioException) {
+        if (e.response?.statusCode == 401) {
+          throw Exception('Authentication required. Please log in.');
+        } else if (e.response?.statusCode == 403) {
+          throw Exception('Permission denied: You don\'t have permission to modify this setlist');
+        }
       }
       throw Exception('Failed to add song to setlist: $e');
     }

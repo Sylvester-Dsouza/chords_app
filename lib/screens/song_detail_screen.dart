@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/song.dart';
+import '../models/karaoke.dart';
 import '../widgets/setlist_bottom_sheet.dart';
 import '../widgets/chord_formatter.dart';
 import '../services/song_service.dart';
@@ -20,7 +21,6 @@ import '../utils/chord_extractor.dart';
 import './song_presentation_screen.dart';
 import './practice_mode_screen.dart';
 import '../widgets/enhanced_song_share_dialog.dart';
-import './karaoke_player_screen.dart';
 import './multi_track_karaoke_player_screen.dart';
 
 class SongDetailScreen extends StatefulWidget {
@@ -337,7 +337,8 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                     ? 'Added "${_song.title}" to liked songs'
                     : 'Removed "${_song.title}" from liked songs',
               ),
-              backgroundColor: _isLiked ? AppTheme.success : AppTheme.textSecondary,
+              backgroundColor:
+                  _isLiked ? AppTheme.success : AppTheme.textSecondary,
               duration: const Duration(seconds: 1),
             ),
           );
@@ -490,31 +491,79 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
   }
 
   // Open karaoke mode
-  void _openKaraokeMode() {
-    if (_song.karaoke == null) return;
-
-    // Check if song has multi-track karaoke
-    final hasMultiTrack = _song.karaoke!.tracks.isNotEmpty;
-
-    if (hasMultiTrack) {
-      // Navigate to multi-track karaoke player
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => MultiTrackKaraokePlayerScreen(
-            song: _song,
-          ),
-        ),
-      );
+  Future<void> _openKaraokeMode() async {
+    // Debug karaoke data
+    debugPrint('Opening karaoke mode for song: ${_song.title}');
+    if (_song.karaoke != null) {
+      debugPrint('Karaoke tracks available: ${_song.karaoke!.tracks.length}');
     } else {
-      // Navigate to traditional karaoke player
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => KaraokePlayerScreen(
-            song: _song,
-            karaokeUrl: _song.karaoke!.fileUrl,
+      debugPrint('No karaoke data available for this song');
+    }
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // Fetch fresh song data with complete karaoke information
+      debugPrint('Fetching fresh song data with karaoke information for: ${_song.id}');
+      final freshSong = await _songService.getSongById(_song.id);
+
+      // Hide loading indicator
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // Debug fresh karaoke data
+      debugPrint('Fresh song data loaded for: ${freshSong.title}');
+      if (freshSong.karaoke != null) {
+        debugPrint('Fresh karaoke tracks available: ${freshSong.karaoke!.tracks.length}');
+        for (final track in freshSong.karaoke!.tracks) {
+          debugPrint('Track: ${track.trackType.displayName}, URL: ${track.fileUrl}');
+        }
+      } else {
+        debugPrint('No karaoke data in fresh song data');
+      }
+
+      // Navigate to multi-track karaoke player with fresh data
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => MultiTrackKaraokePlayerScreen(song: freshSong),
           ),
-        ),
-      );
+        );
+      }
+    } catch (e) {
+      // Hide loading indicator
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      debugPrint('Error fetching fresh song data for karaoke: $e');
+
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load karaoke data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+
+      // Fallback: try to navigate with existing song data
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => MultiTrackKaraokePlayerScreen(song: _song),
+          ),
+        );
+      }
     }
   }
 
@@ -530,6 +579,15 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
 
   // Show practice and present options
   void _showPracticeAndPresentOptions() {
+    // Debug print to check karaoke data
+    debugPrint(
+      'Song karaoke data: ${_song.karaoke != null ? 'Available' : 'Not available'}',
+    );
+    if (_song.karaoke != null) {
+      debugPrint('Karaoke tracks: ${_song.karaoke!.tracks.length}');
+      debugPrint('Karaoke status: ${_song.karaoke!.status}');
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: AppTheme.surface,
@@ -583,56 +641,48 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                   _openPresentationMode();
                 },
               ),
-              // Karaoke option (only show if song has karaoke)
-              if (_song.karaoke != null)
-                ListTile(
-                  leading: Icon(
-                    _song.karaoke!.tracks.isNotEmpty ? Icons.multitrack_audio : Icons.mic,
-                    color: const Color(0xFF9BB5FF),
-                  ),
-                  title: Row(
-                    children: [
-                      const Text(
-                        'Karaoke Mode',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      if (_song.karaoke!.tracks.isNotEmpty) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF9BB5FF).withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            'AI Multi-Track',
-                            style: TextStyle(
-                              color: Color(0xFF9BB5FF),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  subtitle: Text(
-                    _song.karaoke!.isActive
-                        ? _song.karaoke!.tracks.isNotEmpty
-                            ? 'AI-separated tracks with individual controls'
-                            : 'Sing along with backing track'
-                        : 'Karaoke not available',
-                    style: TextStyle(
-                      color: _song.karaoke!.isActive
-                          ? Colors.white70
-                          : Colors.red.shade300,
-                    ),
-                  ),
-                  onTap: _song.karaoke!.isActive ? () {
-                    Navigator.pop(context);
-                    _openKaraokeMode();
-                  } : null,
+              // AI Karaoke Mode option (always visible)
+              ListTile(
+                leading: Icon(
+                  Icons.multitrack_audio,
+                  color: const Color(0xFF9BB5FF),
                 ),
+                title: Row(
+                  children: [
+                    const Text(
+                      'AI Karaoke Mode',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF9BB5FF).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Multi-Track',
+                        style: TextStyle(
+                          color: Color(0xFF9BB5FF),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                subtitle: const Text(
+                  'AI-separated tracks with individual controls',
+                  style: TextStyle(color: Colors.white70),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openKaraokeMode();
+                },
+              ),
             ],
           ),
         );
@@ -1140,7 +1190,10 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
               const SizedBox(width: 6),
               Text(
                 '(${_song.ratingCount})',
-                style: const TextStyle(color: AppTheme.textTertiary, fontSize: 11),
+                style: const TextStyle(
+                  color: AppTheme.textTertiary,
+                  fontSize: 11,
+                ),
               ),
             ],
           ),

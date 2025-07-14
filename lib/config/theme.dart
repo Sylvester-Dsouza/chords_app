@@ -32,26 +32,47 @@ class AppTheme {
 
   /// Background colors - True black for maximum contrast and battery efficiency
   static const Color background = Color(0xFF000000); // Pure black
-  static const Color backgroundSecondary = Color(0xFF0A0A0A); // Slightly lighter black for depth
+  static const Color backgroundSecondary = Color(
+    0xFF0A0A0A,
+  ); // Slightly lighter black for depth
 
   /// Surface colors - Dark grays for cards, dialogs, and elevated elements
-  static const Color surface = Color.fromARGB(255, 17, 17, 17); // iOS dark surface
-  static const Color surfaceSecondary = Color(0xFF2C2C2E); // Slightly lighter surface
-  static const Color surfaceTertiary = Color(0xFF3A3A3C); // Even lighter for hierarchy
+  static const Color surface = Color.fromARGB(
+    255,
+    17,
+    17,
+    17,
+  ); // iOS dark surface
+  static const Color surfaceSecondary = Color(
+    0xFF2C2C2E,
+  ); // Slightly lighter surface
+  static const Color surfaceTertiary = Color(
+    0xFF3A3A3C,
+  ); // Even lighter for hierarchy
 
   /// App bar and navigation - Consistent with background
-  static const Color appBar = Color(0xFF000000); // Pure black to match background
+  static const Color appBar = Color(
+    0xFF000000,
+  ); // Pure black to match background
   static const Color navigationBar = Color(0xFF000000); // Pure black
 
   /// Text colors - High contrast white and grays
-  static const Color textPrimary = Color(0xFFFFFFFF); // Pure white for primary text
-  static const Color textSecondary = Color(0xFF8E8E93); // iOS secondary text gray
+  static const Color textPrimary = Color(
+    0xFFFFFFFF,
+  ); // Pure white for primary text
+  static const Color textSecondary = Color(
+    0xFF8E8E93,
+  ); // iOS secondary text gray
   static const Color textTertiary = Color(0xFF48484A); // iOS tertiary text gray
-  static const Color textPlaceholder = Color(0xFF636366); // iOS placeholder gray
+  static const Color textPlaceholder = Color(
+    0xFF636366,
+  ); // iOS placeholder gray
 
   /// Border and separator colors
   static const Color border = Color(0xFF38383A); // iOS border color
-  static const Color separator = Color(0xFF38383A); // Same as border for consistency
+  static const Color separator = Color(
+    0xFF38383A,
+  ); // Same as border for consistency
 
   // ============================================================================
   // SEMANTIC COLORS - For specific use cases (used sparingly)
@@ -107,8 +128,8 @@ class AppTheme {
   // FONT CONFIGURATION - Apple San Francisco Pro fonts
   // ============================================================================
 
-  /// Primary font family - SF Pro Text (for body text and UI elements)
-  static const String primaryFontFamily = 'SF Pro Text';
+  /// Primary font family - SF Pro Display (for all text)
+  static const String primaryFontFamily = 'SF Pro Display';
 
   /// Display font family - SF Pro Display (for headings and large text)
   static const String displayFontFamily = 'SF Pro Display';
@@ -122,10 +143,12 @@ class AppTheme {
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: appBar, // Pure black status bar
-        statusBarIconBrightness: Brightness.light, // Light icons for dark background
+        statusBarIconBrightness:
+            Brightness.light, // Light icons for dark background
         statusBarBrightness: Brightness.dark, // For Android
         systemNavigationBarColor: navigationBar, // Pure black navigation bar
-        systemNavigationBarIconBrightness: Brightness.light, // Light icons for dark background
+        systemNavigationBarIconBrightness:
+            Brightness.light, // Light icons for dark background
       ),
     );
 
@@ -135,46 +158,47 @@ class AppTheme {
       textTheme: const TextTheme(
         displayLarge: TextStyle(
           fontSize: 28.0,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w800, // More bold for main headings
           fontFamily: displayFontFamily,
           color: textPrimary,
           letterSpacing: -0.5, // Tighter spacing for bold, clean look
         ),
         displayMedium: TextStyle(
           fontSize: 24.0,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w800, // More bold for main headings
           fontFamily: displayFontFamily,
           color: textPrimary,
           letterSpacing: -0.4, // Tighter spacing for bold, clean look
         ),
         displaySmall: TextStyle(
           fontSize: 20.0,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w800, // More bold for main headings
           fontFamily: displayFontFamily,
           color: textPrimary,
           letterSpacing: -0.3, // Tighter spacing for bold, clean look
         ),
         headlineMedium: TextStyle(
           fontSize: 18.0,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700, // More bold for headings
           fontFamily: displayFontFamily,
           color: textPrimary,
           letterSpacing: -0.2, // Tighter spacing for bold, clean look
         ),
         titleLarge: TextStyle(
           fontSize: 16.0,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600, // A little bold for main text
           fontFamily: primaryFontFamily,
           color: textPrimary,
-          letterSpacing: -0.1, // Tighter spacing for clean look
         ),
         bodyLarge: TextStyle(
-          fontSize: 14.0,
+          fontSize: 15.0,
+          fontWeight: FontWeight.w400, // A little bold for main text
           fontFamily: primaryFontFamily,
           color: textPrimary,
         ),
         bodyMedium: TextStyle(
           fontSize: 13.0,
+          fontWeight: FontWeight.w300, // Regular weight for smaller text
           fontFamily: primaryFontFamily,
           color: textPrimary,
         ),
@@ -196,12 +220,13 @@ class AppTheme {
 
       // Pure black background for maximum contrast and battery efficiency
       scaffoldBackgroundColor: background,
-      primaryColor: primary,
+      primaryColor: const Color(0xFF3BFFCB),
 
       colorScheme: const ColorScheme.dark(
         surface: surface,
         primary: primary,
-        secondary: textSecondary, // Use secondary text color for secondary elements
+        secondary:
+            textSecondary, // Use secondary text color for secondary elements
         surfaceContainer: surfaceSecondary,
         onSurface: textPrimary,
         onPrimary: background, // Black text on primary blue
@@ -218,31 +243,29 @@ class AppTheme {
         foregroundColor: textPrimary,
         elevation: 0,
         scrolledUnderElevation: 0, // Prevents elevation change when scrolling
-        surfaceTintColor: Colors.transparent, // Prevents blue tinting from primary color
+        surfaceTintColor:
+            Colors.transparent, // Prevents blue tinting from primary color
         titleTextStyle: TextStyle(
           fontSize: 16.0,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w600, // A little bold for main text
           fontFamily: primaryFontFamily,
           color: textPrimary,
           letterSpacing: -0.1, // Tighter spacing for clean look
         ),
-        iconTheme: IconThemeData(
-          color: textPrimary,
-          size: 24.0,
-        ),
+        iconTheme: IconThemeData(color: textPrimary, size: 24.0),
       ),
 
       // Button theme - Primary color used sparingly
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primary,
+          backgroundColor: const Color(0xFF3BFFCB),
           foregroundColor: background, // Black text on blue background
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
           textStyle: const TextStyle(
             fontSize: 14.0,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w600, // A little bold for main text
             fontFamily: primaryFontFamily,
           ),
         ),
@@ -301,16 +324,19 @@ class AppTheme {
           color: textPlaceholder,
           fontFamily: primaryFontFamily,
           fontSize: 14.0,
+          fontWeight: FontWeight.w400, // Regular weight for placeholder text
         ),
         labelStyle: TextStyle(
           color: textSecondary,
           fontFamily: primaryFontFamily,
           fontSize: 14.0,
+          fontWeight: FontWeight.w500, // Medium weight for labels
         ),
         errorStyle: TextStyle(
           color: error,
           fontFamily: primaryFontFamily,
           fontSize: 12.0,
+          fontWeight: FontWeight.w400, // Regular weight for error text
         ),
       ),
 
@@ -353,7 +379,7 @@ class AppTheme {
 
   static const TextStyle songTitleStyle = TextStyle(
     fontSize: 18.0,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w700, // More bold for song titles
     fontFamily: displayFontFamily,
     color: textPrimary,
     letterSpacing: -0.3, // Tighter for bold, clean look
@@ -361,14 +387,14 @@ class AppTheme {
 
   static const TextStyle artistNameStyle = TextStyle(
     fontSize: 14.0,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w400, // Regular weight for artist names
     fontFamily: primaryFontFamily,
     color: textSecondary,
   );
 
   static const TextStyle sectionTitleStyle = TextStyle(
     fontSize: 16.0,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w600, // Medium-bold for section titles
     fontFamily: primaryFontFamily,
     color: textPrimary,
     letterSpacing: -0.2, // Tighter for bold, clean look
@@ -377,7 +403,7 @@ class AppTheme {
   static const TextStyle chordSheetStyle = TextStyle(
     fontSize: 14.0,
     height: 1.6,
-    fontFamily: monospaceFontFamily,
+    fontFamily: monospaceFontFamily, // Keep monospace for chord sheets
     color: textPrimary,
     letterSpacing: 0.2,
   );
@@ -392,7 +418,7 @@ class AppTheme {
 
   static const TextStyle sectionHeaderStyle = TextStyle(
     fontSize: 12.0,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w600, // Medium-bold for section headers
     fontFamily: primaryFontFamily,
     color: textSecondary,
     letterSpacing: 0.8,
@@ -400,14 +426,14 @@ class AppTheme {
 
   static const TextStyle tabLabelStyle = TextStyle(
     fontSize: 13.0,
-    fontWeight: FontWeight.w500,
+    fontWeight: FontWeight.w600, // A little bold for tab labels
     fontFamily: primaryFontFamily,
     color: textPrimary,
   );
 
   static const TextStyle bottomNavLabelStyle = TextStyle(
     fontSize: 11.0,
-    fontWeight: FontWeight.w500,
+    fontWeight: FontWeight.w500, // Medium weight for bottom navigation
     fontFamily: primaryFontFamily,
     color: textSecondary,
   );
@@ -472,9 +498,7 @@ class AppTheme {
   /// Get list item decoration (for list cards)
   static BoxDecoration get listItemDecoration => BoxDecoration(
     color: surface,
-    border: Border(
-      bottom: BorderSide(color: separator, width: 0.5),
-    ),
+    border: Border(bottom: BorderSide(color: separator, width: 0.5)),
   );
 }
 

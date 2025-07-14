@@ -5,7 +5,7 @@ import '../models/karaoke.dart';
 import '../services/karaoke_service.dart';
 import '../services/karaoke_download_manager.dart';
 import '../services/auth_service.dart';
-import '../screens/karaoke_player_screen.dart';
+import '../services/song_service.dart';
 import '../screens/multi_track_karaoke_player_screen.dart';
 import '../models/song.dart';
 import '../config/theme.dart';
@@ -23,6 +23,7 @@ class _KaraokeScreenState extends State<KaraokeScreen>
   late KaraokeDownloadManager _downloadManager;
   late KaraokeService _karaokeService;
   final AuthService _authService = AuthService();
+  final SongService _songService = SongService();
   final TextEditingController _searchController = TextEditingController();
 
   List<KaraokeSong> _allSongs = [];
@@ -88,8 +89,11 @@ class _KaraokeScreenState extends State<KaraokeScreen>
           _recentSongs = results[2];
 
           // Fallback: if All Songs is empty but we have popular/recent, combine them
-          if (_allSongs.isEmpty && (_popularSongs.isNotEmpty || _recentSongs.isNotEmpty)) {
-            debugPrint('🎤 All songs empty, using fallback with popular + recent');
+          if (_allSongs.isEmpty &&
+              (_popularSongs.isNotEmpty || _recentSongs.isNotEmpty)) {
+            debugPrint(
+              '🎤 All songs empty, using fallback with popular + recent',
+            );
             final Set<String> seenIds = <String>{};
             _allSongs = [
               ..._popularSongs.where((song) => seenIds.add(song.id)),
@@ -103,7 +107,9 @@ class _KaraokeScreenState extends State<KaraokeScreen>
         // Additional debug info
         debugPrint('🎤 State updated - All songs count: ${_allSongs.length}');
         if (_allSongs.isNotEmpty) {
-          debugPrint('🎤 First song: ${_allSongs.first.title} by ${_allSongs.first.artistName}');
+          debugPrint(
+            '🎤 First song: ${_allSongs.first.title} by ${_allSongs.first.artistName}',
+          );
         }
       }
     } catch (e) {
@@ -131,43 +137,80 @@ class _KaraokeScreenState extends State<KaraokeScreen>
     _loadInitialData();
   }
 
-  void _openKaraokePlayer(KaraokeSong karaokeSong) {
-    // Convert KaraokeSong to Song for the player
-    final song = Song(
-      id: karaokeSong.id,
-      title: karaokeSong.title,
-      artist: karaokeSong.artistName,
-      key: karaokeSong.songKey ?? 'C', // Provide default key
-      imageUrl: karaokeSong.imageUrl,
-      tempo: karaokeSong.tempo,
-      difficulty: karaokeSong.difficulty,
-      averageRating: karaokeSong.averageRating,
-      ratingCount: karaokeSong.ratingCount,
-      karaoke: karaokeSong.karaoke,
+  Future<void> _openKaraokePlayer(KaraokeSong karaokeSong) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
     );
 
-    // Check if song has multi-track karaoke
-    final hasMultiTrack = karaokeSong.karaoke.tracks.isNotEmpty;
+    try {
+      // Fetch complete song data with chord sheet from backend
+      debugPrint('🎤 Fetching complete song data for karaoke: ${karaokeSong.id}');
+      final completeSong = await _songService.getSongById(karaokeSong.id);
 
-    if (hasMultiTrack) {
-      // Navigate to multi-track karaoke player
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => MultiTrackKaraokePlayerScreen(
-            song: song,
+      // Hide loading indicator
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // Debug complete song data
+      debugPrint('🎤 Complete song data loaded: ${completeSong.title}');
+      debugPrint('🎤 Has chord sheet: ${completeSong.chords != null && completeSong.chords!.isNotEmpty}');
+      if (completeSong.karaoke != null) {
+        debugPrint('🎤 Karaoke tracks in complete song: ${completeSong.karaoke!.tracks.length}');
+      }
+
+      // Navigate to multi-track karaoke player with complete data
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => MultiTrackKaraokePlayerScreen(song: completeSong),
           ),
-        ),
-      );
-    } else {
-      // Navigate to traditional karaoke player
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => KaraokePlayerScreen(
-            song: song,
-            karaokeUrl: karaokeSong.karaoke.fileUrl,
+        );
+      }
+    } catch (e) {
+      // Hide loading indicator
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      debugPrint('🎤 Error fetching complete song data: $e');
+
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load complete song data: $e'),
+            backgroundColor: Colors.red,
           ),
-        ),
-      );
+        );
+      }
+
+      // Fallback: create Song from KaraokeSong data
+      if (mounted) {
+        final fallbackSong = Song(
+          id: karaokeSong.id,
+          title: karaokeSong.title,
+          artist: karaokeSong.artistName,
+          key: karaokeSong.songKey ?? 'C',
+          imageUrl: karaokeSong.imageUrl,
+          tempo: karaokeSong.tempo,
+          difficulty: karaokeSong.difficulty,
+          averageRating: karaokeSong.averageRating,
+          ratingCount: karaokeSong.ratingCount,
+          karaoke: karaokeSong.karaoke,
+        );
+
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => MultiTrackKaraokePlayerScreen(song: fallbackSong),
+          ),
+        );
+      }
     }
   }
 
@@ -210,8 +253,6 @@ class _KaraokeScreenState extends State<KaraokeScreen>
     );
   }
 
-
-
   Widget _buildSearchAndFilters() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -245,32 +286,33 @@ class _KaraokeScreenState extends State<KaraokeScreen>
                   color: AppTheme.textSecondary,
                   size: 20,
                 ),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(
-                          Icons.clear_rounded,
-                          color: AppTheme.textSecondary,
-                          size: 20,
-                        ),
-                        onPressed: () {
-                          _searchController.clear();
-                          _onSearchChanged('');
-                        },
-                      )
-                    : null,
+                suffixIcon:
+                    _searchQuery.isNotEmpty
+                        ? IconButton(
+                          icon: Icon(
+                            Icons.clear_rounded,
+                            color: AppTheme.textSecondary,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            _searchController.clear();
+                            _onSearchChanged('');
+                          },
+                        )
+                        : null,
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
             ),
           ),
           const SizedBox(height: 12),
-
         ],
       ),
     );
   }
-
-
 
   Widget _buildTabBar() {
     return Container(
@@ -382,7 +424,11 @@ class _KaraokeScreenState extends State<KaraokeScreen>
     );
   }
 
-  Widget _buildKaraokeSongCard(KaraokeSong song, {bool showRank = false, int? rank}) {
+  Widget _buildKaraokeSongCard(
+    KaraokeSong song, {
+    bool showRank = false,
+    int? rank,
+  }) {
     final isDownloaded = _downloadManager.isDownloaded(song.id);
     final isDownloading = _downloadManager.isDownloading(song.id);
     final downloadProgress = _downloadManager.getDownloadProgress(song.id);
@@ -396,7 +442,7 @@ class _KaraokeScreenState extends State<KaraokeScreen>
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => _openKaraokePlayer(song),
+          onTap: () async => await _openKaraokePlayer(song),
           borderRadius: BorderRadius.circular(8),
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -406,7 +452,12 @@ class _KaraokeScreenState extends State<KaraokeScreen>
                 const SizedBox(width: 12),
                 Expanded(child: _buildModernSongInfo(song)),
                 const SizedBox(width: 8),
-                _buildModernTrailingWidget(song, isDownloaded, isDownloading, downloadProgress),
+                _buildModernTrailingWidget(
+                  song,
+                  isDownloaded,
+                  isDownloading,
+                  downloadProgress,
+                ),
               ],
             ),
           ),
@@ -444,32 +495,35 @@ class _KaraokeScreenState extends State<KaraokeScreen>
         width: 40,
         height: 40,
         color: AppTheme.surfaceSecondary,
-        child: song.imageUrl != null
-            ? CachedNetworkImage(
-                imageUrl: song.imageUrl!,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: AppTheme.surfaceSecondary,
-                  child: Icon(
-                    Icons.music_note_rounded,
-                    color: AppTheme.textSecondary,
-                    size: 18,
-                  ),
+        child:
+            song.imageUrl != null
+                ? CachedNetworkImage(
+                  imageUrl: song.imageUrl!,
+                  fit: BoxFit.cover,
+                  placeholder:
+                      (context, url) => Container(
+                        color: AppTheme.surfaceSecondary,
+                        child: Icon(
+                          Icons.music_note_rounded,
+                          color: AppTheme.textSecondary,
+                          size: 18,
+                        ),
+                      ),
+                  errorWidget:
+                      (context, url, error) => Container(
+                        color: AppTheme.surfaceSecondary,
+                        child: Icon(
+                          Icons.music_note_rounded,
+                          color: AppTheme.textSecondary,
+                          size: 18,
+                        ),
+                      ),
+                )
+                : Icon(
+                  Icons.music_note_rounded,
+                  color: AppTheme.textSecondary,
+                  size: 18,
                 ),
-                errorWidget: (context, url, error) => Container(
-                  color: AppTheme.surfaceSecondary,
-                  child: Icon(
-                    Icons.music_note_rounded,
-                    color: AppTheme.textSecondary,
-                    size: 18,
-                  ),
-                ),
-              )
-            : Icon(
-                Icons.music_note_rounded,
-                color: AppTheme.textSecondary,
-                size: 18,
-              ),
       ),
     );
   }
@@ -541,9 +595,12 @@ class _KaraokeScreenState extends State<KaraokeScreen>
     );
   }
 
-
-
-  Widget _buildModernTrailingWidget(KaraokeSong song, bool isDownloaded, bool isDownloading, double downloadProgress) {
+  Widget _buildModernTrailingWidget(
+    KaraokeSong song,
+    bool isDownloaded,
+    bool isDownloading,
+    double downloadProgress,
+  ) {
     if (isDownloading) {
       return Container(
         width: 32,
@@ -735,7 +792,10 @@ class _KaraokeScreenState extends State<KaraokeScreen>
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
                   foregroundColor: AppTheme.background,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -754,6 +814,4 @@ class _KaraokeScreenState extends State<KaraokeScreen>
       ),
     );
   }
-
-
 }
