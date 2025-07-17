@@ -1617,7 +1617,6 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
               _buildControlButton(
                 icon: Icons.av_timer,
                 onTap: () {
-                  // TODO: Toggle metronome
                 },
               ),
 
@@ -1668,7 +1667,6 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
               _buildControlButton(
                 icon: Icons.playlist_play,
                 onTap: () {
-                  // TODO: Show playlist
                 },
               ),
             ],

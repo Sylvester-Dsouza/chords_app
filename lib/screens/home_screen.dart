@@ -681,13 +681,10 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                 title,
                 style: const TextStyle(
                   color: AppTheme.textPrimary,
-                  fontWeight:
-                      FontWeight
-                          .w700, // Increased from w600 to w700 for bolder font
-                  fontSize: 22, // Increased from 18 to 22 for bigger text
-                  fontFamily:
-                      AppTheme
-                          .displayFontFamily, // Using display font family for more impact
+                  fontWeight: FontWeight.w600, // Standardized to w600 for headings
+                  fontSize: 18, // Reduced from 22 to 18 for more compact headers
+                  letterSpacing: -0.3, // Tighter letter spacing for a cleaner look
+                  fontFamily: AppTheme.displayFontFamily, // Using display font family for impact
                 ),
               ),
               GestureDetector(
@@ -789,7 +786,7 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                   'Beta Version',
                   style: TextStyle(
                     color: Color.fromARGB(255, 255, 255, 255),
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     fontSize: 13,
                     fontFamily: AppTheme.primaryFontFamily,
                   ),

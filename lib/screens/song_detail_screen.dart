@@ -1001,7 +1001,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                               style: const TextStyle(
                                 color: AppTheme.background,
                                 fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w600, // Standardized to w600 for headings
                               ),
                               textAlign: TextAlign.center,
                             ),

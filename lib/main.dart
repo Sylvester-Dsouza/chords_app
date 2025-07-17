@@ -47,7 +47,7 @@ import 'services/community_service.dart';
 import 'config/theme.dart';
 import 'providers/user_provider.dart';
 import 'models/song.dart';
-import 'utils/performance_tracker.dart';
+import 'utils/performance_utils.dart';
 import 'services/image_cache_manager.dart';
 
 // Removed flutter_local_notifications due to compatibility issues
@@ -59,7 +59,7 @@ void main() async {
   debugPrint('🚀 ${AppConstants.appName} starting up...');
 
   // Start tracking app startup performance (non-blocking)
-  PerformanceTracker.trackAppStartup().catchError((e) {
+  PerformanceUtils.trackAppStartup().catchError((e) {
     debugPrint('⚠️ Performance tracking error: $e');
   });
 
@@ -134,7 +134,7 @@ void main() async {
   );
 
   // Complete app startup tracking (non-blocking)
-  PerformanceTracker.completeAppStartup(
+  PerformanceUtils.completeAppStartup(
     attributes: {
       'platform': Platform.operatingSystem,
       'app_version': AppConstants.appName,
@@ -149,7 +149,7 @@ void main() async {
       serviceLocator.performanceService.printStatus();
 
       // Test a simple trace to verify it's working
-      PerformanceTracker.track(
+      PerformanceUtils.track(
         'test_trace',
         () async {
           await Future.delayed(const Duration(milliseconds: 100));

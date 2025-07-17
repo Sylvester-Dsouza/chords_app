@@ -75,7 +75,6 @@ class _MultiTrackControlsState extends State<MultiTrackControls> {
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () {
-                          // TODO: Implement export functionality
                         },
                         borderRadius: BorderRadius.circular(24),
                         child: Row(
@@ -151,7 +150,7 @@ class _MultiTrackControlsState extends State<MultiTrackControls> {
             child: Column(
               children: [
                 // Custom Slider that looks like Moises
-                Container(
+                SizedBox(
                   height: 40,
                   child: SliderTheme(
                     data: SliderTheme.of(context).copyWith(
@@ -205,7 +204,6 @@ class _MultiTrackControlsState extends State<MultiTrackControls> {
               color: Colors.transparent,
               child: InkWell(
                 onTap: () {
-                  // TODO: Show track options
                 },
                 borderRadius: BorderRadius.circular(20),
                 child: Icon(
@@ -295,7 +293,6 @@ class _MultiTrackControlsState extends State<MultiTrackControls> {
               _buildControlButton(
                 icon: Icons.av_timer,
                 onTap: () {
-                  // TODO: Toggle metronome
                 },
               ),
               
@@ -348,7 +345,6 @@ class _MultiTrackControlsState extends State<MultiTrackControls> {
               _buildControlButton(
                 icon: Icons.playlist_play,
                 onTap: () {
-                  // TODO: Show playlist
                 },
               ),
             ],

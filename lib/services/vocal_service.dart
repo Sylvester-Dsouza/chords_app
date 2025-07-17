@@ -10,7 +10,7 @@ import '../models/vocal.dart';
 import '../services/cache_service.dart';
 import '../services/auth_service.dart';
 import '../services/vocal_download_manager.dart';
-import '../utils/performance_tracker.dart';
+import '../utils/performance_utils.dart';
 
 /// Service for managing vocal warmups and exercises
 class VocalService extends ChangeNotifier {
@@ -221,7 +221,7 @@ class VocalService extends ChangeNotifier {
       }
 
       // Track performance (non-blocking)
-      PerformanceTracker.trackDataLoad(
+      PerformanceUtils.trackDataLoad(
         'vocal_categories',
         () async {},
         itemCount: _categories.length,
@@ -372,7 +372,7 @@ class VocalService extends ChangeNotifier {
       _updateItemInCategory(downloadedItem);
 
       // Track performance (non-blocking)
-      PerformanceTracker.trackFileOperation(
+      PerformanceUtils.trackFileOperation(
         'download',
         'vocal_audio',
         () async => true,

@@ -379,7 +379,7 @@ Download Stuthi app to join the collaborative setlist.''';
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 8,
-                  fontFamily: 'monospace',
+                  fontFamily: AppTheme.monospaceFontFamily,
                 ),
               ),
             ],

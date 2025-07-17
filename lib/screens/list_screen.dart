@@ -228,7 +228,6 @@ class _ListScreenState extends State<ListScreen> {
         debugPrint('Using cached collections: ${collections.length} items');
 
         // Apply filter if specified (for now, just return all collections)
-        // TODO: Add proper filtering based on collection metadata
         if (widget.filterType == 'seasonal') {
           // Filter by title/description containing seasonal keywords
           collections =

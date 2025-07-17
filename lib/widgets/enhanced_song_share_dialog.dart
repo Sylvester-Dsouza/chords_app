@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import '../config/theme.dart';
 import '../models/song.dart';
 import '../utils/ui_helpers.dart';
 
@@ -249,7 +250,7 @@ Download Stuthi app for worship song chords and lyrics.''';
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  fontFamily: 'monospace',
+                  fontFamily: AppTheme.monospaceFontFamily,
                 ),
                 textAlign: TextAlign.center,
               ),

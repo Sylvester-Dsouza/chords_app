@@ -4,7 +4,7 @@ import 'dart:async';
 import 'dart:io';
 import '../config/theme.dart';
 import '../models/vocal.dart';
-import '../utils/performance_tracker.dart';
+import '../utils/performance_utils.dart';
 
 class VocalPlayerScreen extends StatefulWidget {
   final VocalItem vocalItem;
@@ -173,7 +173,7 @@ class _VocalPlayerScreenState extends State<VocalPlayerScreen>
       );
 
       // Track performance (non-blocking)
-      PerformanceTracker.trackMediaOperation(
+      PerformanceUtils.trackMediaOperation(
         'load',
         'vocal_audio',
         Duration(milliseconds: 100), // Approximate load time

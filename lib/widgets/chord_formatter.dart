@@ -113,7 +113,7 @@ class ChordFormatter extends StatelessWidget {
               fontSize: fontSize,
               height: 1.3,
               // Use a monospace font to ensure consistent spacing if enabled
-              fontFamily: useMonospaceFont ? 'JetBrains Mono' : null,
+              fontFamily: useMonospaceFont ? AppTheme.monospaceFontFamily : AppTheme.primaryFontFamily,
             ),
             // Ensure the text is rendered exactly as it is, preserving all spaces
             textWidthBasis: TextWidthBasis.longestLine,

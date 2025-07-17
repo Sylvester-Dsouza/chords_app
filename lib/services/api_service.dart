@@ -4,7 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../config/api_config.dart';
-import '../utils/performance_tracker.dart';
+import '../utils/performance_utils.dart';
 
 /// API service for making HTTP requests to the backend
 class ApiService {
@@ -264,7 +264,7 @@ class ApiService {
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) async {
-    return PerformanceTracker.trackApiCall(path, () async {
+    return PerformanceUtils.trackApiCall(path, () async {
       final apiPath = _ensureApiPrefix(path);
       final requestKey = '$apiPath${queryParameters?.toString() ?? ''}';
 
@@ -308,7 +308,7 @@ class ApiService {
     Map<String, dynamic>? queryParameters,
     Options? options,
   }) async {
-    return PerformanceTracker.trackApiCall(path, () async {
+    return PerformanceUtils.trackApiCall(path, () async {
       final apiPath = _ensureApiPrefix(path);
       debugPrint('POST request to $apiPath');
       try {

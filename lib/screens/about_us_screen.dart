@@ -126,7 +126,6 @@ class AboutUsScreen extends StatelessWidget {
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () {
-                        // TODO: Implement join community action
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primary,

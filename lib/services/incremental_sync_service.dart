@@ -64,7 +64,7 @@ class IncrementalSyncService {
   Future<bool> get isOnline async {
     try {
       final connectivityResult = await Connectivity().checkConnectivity();
-      return connectivityResult != ConnectivityResult.none;
+      return !connectivityResult.contains(ConnectivityResult.none);
     } catch (e) {
       debugPrint('Error checking connectivity: $e');
       return false;

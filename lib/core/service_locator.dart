@@ -18,6 +18,7 @@ import '../services/community_service.dart';
 
 import '../services/audio_service.dart';
 import '../services/memory_manager.dart';
+
 import '../services/persistent_cache_manager.dart';
 import '../services/smart_data_manager.dart';
 import '../services/performance_service.dart';
@@ -71,6 +72,8 @@ Future<void> setupServiceLocator() async {
 
   // Memory management service
   serviceLocator.registerLazySingleton<MemoryManager>(() => MemoryManager());
+  
+
 
   // Smart caching services
   serviceLocator.registerLazySingleton<PersistentCacheManager>(() => PersistentCacheManager());
@@ -115,6 +118,8 @@ Future<void> _initializeCriticalServices() async {
 
     // Initialize memory manager
     serviceLocator<MemoryManager>().startMonitoring();
+    
+
 
     debugPrint('✅ Critical services initialized successfully');
   } catch (e) {
@@ -146,6 +151,8 @@ Future<void> disposeServices() async {
     if (serviceLocator.isRegistered<MemoryManager>()) {
       serviceLocator<MemoryManager>().stopMonitoring();
     }
+    
+
 
     // Dispose services in reverse order of initialization
 
@@ -218,6 +225,7 @@ extension ServiceLocatorExtensions on GetIt {
   OfflineService get offlineService => get<OfflineService>();
   ConnectivityService get connectivityService => get<ConnectivityService>();
   MemoryManager get memoryManager => get<MemoryManager>();
+
   PersistentCacheManager get persistentCacheManager => get<PersistentCacheManager>();
   SmartDataManager get smartDataManager => get<SmartDataManager>();
 }

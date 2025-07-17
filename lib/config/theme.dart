@@ -129,12 +129,15 @@ class AppTheme {
   // ============================================================================
 
   /// Primary font family - SF Pro Display (for all text)
+  /// This is the main font used throughout the app for all text
   static const String primaryFontFamily = 'SF Pro Display';
 
   /// Display font family - SF Pro Display (for headings and large text)
+  /// Used for headings, titles, and other prominent text elements
   static const String displayFontFamily = 'SF Pro Display';
 
   /// Monospace font family - For chord sheets and code-like content
+  /// Used for chord sheets, code blocks, and other content requiring fixed-width characters
   static const String monospaceFontFamily = 'JetBrains Mono';
 
   // Get the theme data
@@ -158,53 +161,53 @@ class AppTheme {
       textTheme: const TextTheme(
         displayLarge: TextStyle(
           fontSize: 28.0,
-          fontWeight: FontWeight.w800, // More bold for main headings
+          fontWeight: FontWeight.w600, // Standardized to w600 for headings
           fontFamily: displayFontFamily,
           color: textPrimary,
-          letterSpacing: -0.5, // Tighter spacing for bold, clean look
+          letterSpacing: -0.5, // Tighter spacing for clean look
         ),
         displayMedium: TextStyle(
           fontSize: 24.0,
-          fontWeight: FontWeight.w800, // More bold for main headings
+          fontWeight: FontWeight.w600, // Standardized to w600 for headings
           fontFamily: displayFontFamily,
           color: textPrimary,
-          letterSpacing: -0.4, // Tighter spacing for bold, clean look
+          letterSpacing: -0.4, // Tighter spacing for clean look
         ),
         displaySmall: TextStyle(
           fontSize: 20.0,
-          fontWeight: FontWeight.w800, // More bold for main headings
+          fontWeight: FontWeight.w600, // Standardized to w600 for headings
           fontFamily: displayFontFamily,
           color: textPrimary,
-          letterSpacing: -0.3, // Tighter spacing for bold, clean look
+          letterSpacing: -0.3, // Tighter spacing for clean look
         ),
         headlineMedium: TextStyle(
           fontSize: 18.0,
-          fontWeight: FontWeight.w700, // More bold for headings
+          fontWeight: FontWeight.w600, // Standardized to w600 for headings
           fontFamily: displayFontFamily,
           color: textPrimary,
-          letterSpacing: -0.2, // Tighter spacing for bold, clean look
+          letterSpacing: -0.2, // Tighter spacing for clean look
         ),
         titleLarge: TextStyle(
           fontSize: 16.0,
-          fontWeight: FontWeight.w600, // A little bold for main text
+          fontWeight: FontWeight.w600, // Standardized to w600 for headings
           fontFamily: primaryFontFamily,
           color: textPrimary,
         ),
         bodyLarge: TextStyle(
           fontSize: 15.0,
-          fontWeight: FontWeight.w400, // A little bold for main text
+          fontWeight: FontWeight.w500, // Standardized to w500 for text
           fontFamily: primaryFontFamily,
           color: textPrimary,
         ),
         bodyMedium: TextStyle(
           fontSize: 13.0,
-          fontWeight: FontWeight.w300, // Regular weight for smaller text
+          fontWeight: FontWeight.w500, // Standardized to w500 for text
           fontFamily: primaryFontFamily,
           color: textPrimary,
         ),
         labelLarge: TextStyle(
           fontSize: 13.0,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w500, // Already at w500, no change needed
           fontFamily: primaryFontFamily,
           color: textPrimary,
         ),
@@ -379,25 +382,25 @@ class AppTheme {
 
   static const TextStyle songTitleStyle = TextStyle(
     fontSize: 18.0,
-    fontWeight: FontWeight.w700, // More bold for song titles
+    fontWeight: FontWeight.w600, // Standardized to w600 for headings
     fontFamily: displayFontFamily,
     color: textPrimary,
-    letterSpacing: -0.3, // Tighter for bold, clean look
+    letterSpacing: -0.3, // Tighter for clean look
   );
 
   static const TextStyle artistNameStyle = TextStyle(
     fontSize: 14.0,
-    fontWeight: FontWeight.w400, // Regular weight for artist names
+    fontWeight: FontWeight.w500, // Standardized to w500 for text
     fontFamily: primaryFontFamily,
     color: textSecondary,
   );
 
   static const TextStyle sectionTitleStyle = TextStyle(
     fontSize: 16.0,
-    fontWeight: FontWeight.w600, // Medium-bold for section titles
+    fontWeight: FontWeight.w600, // Already at w600, no change needed
     fontFamily: primaryFontFamily,
     color: textPrimary,
-    letterSpacing: -0.2, // Tighter for bold, clean look
+    letterSpacing: -0.2, // Tighter for clean look
   );
 
   static const TextStyle chordSheetStyle = TextStyle(
@@ -436,6 +439,68 @@ class AppTheme {
     fontWeight: FontWeight.w500, // Medium weight for bottom navigation
     fontFamily: primaryFontFamily,
     color: textSecondary,
+  );
+  
+  // ============================================================================
+  // ADDITIONAL TEXT STYLES - For common use cases
+  // ============================================================================
+  
+  /// For error messages
+  static const TextStyle errorTextStyle = TextStyle(
+    fontSize: 14.0,
+    fontWeight: FontWeight.w500, // Standardized to w500 for text
+    fontFamily: primaryFontFamily,
+    color: error,
+  );
+  
+  /// For placeholder/hint text
+  static const TextStyle placeholderTextStyle = TextStyle(
+    fontSize: 14.0,
+    fontWeight: FontWeight.w500, // Standardized to w500 for text
+    fontFamily: primaryFontFamily,
+    color: textPlaceholder,
+  );
+  
+  /// For dialog titles
+  static const TextStyle dialogTitleStyle = TextStyle(
+    fontSize: 18.0,
+    fontWeight: FontWeight.w600, // Standardized to w600 for headings
+    fontFamily: displayFontFamily,
+    color: textPrimary,
+    letterSpacing: -0.2,
+  );
+  
+  /// For dialog content
+  static const TextStyle dialogContentStyle = TextStyle(
+    fontSize: 16.0,
+    fontWeight: FontWeight.w500, // Standardized to w500 for text
+    fontFamily: primaryFontFamily,
+    color: textSecondary,
+  );
+  
+  /// For small captions and labels
+  static const TextStyle captionStyle = TextStyle(
+    fontSize: 12.0,
+    fontWeight: FontWeight.w500, // Standardized to w500 for text
+    fontFamily: primaryFontFamily,
+    color: textSecondary,
+  );
+  
+  /// For code and monospace content (not chords)
+  static const TextStyle codeStyle = TextStyle(
+    fontSize: 14.0,
+    fontWeight: FontWeight.w400,
+    fontFamily: monospaceFontFamily,
+    color: textPrimary,
+    letterSpacing: 0.2,
+  );
+  
+  /// For buttons and interactive elements
+  static const TextStyle buttonTextStyle = TextStyle(
+    fontSize: 14.0,
+    fontWeight: FontWeight.w600,
+    fontFamily: primaryFontFamily,
+    color: textPrimary,
   );
 
   // ============================================================================
