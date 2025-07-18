@@ -18,9 +18,10 @@ import '../services/community_service.dart';
 
 import '../services/audio_service.dart';
 import '../services/memory_manager.dart';
+import '../services/session_manager.dart';
 
-import '../services/persistent_cache_manager.dart';
-import '../services/smart_data_manager.dart';
+
+
 import '../services/performance_service.dart';
 import '../services/connectivity_service.dart';
 import 'error_handler.dart';
@@ -72,12 +73,13 @@ Future<void> setupServiceLocator() async {
 
   // Memory management service
   serviceLocator.registerLazySingleton<MemoryManager>(() => MemoryManager());
+
+  // Session management service
+  serviceLocator.registerLazySingleton<SessionManager>(() => SessionManager());
   
 
 
-  // Smart caching services
-  serviceLocator.registerLazySingleton<PersistentCacheManager>(() => PersistentCacheManager());
-  serviceLocator.registerLazySingleton<SmartDataManager>(() => SmartDataManager());
+
   
   // Initialize critical services immediately
   await _initializeCriticalServices();
@@ -226,8 +228,7 @@ extension ServiceLocatorExtensions on GetIt {
   ConnectivityService get connectivityService => get<ConnectivityService>();
   MemoryManager get memoryManager => get<MemoryManager>();
 
-  PersistentCacheManager get persistentCacheManager => get<PersistentCacheManager>();
-  SmartDataManager get smartDataManager => get<SmartDataManager>();
+
 }
 
 /// Check if all critical services are ready

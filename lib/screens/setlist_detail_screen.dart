@@ -7,7 +7,7 @@ import '../models/setlist.dart';
 import '../models/song.dart';
 import '../services/setlist_service.dart';
 import '../services/liked_songs_service.dart';
-import '../services/incremental_sync_service.dart';
+import '../services/cache_service.dart';
 import '../config/theme.dart';
 import '../utils/ui_helpers.dart';
 import '../widgets/enhanced_setlist_share_dialog.dart';
@@ -36,14 +36,19 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
 
   final SetlistService _setlistService = SetlistService();
   final LikedSongsService _likedSongsService = LikedSongsService();
-  final IncrementalSyncService _syncService = IncrementalSyncService();
+  final CacheService _cacheService = CacheService();
   List<Song> _likedSongs = [];
+  List<Song> _filteredLikedSongs = [];
+  final TextEditingController _searchController = TextEditingController();
 
   Setlist? _setlist;
   bool _isLoading = true;
   bool _isLoggedIn = false;
   bool _isAddingSongs = false;
+  bool _isRemovingSong = false;
+  bool _isReordering = false;
   bool _hasModifiedSetlist = false; // Track if setlist was modified
+  String _loadingMessage = 'Loading setlist...';
   List<dynamic> _songs = [];
 
   @override
@@ -79,10 +84,21 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
 
   @override
   void dispose() {
+    debugPrint('🚨 SetlistDetailScreen dispose() called - screen is being removed from navigation stack');
+    debugPrint('🔄 Setlist was modified: $_hasModifiedSetlist');
+
+    // If the setlist was modified, we should trigger a refresh of the parent screen
+    if (_hasModifiedSetlist) {
+      debugPrint('📤 Setlist was modified - parent screens should refresh their data');
+      // The parent screen should listen for this and refresh accordingly
+    }
+
     // Clean up any resources if needed
-    // Note: Services are stateless and don't need disposal
+    _searchController.dispose();
     super.dispose();
   }
+
+
 
   Future<void> _checkLoginStatus() async {
     try {
@@ -125,11 +141,27 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
       final likedSongs = await _likedSongsService.getLikedSongs();
       setState(() {
         _likedSongs = likedSongs;
+        _filteredLikedSongs = likedSongs; // Initialize filtered list
       });
       debugPrint('Fetched ${_likedSongs.length} liked songs');
     } catch (e) {
       debugPrint('Error fetching liked songs: $e');
     }
+  }
+
+  // Filter liked songs based on search query
+  void _filterLikedSongs(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredLikedSongs = _likedSongs;
+      } else {
+        _filteredLikedSongs = _likedSongs.where((song) {
+          final titleMatch = song.title.toLowerCase().contains(query.toLowerCase());
+          final artistMatch = song.artist.toLowerCase().contains(query.toLowerCase());
+          return titleMatch || artistMatch;
+        }).toList();
+      }
+    });
   }
 
   // Simple refresh method for after adding songs (no auth error handling)
@@ -143,12 +175,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
       }
 
       debugPrint('📡 Refreshing setlist details from cache/API');
-      final setlist = await _syncService.getSetlistById(widget.setlistId, forceRefresh: true);
-
-      if (setlist == null) {
-        debugPrint('❌ Setlist not found during refresh');
-        return;
-      }
+      final setlist = await _setlistService.getSetlistById(widget.setlistId);
 
       debugPrint('✅ Setlist details refreshed: ${setlist.name}');
       debugPrint('🎵 Songs count: ${setlist.songs?.length ?? 0}');
@@ -201,18 +228,13 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
       }
       
       // Clear cache completely for this setlist
-      await _syncService.clearSetlistCache(widget.setlistId);
-      
+      await _cacheService.clearSetlistCache();
+
       // Wait for cache to clear
       await Future.delayed(const Duration(milliseconds: 500));
-      
-      // Force refresh from API
-      final setlist = await _syncService.getSetlistById(widget.setlistId, forceRefresh: true);
 
-      if (setlist == null) {
-        debugPrint('❌ Setlist not found during API refresh');
-        return;
-      }
+      // Force refresh from API
+      final setlist = await _setlistService.getSetlistById(widget.setlistId);
 
       debugPrint('✅ Setlist refreshed from API: ${setlist.name}');
       debugPrint('🎵 Fresh song count from API: ${setlist.songs?.length ?? 0}');
@@ -263,11 +285,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
       }
 
       debugPrint('Getting setlist details from cache/API');
-      final setlist = await _syncService.getSetlistById(widget.setlistId);
-
-      if (setlist == null) {
-        throw Exception('Setlist not found');
-      }
+      final setlist = await _setlistService.getSetlistById(widget.setlistId);
 
       debugPrint('Setlist details received: ${setlist.name}');
       debugPrint('Songs count: ${setlist.songs?.length ?? 0}');
@@ -332,6 +350,98 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
         }
       }
     }
+  }
+
+  // Reorder songs in setlist with conflict detection
+  Future<void> _reorderSongs(int oldIndex, int newIndex) async {
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+
+    setState(() {
+      final song = _songs.removeAt(oldIndex);
+      _songs.insert(newIndex, song);
+    });
+
+    try {
+      // Update the order on the backend
+      final songIds = _songs.map((song) {
+        if (song is Map<String, dynamic>) {
+          return song['id']?.toString() ?? '';
+        }
+        return '';
+      }).where((id) => id.isNotEmpty).toList();
+
+      await _setlistService.reorderSongs(widget.setlistId, songIds);
+
+      // Mark setlist as modified
+      _hasModifiedSetlist = true;
+
+      debugPrint('Songs reordered successfully');
+    } catch (e) {
+      debugPrint('Error reordering songs: $e');
+
+      // Check if it's a conflict error
+      if (e.toString().contains('conflict') || e.toString().contains('version')) {
+        // Show conflict resolution dialog
+        _showConflictResolutionDialog();
+      } else {
+        // Revert the local change on error
+        setState(() {
+          final song = _songs.removeAt(newIndex);
+          _songs.insert(oldIndex, song);
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to reorder songs: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  // Show conflict resolution dialog
+  void _showConflictResolutionDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: const Text(
+          'Setlist Conflict Detected',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'Another user has modified this setlist. Would you like to refresh to see the latest changes?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Keep local changes
+            },
+            child: const Text('Keep My Changes'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Refresh to get latest version
+              _fetchSetlistDetails();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              foregroundColor: Colors.black,
+            ),
+            child: const Text('Refresh'),
+          ),
+        ],
+      ),
+    );
   }
 
   // Start setlist presentation
@@ -471,7 +581,20 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: true, // Allow normal back navigation
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop && _hasModifiedSetlist) {
+          debugPrint('🔄 Screen popped with modifications - parent should refresh');
+          // Try to pass back the modification status
+          try {
+            Navigator.of(context).pop({'modified': true});
+          } catch (e) {
+            debugPrint('⚠️ Could not pass back modification status: $e');
+          }
+        }
+      },
+      child: Scaffold(
       backgroundColor: const Color(0xFF121212),
       appBar: InnerScreenAppBar(
         title: _setlist?.name ?? 'Edit Setlist',
@@ -711,8 +834,9 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                                   await _fetchSetlistDetails();
                                 },
                           color: AppTheme.primary,
-                          child: ListView.builder(
+                          child: ReorderableListView.builder(
                             itemCount: _songs.length,
+                            onReorder: _reorderSongs,
                             itemBuilder: (context, index) {
                               final song = _songs[index];
                               debugPrint('Building song item for index $index: ${song.toString()}');
@@ -764,6 +888,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
         },
       ),
       // Bottom navigation bar removed from inner screens
+    ),
     );
   }
 
@@ -772,6 +897,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
     const double placeholderSize = 48.0;
 
     return Container(
+      key: ValueKey(songId), // Add key for reordering
       decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(
@@ -803,6 +929,13 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Drag handle
+            Icon(
+              Icons.drag_handle,
+              color: Colors.grey[600],
+              size: 20,
+            ),
+            const SizedBox(width: 8),
             // Delete button
             IconButton(
               icon: const Icon(
@@ -812,7 +945,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
               ),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
-              onPressed: () {
+              onPressed: _isRemovingSong ? null : () {
                 // Delete song from setlist
                 _showRemoveSongDialog(songId, title);
               },
@@ -984,6 +1117,16 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
     }
   }
 
+  // Helper method to check if all filtered songs are selected
+  bool _areAllFilteredSongsSelected(Set<String> selectedSongIds, Set<String> existingSongIds) {
+    for (var song in _filteredLikedSongs) {
+      if (!selectedSongIds.contains(song.id)) {
+        return false;
+      }
+    }
+    return _filteredLikedSongs.isNotEmpty;
+  }
+
   void _showAddSongDialog() {
     // Check if there are liked songs
     if (_likedSongs.isEmpty) {
@@ -1072,6 +1215,36 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
 
                   const SizedBox(height: 8),
 
+                  // Search field
+                  TextField(
+                    controller: _searchController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Search songs...',
+                      hintStyle: const TextStyle(color: Colors.white54),
+                      prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, color: Colors.white54),
+                              onPressed: () {
+                                _searchController.clear();
+                                _filterLikedSongs('');
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: const Color(0xFF2A2A2A),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    onChanged: _filterLikedSongs,
+                  ),
+
+                  const SizedBox(height: 12),
+
                   // Instructions
                   const Text(
                     'Select songs to add or uncheck to remove from setlist:',
@@ -1082,16 +1255,23 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
 
                   // Song list (scrollable) - More compact
                   Expanded(
-                    child: ListView.builder(
-                      itemCount: _likedSongs.length,
-                      itemBuilder: (context, index) {
-                        final song = _likedSongs[index];
+                    child: _filteredLikedSongs.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'No songs found',
+                              style: TextStyle(color: Colors.white54),
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: _filteredLikedSongs.length,
+                            itemBuilder: (context, index) {
+                              final song = _filteredLikedSongs[index];
                         final bool isInSetlist = existingSongIds.contains(song.id);
                         final bool isSelected = selectedSongIds.contains(song.id);
 
-                        return Container(
-                          decoration: BoxDecoration(
-                            border: index < _likedSongs.length - 1
+                              return Container(
+                                decoration: BoxDecoration(
+                                  border: index < _filteredLikedSongs.length - 1
                                 ? const Border(
                                     bottom: BorderSide(
                                       color: Color(0xFF333333),
@@ -1181,24 +1361,21 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                       TextButton.icon(
                         icon: const Icon(Icons.select_all, color: Colors.grey),
                         label: Text(
-                          selectedSongIds.length == _likedSongs.length ? 'Deselect All' : 'Select All',
+                          _areAllFilteredSongsSelected(selectedSongIds, existingSongIds) ? 'Deselect All' : 'Select All',
                           style: const TextStyle(color: Colors.grey),
                         ),
                         onPressed: () {
                           setState(() {
-                            if (selectedSongIds.length == _likedSongs.length) {
-                              // If all are selected, deselect all except those already in setlist
-                              selectedSongIds.clear();
-                              // Re-add songs that are already in the setlist
-                              for (var song in _likedSongs) {
-                                if (existingSongIds.contains(song.id)) {
-                                  selectedSongIds.add(song.id);
+                            if (_areAllFilteredSongsSelected(selectedSongIds, existingSongIds)) {
+                              // If all filtered songs are selected, deselect them except those already in setlist
+                              for (var song in _filteredLikedSongs) {
+                                if (!existingSongIds.contains(song.id)) {
+                                  selectedSongIds.remove(song.id);
                                 }
                               }
                             } else {
-                              // Otherwise, select all
-                              selectedSongIds.clear();
-                              for (var song in _likedSongs) {
+                              // Otherwise, select all filtered songs
+                              for (var song in _filteredLikedSongs) {
                                 selectedSongIds.add(song.id);
                               }
                             }
@@ -1249,7 +1426,8 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                                   return;
                                 }
 
-                                Navigator.of(context).pop();
+                                // DON'T close the bottom sheet - keep it open to see if that fixes navigation
+                                debugPrint('🔄 Keeping bottom sheet open during song modifications');
 
                                 // Store context before async operations
                                 final scaffoldMessenger = ScaffoldMessenger.of(context);
@@ -1313,6 +1491,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
 
                                   // Close loading dialog first
                                   if (mounted) {
+                                    debugPrint('🔄 Closing loading dialog after successful song modifications');
                                     navigator.pop();
                                   }
 
@@ -1344,22 +1523,58 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                                     );
                                   }
 
-                                  // Clear specific setlist cache and refresh setlist details
+                                  // Update the setlist data in the background WITHOUT closing bottom sheet
                                   if (mounted) {
-                                    debugPrint('🔄 Force refreshing setlist data from API after modifications...');
-                                    
+                                    debugPrint('🔄 Refreshing setlist data in background while keeping bottom sheet open...');
+
                                     // Wait a moment for the backend to process
                                     await Future.delayed(const Duration(milliseconds: 1000));
-                                    
+
                                     // Force refresh directly from API bypassing all cache
                                     await _forceRefreshFromAPI();
+
+                                    // Mark that we've modified the setlist so parent screens know to refresh
+                                    debugPrint('✅ Setlist modifications completed successfully - bottom sheet still open');
+
+                                    // Force clear ALL setlist caches to ensure parent screens refresh
+                                    await _cacheService.clearSetlistCache();
+                                    debugPrint('🗑️ Cleared unified cache service');
+
+                                    // Wait longer to ensure backend has processed the changes
+                                    await Future.delayed(const Duration(milliseconds: 2000));
+                                    debugPrint('🕐 Waited 2 seconds for backend to process changes');
+
+                                    // Update the existing song IDs in the bottom sheet to reflect current state
+                                    final updatedSetlist = await _setlistService.getSetlistById(widget.setlistId);
+                                    final updatedSongIds = updatedSetlist.songs?.map((song) {
+                                      if (song is Map<String, dynamic>) {
+                                        return song['id'] as String;
+                                      }
+                                      return '';
+                                    }).where((id) => id.isNotEmpty).toSet() ?? <String>{};
+
+                                    // Update the selected songs in the bottom sheet
+                                    if (mounted) {
+                                      setState(() {
+                                        selectedSongIds.clear();
+                                        selectedSongIds.addAll(updatedSongIds);
+                                      });
+                                      debugPrint('🔄 Updated bottom sheet selection to reflect current setlist state');
+                                    }
                                   }
                                 } catch (e) {
-                                  debugPrint('Error modifying setlist songs: $e');
+                                  debugPrint('❌ Error modifying setlist songs: $e');
+                                  debugPrint('❌ Error type: ${e.runtimeType}');
+                                  debugPrint('❌ Stack trace: ${StackTrace.current}');
 
                                   // Close loading dialog
                                   if (mounted) {
-                                    navigator.pop();
+                                    debugPrint('🔄 Closing loading dialog after error in song modifications');
+                                    try {
+                                      navigator.pop();
+                                    } catch (popError) {
+                                      debugPrint('⚠️ Error closing loading dialog: $popError');
+                                    }
                                   }
 
                                   // Reset loading state on error (only if mounted)
@@ -1379,6 +1594,9 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                                       ),
                                     );
                                   }
+
+                                  // DO NOT NAVIGATE AWAY - Stay on current screen
+                                  debugPrint('🚨 Error handled, staying on setlist details screen');
                                 }
                               }
                             },
@@ -1575,6 +1793,12 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                 // Store context references
                 final scaffoldMessenger = ScaffoldMessenger.of(context);
 
+                // Set loading state and backup original songs
+                final originalSongs = List<dynamic>.from(_songs);
+                setState(() {
+                  _isRemovingSong = true;
+                });
+
                 // Show loading indicator
                 scaffoldMessenger.showSnackBar(
                   const SnackBar(
@@ -1586,6 +1810,12 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
 
                 try {
                   debugPrint('🗑️ Removing song ID: $songId from setlist: ${widget.setlistId}');
+
+                  // Optimistically remove from UI first
+                  setState(() {
+                    _songs.removeWhere((song) => song['id'] == songId);
+                  });
+
                   await _setlistService.removeSongFromSetlist(widget.setlistId, songId);
                   debugPrint('✅ Successfully removed song from setlist');
 
@@ -1593,6 +1823,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                   if (mounted) {
                     setState(() {
                       _hasModifiedSetlist = true;
+                      _isRemovingSong = false;
                     });
                   }
 
@@ -1617,6 +1848,14 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                     );
                   }
                 } catch (e) {
+                  // Rollback optimistic update
+                  if (mounted) {
+                    setState(() {
+                      _songs = originalSongs;
+                      _isRemovingSong = false;
+                    });
+                  }
+
                   // Show error message
                   if (mounted) {
                     // Store context in a local variable

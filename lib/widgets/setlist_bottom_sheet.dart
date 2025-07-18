@@ -18,8 +18,8 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
   bool _isCreatingNewSetlist = false;
   bool _isLoading = true;
   bool _isCreatingSetlist = false;
-  bool _isSavingSelections = false;
   String? _errorMessage;
+  String? _currentlyModifyingSetlistId; // Track which setlist is being modified
 
   // Setlist service
   final SetlistService _setlistService = SetlistService();
@@ -147,21 +147,33 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
 
   // Toggle song in setlist (add or remove)
   Future<void> _toggleSongInSetlist(String setlistId) async {
+    // Prevent multiple simultaneous operations
+    if (_currentlyModifyingSetlistId != null) {
+      debugPrint('⚠️ Already modifying setlist $_currentlyModifyingSetlistId, ignoring toggle request for $setlistId');
+      return;
+    }
+
     try {
+      debugPrint('🔄 Toggling song in setlist: $setlistId');
+
       setState(() {
-        _isSavingSelections = true;
+        _currentlyModifyingSetlistId = setlistId;
       });
 
       final bool isCurrentlyInSetlist = _setlistContainsSong[setlistId] ?? false;
+      debugPrint('📋 Current state - Song in setlist: $isCurrentlyInSetlist');
 
       if (isCurrentlyInSetlist) {
         // Remove the song from the setlist
+        debugPrint('➖ Removing song from setlist...');
         await _setlistService.removeSongFromSetlist(setlistId, widget.song.id);
 
-        // Update the state
-        setState(() {
-          _setlistContainsSong[setlistId] = false;
-        });
+        // Update the state immediately for UI responsiveness
+        if (mounted) {
+          setState(() {
+            _setlistContainsSong[setlistId] = false;
+          });
+        }
 
         // Show success message with setlist name
         if (mounted) {
@@ -182,14 +194,18 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
             ),
           );
         }
+        debugPrint('✅ Song removed from setlist successfully');
       } else {
         // Add the song to the setlist
+        debugPrint('➕ Adding song to setlist...');
         await _setlistService.addSongToSetlist(setlistId, widget.song.id);
 
-        // Update the state
-        setState(() {
-          _setlistContainsSong[setlistId] = true;
-        });
+        // Update the state immediately for UI responsiveness
+        if (mounted) {
+          setState(() {
+            _setlistContainsSong[setlistId] = true;
+          });
+        }
 
         // Show success message with setlist name
         if (mounted) {
@@ -216,9 +232,19 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
             ),
           );
         }
+        debugPrint('✅ Song added to setlist successfully');
       }
     } catch (e) {
-      debugPrint('Error toggling song in setlist: $e');
+      debugPrint('❌ Error toggling song in setlist: $e');
+
+      // Revert the optimistic UI update on error
+      if (mounted) {
+        setState(() {
+          // Revert to previous state
+          final bool wasInSetlist = _setlistContainsSong[setlistId] ?? false;
+          _setlistContainsSong[setlistId] = !wasInSetlist;
+        });
+      }
 
       // Show error message
       if (mounted) {
@@ -226,15 +252,18 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
           SnackBar(
             content: Text('Failed to update setlist: ${e.toString()}'),
             backgroundColor: AppTheme.error,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
     } finally {
+      // Always reset the saving state
       if (mounted) {
         setState(() {
-          _isSavingSelections = false;
+          _currentlyModifyingSetlistId = null;
         });
       }
+      debugPrint('🔄 Toggle operation completed for setlist: $setlistId');
     }
   }
 
@@ -513,7 +542,7 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
                             '${setlist.songs?.length ?? 0} songs',
                             style: const TextStyle(color: Colors.grey),
                           ),
-                          trailing: _isSavingSelections && _setlistContainsSong[setlist.id] != isInSetlist
+                          trailing: _currentlyModifyingSetlistId == setlist.id
                             ? const SizedBox(
                                 width: 24,
                                 height: 24,
@@ -526,9 +555,9 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
                                 value: isInSetlist,
                                 activeColor: AppTheme.primary,
                                 checkColor: Colors.black,
-                                onChanged: (_) => _toggleSongInSetlist(setlist.id),
+                                onChanged: _currentlyModifyingSetlistId != null ? null : (_) => _toggleSongInSetlist(setlist.id),
                               ),
-                          onTap: () => _toggleSongInSetlist(setlist.id),
+                          onTap: _currentlyModifyingSetlistId != null ? null : () => _toggleSongInSetlist(setlist.id),
                         );
                       },
                     ),

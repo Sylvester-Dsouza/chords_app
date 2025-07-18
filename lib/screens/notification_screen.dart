@@ -14,6 +14,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   final NotificationService _notificationService = NotificationService();
   List<dynamic> _notifications = [];
   bool _isLoading = true;
+  bool _groupByDate = true;
 
   @override
   void initState() {
@@ -202,6 +203,77 @@ class _NotificationScreenState extends State<NotificationScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: _loadNotifications,
           ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            onSelected: (value) {
+              switch (value) {
+                case 'group':
+                  setState(() {
+                    _groupByDate = !_groupByDate;
+                  });
+                  break;
+                case 'mark_all_read':
+                  _markAllAsRead();
+                  break;
+                case 'clear_all':
+                  _clearAllNotifications();
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'group',
+                child: Row(
+                  children: [
+                    Icon(
+                      _groupByDate ? Icons.view_list : Icons.view_agenda,
+                      color: Colors.white70,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _groupByDate ? 'Ungroup' : 'Group by Date',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'mark_all_read',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.mark_email_read,
+                      color: Colors.white70,
+                      size: 20,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Mark All Read',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'clear_all',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.clear_all,
+                      color: Colors.red,
+                      size: 20,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Clear All',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       body: _isLoading
@@ -252,5 +324,85 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 ),
       // Bottom navigation bar removed from inner screens
     );
+  }
+
+  Future<void> _markAllAsRead() async {
+    try {
+      // Mark all unread notifications as read
+      for (final notification in _notifications) {
+        if (notification['status'] == 'DELIVERED') {
+          await _notificationService.markNotificationAsRead(notification['notificationId']);
+          notification['status'] = 'READ';
+        }
+      }
+
+      setState(() {
+        // UI will update automatically
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('All notifications marked as read'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error marking notifications as read: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _clearAllNotifications() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: const Text(
+          'Clear All Notifications',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'Are you sure you want to clear all notifications? This action cannot be undone.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Clear All'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() {
+        _notifications.clear();
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('All notifications cleared'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
   }
 }

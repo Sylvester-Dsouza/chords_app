@@ -49,12 +49,29 @@ import 'providers/user_provider.dart';
 import 'models/song.dart';
 import 'utils/performance_utils.dart';
 import 'services/image_cache_manager.dart';
+import 'services/session_manager.dart';
+
 
 // Removed flutter_local_notifications due to compatibility issues
 
 void main() async {
   // This ensures the Flutter binding is initialized before anything else
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Handle image loading errors gracefully
+  FlutterError.onError = (FlutterErrorDetails details) {
+    // Check if it's an image loading error
+    if (details.exception.toString().contains('HttpException') ||
+        details.exception.toString().contains('IMAGE RESOURCE SERVICE') ||
+        details.exception.toString().contains('Invalid statusCode')) {
+      // Log the error but don't crash the app
+      debugPrint('🖼️ Image loading error handled: ${details.exception}');
+      return;
+    }
+
+    // For other errors, use the default handler
+    FlutterError.presentError(details);
+  };
 
   debugPrint('🚀 ${AppConstants.appName} starting up...');
 
@@ -99,6 +116,9 @@ void main() async {
 
   // Initialize image cache manager for memory efficiency
   ImageCacheManager().initialize();
+
+  // Initialize session manager for session-based caching
+  await SessionManager().initialize();
 
   // Initialize UserProvider before running the app
   final userProvider = UserProvider();

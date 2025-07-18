@@ -4,6 +4,7 @@ import '../models/song.dart';
 import '../services/setlist_service.dart';
 import '../services/liked_songs_service.dart';
 import '../services/liked_songs_notifier.dart';
+import '../services/cache_service.dart';
 import '../config/theme.dart';
 
 import 'package:dio/dio.dart';
@@ -35,6 +36,7 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
   final SetlistService _setlistService = SetlistService();
   final LikedSongsService _likedSongsService = LikedSongsService();
   final LikedSongsNotifier _likedSongsNotifier = LikedSongsNotifier();
+  final CacheService _cacheService = CacheService();
 
   List<Setlist> _setlists = [];
   List<Song> _likedSongs = [];
@@ -44,6 +46,106 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
 
   // Last time setlists were fetched
   DateTime? _lastFetchTime;
+
+  // Force hard refresh by clearing all caches and fetching fresh data
+  Future<void> _forceHardRefresh() async {
+    try {
+      debugPrint('🔄 Starting hard refresh - clearing all local state...');
+
+      // Clear all cache first
+      await _cacheService.clearSetlistCache();
+
+      // Clear all local state
+      setState(() {
+        _setlists = [];
+        _lastFetchTime = null;
+        _isLoading = true;
+        _isFetchingSetlists = false;
+      });
+
+      // Reset attempt counters
+      _fetchSetlistsAttempts = 0;
+
+      // Add delay to ensure UI updates
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // Force fetch from API
+      await _fetchSetlists(forceRefresh: true);
+
+      debugPrint('✅ Hard refresh completed');
+    } catch (e) {
+      debugPrint('❌ Error during hard refresh: $e');
+    }
+  }
+
+  // Manual refresh method for app bar refresh button
+  Future<void> _performManualRefresh() async {
+    try {
+      debugPrint('🔄 Starting manual refresh from app bar...');
+
+      // Show loading state
+      if (mounted) {
+        setState(() {
+          _isLoading = true;
+          _isFetchingSetlists = false;
+        });
+      }
+
+      // Clear all caches aggressively - both local and API
+      await _cacheService.clearSetlistCache();
+      debugPrint('🗑️ Cleared local caches');
+
+      // Force clear API caches as well
+      try {
+        await _setlistService.forceClearAllCaches();
+        debugPrint('🗑️ Cleared API caches');
+      } catch (e) {
+        debugPrint('⚠️ Failed to clear API caches: $e');
+        // Continue anyway with local cache clearing
+      }
+
+      // Reset local state
+      if (mounted) {
+        setState(() {
+          _setlists.clear();
+          _lastFetchTime = null;
+          _fetchSetlistsAttempts = 0;
+        });
+      }
+
+      // Wait a moment for cache clearing to propagate
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Force fetch fresh data from database
+      await _fetchSetlists(forceRefresh: true);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Setlists refreshed successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+
+      debugPrint('✅ Manual refresh completed successfully');
+    } catch (e) {
+      debugPrint('❌ Error during manual refresh: $e');
+
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to refresh: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
 
   // Define the fetchSetlists method with enhanced caching, aggressive debouncing, and robust error handling
   Future<void> _fetchSetlists({bool forceRefresh = false}) async {
@@ -994,6 +1096,24 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
         ),
         centerTitle: true,
         actions: [
+          // Refresh icon with loading state
+          IconButton(
+            icon: _isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                  ),
+                )
+              : const Icon(Icons.refresh, color: Colors.white70),
+            onPressed: _isLoading ? null : () async {
+              debugPrint('🔄 Manual refresh triggered from app bar');
+              await _performManualRefresh();
+            },
+            tooltip: _isLoading ? 'Refreshing...' : 'Refresh Setlists',
+          ),
           // Info icon on the right
           IconButton(
             icon: const Icon(Icons.info_outline, color: Colors.white70),
@@ -1153,12 +1273,52 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
                     'setlistId': setlist.id,
                     'setlistName': setlist.name,
                   },
-                ).then((result) {
-                  // Only refresh if something changed (like songs added/removed)
-                  if (result == true) {
-                    // Force refresh only if explicitly told to
-                    _fetchSetlists(forceRefresh: true);
+                ).then((result) async {
+                  // Always force refresh when returning from setlist detail
+                  // to ensure any changes are reflected immediately
+                  debugPrint('🔄 Returned from setlist detail with result: $result');
+
+                  // Check if modifications were made
+                  bool wasModified = false;
+                  if (result is Map && result['modified'] == true) {
+                    wasModified = true;
+                    debugPrint('✅ Setlist was modified - performing aggressive refresh');
+                  } else {
+                    debugPrint('ℹ️ No modifications detected - performing standard refresh');
                   }
+
+                  // Clear all caches first - be more aggressive
+                  await _cacheService.clearSetlistCache();
+                  debugPrint('🗑️ Cleared unified cache service');
+
+                  setState(() {
+                    _lastFetchTime = null; // Reset cache timestamp
+                    _setlists.clear(); // Clear local state to force fresh fetch
+                  });
+
+                  // Wait longer to ensure backend changes have propagated
+                  final waitTime = wasModified ? 3000 : 1000; // Wait longer if modified
+                  await Future.delayed(Duration(milliseconds: waitTime));
+                  debugPrint('🕐 Waited ${waitTime}ms for backend changes to propagate');
+
+                  // Force refresh with cache bypass - more attempts if modified
+                  final maxAttempts = wasModified ? 5 : 3;
+                  for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+                    debugPrint('🔄 Refresh attempt $attempt/$maxAttempts');
+                    await _fetchSetlists(forceRefresh: true);
+
+                    // Check if we got updated data
+                    if (_setlists.isNotEmpty) {
+                      debugPrint('✅ Got ${_setlists.length} setlists on attempt $attempt');
+                      break;
+                    }
+
+                    if (attempt < maxAttempts) {
+                      await Future.delayed(const Duration(milliseconds: 1500));
+                    }
+                  }
+
+                  debugPrint('✅ Setlist screen refreshed after detail screen');
                 });
               },
               onDelete: () => _showDeleteSetlistDialog(setlist.id, setlist.name),
@@ -1244,11 +1404,13 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
 
               debugPrint('Created setlist: ${createdSetlist.id} - ${createdSetlist.name}');
 
-              // Refresh setlists with force refresh
-              await _fetchSetlists(forceRefresh: true);
-
-              // Show success message
+              // Immediately add to local state for instant UI feedback
               if (mounted) {
+                setState(() {
+                  _setlists.insert(0, createdSetlist); // Add to beginning of list
+                });
+
+                // Show success message immediately
                 scaffoldMessenger.showSnackBar(
                   SnackBar(
                     content: Text('Setlist "$name" created successfully'),
@@ -1256,7 +1418,16 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
                   ),
                 );
               }
+
+              debugPrint('✅ Setlist added to local state and UI updated instantly');
             } catch (e) {
+              // Remove the setlist from local state if backend creation failed
+              if (mounted) {
+                setState(() {
+                  _setlists.removeWhere((setlist) => setlist.name == name);
+                });
+              }
+
               // Show error message
               if (mounted) {
                 // Check if it's an authentication error
@@ -1268,8 +1439,6 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
                       backgroundColor: Colors.red,
                     ),
                   );
-
-                  // Don't automatically log out or redirect
                 } else {
                   scaffoldMessenger.showSnackBar(
                     SnackBar(
@@ -1279,6 +1448,8 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
                   );
                 }
               }
+
+              debugPrint('❌ Create setlist failed, reverted local state');
             }
           },
         );
@@ -1399,11 +1570,15 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
                             return;
                           }
 
-                          // Proceed with deletion
-                          await _setlistService.deleteSetlist(setlistId);
+                          // Immediately remove from local state for instant UI feedback
+                          if (mounted) {
+                            setState(() {
+                              _setlists.removeWhere((setlist) => setlist.id == setlistId);
+                            });
+                          }
 
-                          // Refresh setlists with force refresh
-                          await _fetchSetlists(forceRefresh: true);
+                          // Proceed with backend deletion
+                          await _setlistService.deleteSetlist(setlistId);
 
                           // Show success message
                           if (mounted) {
@@ -1414,7 +1589,15 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
                               ),
                             );
                           }
+
+                          debugPrint('✅ Setlist deleted from local state and backend');
                         } catch (e) {
+                          // Restore the setlist to local state if backend deletion failed
+                          if (mounted) {
+                            // Find the setlist that was removed and add it back
+                            await _forceHardRefresh(); // Refresh from backend to restore state
+                          }
+
                           // Show error message
                           if (mounted) {
                             // Check if it's an authentication error
@@ -1426,8 +1609,6 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
                                   backgroundColor: Colors.red,
                                 ),
                               );
-
-                              // Don't automatically log out or redirect
                             } else {
                               scaffoldMessenger.showSnackBar(
                                 SnackBar(
@@ -1437,6 +1618,8 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
                               );
                             }
                           }
+
+                          debugPrint('❌ Delete setlist failed, restored local state');
                         }
                       },
                       child: const Text('Delete'),
@@ -1612,15 +1795,42 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
                             return;
                           }
 
-                          // Proceed with update
+                          // Immediately update local state for instant UI feedback
+                          if (mounted) {
+                            setState(() {
+                              final index = _setlists.indexWhere((s) => s.id == setlist.id);
+                              if (index != -1) {
+                                // Create updated setlist object
+                                final updatedSetlist = Setlist(
+                                  id: setlist.id,
+                                  name: name,
+                                  description: description.isNotEmpty ? description : null,
+                                  customerId: setlist.customerId,
+                                  createdAt: setlist.createdAt,
+                                  updatedAt: DateTime.now(),
+                                  songs: setlist.songs,
+                                  isPublic: setlist.isPublic,
+                                  isShared: setlist.isShared,
+                                  shareCode: setlist.shareCode,
+                                  allowEditing: setlist.allowEditing,
+                                  allowComments: setlist.allowComments,
+                                  isSharedWithMe: setlist.isSharedWithMe,
+                                  version: setlist.version,
+                                  lastSyncAt: setlist.lastSyncAt,
+                                  isDeleted: setlist.isDeleted,
+                                  deletedAt: setlist.deletedAt,
+                                );
+                                _setlists[index] = updatedSetlist;
+                              }
+                            });
+                          }
+
+                          // Proceed with backend update
                           await _setlistService.updateSetlist(
                             setlist.id,
                             name,
                             description: description.isNotEmpty ? description : null,
                           );
-
-                          // Refresh setlists with force refresh
-                          await _fetchSetlists(forceRefresh: true);
 
                           // Show success message
                           if (mounted) {
@@ -1631,6 +1841,8 @@ class _SetlistScreenState extends State<SetlistScreen> with SingleTickerProvider
                               ),
                             );
                           }
+
+                          debugPrint('✅ Setlist updated in local state and backend');
                         } catch (e) {
                           // Show error message
                           if (mounted) {

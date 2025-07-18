@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/comment.dart';
 import '../models/song.dart';
 import '../services/comment_service.dart';
-import '../widgets/skeleton_loader.dart';
 import '../config/theme.dart';
+import '../widgets/skeleton_loader.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class CommentsScreen extends StatefulWidget {
@@ -23,6 +23,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
   bool _isLoading = true;
   String? _replyingToId;
   String? _replyingToName;
+  String _sortBy = 'newest'; // newest, oldest, most_liked
 
   @override
   void initState() {
@@ -46,7 +47,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
 
       if (mounted) {
         setState(() {
-          _comments = comments;
+          _comments = _sortComments(comments);
           _isLoading = false;
         });
       }
@@ -161,6 +162,32 @@ class _CommentsScreenState extends State<CommentsScreen> {
     setState(() {
       _replyingToId = null;
       _replyingToName = null;
+    });
+  }
+
+  List<Comment> _sortComments(List<Comment> comments) {
+    List<Comment> sortedComments = List.from(comments);
+
+    switch (_sortBy) {
+      case 'oldest':
+        sortedComments.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        break;
+      case 'most_liked':
+        sortedComments.sort((a, b) => b.likesCount.compareTo(a.likesCount));
+        break;
+      case 'newest':
+      default:
+        sortedComments.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+    }
+
+    return sortedComments;
+  }
+
+  void _changeSortOrder(String sortBy) {
+    setState(() {
+      _sortBy = sortBy;
+      _comments = _sortComments(_comments);
     });
   }
 
@@ -369,6 +396,71 @@ class _CommentsScreenState extends State<CommentsScreen> {
           style: const TextStyle(color: Colors.white),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.sort, color: Colors.white),
+            onSelected: _changeSortOrder,
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'newest',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.access_time,
+                      color: _sortBy == 'newest' ? AppTheme.primary : Colors.white70,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Newest First',
+                      style: TextStyle(
+                        color: _sortBy == 'newest' ? AppTheme.primary : Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'oldest',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.history,
+                      color: _sortBy == 'oldest' ? AppTheme.primary : Colors.white70,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Oldest First',
+                      style: TextStyle(
+                        color: _sortBy == 'oldest' ? AppTheme.primary : Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'most_liked',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.favorite,
+                      color: _sortBy == 'most_liked' ? AppTheme.primary : Colors.white70,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Most Liked',
+                      style: TextStyle(
+                        color: _sortBy == 'most_liked' ? AppTheme.primary : Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: Column(
         children: [

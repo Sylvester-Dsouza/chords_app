@@ -46,14 +46,25 @@ class MemoryEfficientImage extends StatelessWidget {
       fit: fit,
       placeholder: (context, url) => placeholder ?? _defaultPlaceholder,
       errorWidget: (context, url, error) {
+        // Log the error but don't throw exceptions
         debugPrint('Error loading image: $url - $error');
+
+        // Handle different types of errors gracefully
+        if (error.toString().contains('400') ||
+            error.toString().contains('404') ||
+            error.toString().contains('HttpException')) {
+          debugPrint('HTTP error for image: $url, using fallback');
+        }
+
         return errorWidget ?? _defaultErrorWidget;
       },
-      // Memory management options - allow higher quality for larger images
+      // Enhanced memory management for persistent caching
       memCacheWidth: _calculateMemCacheSize(width),
       memCacheHeight: _calculateMemCacheSize(height),
       maxWidthDiskCache: _calculateDiskCacheSize(width), // Dynamic based on image size
       maxHeightDiskCache: _calculateDiskCacheSize(height), // Dynamic based on image size
+      // Enable persistent disk caching for better performance
+      useOldImageOnUrlChange: true, // Prevent blank screens during loading
       // Add cache key for better memory management
       cacheKey: _generateCacheKey(imageUrl!, width, height),
     );
@@ -120,8 +131,8 @@ class MemoryEfficientImage extends StatelessWidget {
     // Get device pixel ratio (default to 2.0 if not available)
     final pixelRatio = WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
 
-    // Calculate size based on pixel ratio, with a higher maximum for better quality
-    return (size * pixelRatio).round().clamp(0, 600); // Increased from 300 to 600
+    // Calculate size based on pixel ratio, with higher maximum for persistent caching
+    return (size * pixelRatio).round().clamp(0, 1000); // Increased to 1000 for better image quality
   }
 
   // Calculate appropriate disk cache size for better image quality
@@ -133,13 +144,13 @@ class MemoryEfficientImage extends StatelessWidget {
       return 400; // Default size for disk cache
     }
 
-    // For larger images (like collections), allow higher disk cache sizes
+    // Enhanced disk cache sizes for persistent storage and better quality
     if (size >= 250) {
-      return 800; // High quality for collection images
+      return 1200; // Very high quality for collection images
     } else if (size >= 150) {
-      return 600; // Medium quality for medium images
+      return 800; // High quality for medium images
     } else {
-      return 400; // Standard quality for smaller images
+      return 600; // Good quality for smaller images
     }
   }
 

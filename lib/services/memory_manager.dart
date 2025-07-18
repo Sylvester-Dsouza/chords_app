@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/painting.dart';
+
 import 'image_cache_manager.dart';
 
 /// Memory management service to monitor and optimize app memory usage
@@ -13,10 +13,10 @@ class MemoryManager {
   Timer? _memoryMonitorTimer;
   bool _isMonitoring = false;
   
-  // Memory thresholds (in MB) - Mobile-appropriate limits
-  static const double _warningThreshold = 100.0; // 100MB warning
-  static const double _criticalThreshold = 150.0; // 150MB critical
-  static const double _emergencyThreshold = 200.0; // 200MB emergency
+  // Memory thresholds (in MB) - Optimized for modern devices with 2GB+ RAM
+  static const double _warningThreshold = 500.0; // 500MB warning
+  static const double _criticalThreshold = 800.0; // 800MB critical
+  static const double _emergencyThreshold = 1200.0; // 1200MB emergency - only for true emergencies
   
   // Callbacks for memory pressure
   final List<VoidCallback> _memoryPressureCallbacks = [];
@@ -26,14 +26,14 @@ class MemoryManager {
   /// Start monitoring memory usage
   void startMonitoring() {
     if (_isMonitoring) return;
-    
+
     _isMonitoring = true;
     _memoryMonitorTimer = Timer.periodic(
-      const Duration(minutes: 2), // Check every 2 minutes to reduce overhead
+      const Duration(minutes: 5), // Check every 5 minutes to reduce overhead and prevent aggressive cleanup
       (_) => _checkMemoryUsage(),
     );
-    
-    debugPrint('🧠 Memory monitoring started');
+
+    debugPrint('🧠 Memory monitoring started with conservative thresholds');
   }
 
   /// Stop monitoring memory usage
@@ -81,13 +81,15 @@ class MemoryManager {
 
       if (usedMemoryMB > _emergencyThreshold) {
         debugPrint('🆘 EMERGENCY memory usage: ${usedMemoryMB.toStringAsFixed(1)} MB - IMMEDIATE ACTION REQUIRED');
+        debugPrint('🆘 EMERGENCY memory pressure - conservative cleanup only');
         _triggerEmergencyMemoryCallbacks();
       } else if (usedMemoryMB > _criticalThreshold) {
-        debugPrint('🚨 CRITICAL memory usage: ${usedMemoryMB.toStringAsFixed(1)} MB');
+        debugPrint('🚨 CRITICAL memory usage: ${usedMemoryMB.toStringAsFixed(1)} MB - monitoring closely');
+        // Only trigger critical callbacks, don't clear caches aggressively
         _triggerCriticalMemoryCallbacks();
       } else if (usedMemoryMB > _warningThreshold) {
-        debugPrint('⚠️ High memory usage: ${usedMemoryMB.toStringAsFixed(1)} MB');
-        _triggerMemoryPressureCallbacks();
+        debugPrint('⚠️ High memory usage: ${usedMemoryMB.toStringAsFixed(1)} MB - normal operation');
+        // Just log warning, don't trigger cleanup for normal high usage
       }
     } catch (e) {
       debugPrint('Error checking memory usage: $e');
@@ -116,16 +118,7 @@ class MemoryManager {
     return null;
   }
 
-  /// Trigger memory pressure callbacks
-  void _triggerMemoryPressureCallbacks() {
-    for (final callback in _memoryPressureCallbacks) {
-      try {
-        callback();
-      } catch (e) {
-        debugPrint('Error in memory pressure callback: $e');
-      }
-    }
-  }
+
 
   /// Trigger critical memory callbacks
   void _triggerCriticalMemoryCallbacks() {
@@ -149,29 +142,22 @@ class MemoryManager {
     }
   }
 
-  /// Force garbage collection and cleanup
+  /// Force garbage collection and cleanup - CONSERVATIVE approach
   void forceCleanup() {
-    debugPrint('🧹 Forcing memory cleanup...');
+    debugPrint('🧹 Conservative memory cleanup - preserving user experience...');
 
-    // Use image cache manager for better cleanup
+    // Only perform minimal cleanup to avoid blank screens
     try {
-      ImageCacheManager().forceCleanup();
-      debugPrint('🧹 Image cache manager cleanup completed');
+      // Use gentle cleanup instead of aggressive clearing
+      ImageCacheManager().performCleanup();
+      debugPrint('🧹 Conservative image cache cleanup completed');
     } catch (e) {
-      debugPrint('Error during image cache cleanup: $e');
-      // Fallback to direct cache clear
-      try {
-        PaintingBinding.instance.imageCache.clear();
-        debugPrint('🧹 Fallback image cache clear completed');
-      } catch (e2) {
-        debugPrint('Error clearing image cache: $e2');
-      }
+      debugPrint('Error during conservative image cache cleanup: $e');
+      // Don't fallback to aggressive clearing - preserve user experience
     }
 
-    // Trigger memory pressure callbacks
-    _triggerMemoryPressureCallbacks();
-
-    debugPrint('🧹 Memory cleanup completed');
+    // Only trigger memory pressure callbacks in true emergency
+    debugPrint('🧹 Conservative memory cleanup completed - user experience preserved');
   }
 
   /// Get current memory status for debugging

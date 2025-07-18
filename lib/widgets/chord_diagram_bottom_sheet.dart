@@ -504,11 +504,15 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
             child: _buildChordDiagram(),
           ),
 
-          // Position indicator and navigation row
-          if (_chordVariations.length > 1)
+          // Add bottom spacing when no variations (single chord) or for piano
+          if (_chordVariations.length <= 1 || _selectedInstrument == ChordInstrument.piano)
+            SizedBox(height: 32.0 + safeAreaBottom),
+
+          // Position indicator and navigation row (hide for piano or when only 1 variation)
+          if (_chordVariations.length > 1 && _selectedInstrument != ChordInstrument.piano)
             Padding(
               padding: EdgeInsets.only(
-                bottom: 20.0 + safeAreaBottom, // Add safe area bottom padding
+                bottom: 32.0 + safeAreaBottom, // Increased bottom padding for better spacing
                 top: 8.0,
               ),
               child: Row(
@@ -624,20 +628,63 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
-          child: Text(
-            _errorMessage,
-            style: const TextStyle(color: AppTheme.textSecondary),
-            textAlign: TextAlign.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.music_off,
+                color: AppTheme.textSecondary,
+                size: 48,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Chord not available',
+                style: const TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage,
+                style: const TextStyle(color: AppTheme.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
       );
     }
 
     if (_chordVariations.isEmpty) {
-      return const Center(
-        child: Text(
-          'No chord variations available',
-          style: TextStyle(color: AppTheme.textSecondary),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.music_note_outlined,
+              color: AppTheme.textSecondary,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No chord variations available',
+              style: const TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Try switching to a different instrument',
+              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       );
     }
@@ -654,6 +701,9 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
     return PageView.builder(
       controller: _pageController,
       itemCount: _chordVariations.length,
+      physics: const BouncingScrollPhysics(), // Better scroll physics
+      pageSnapping: true, // Ensure pages snap properly
+      allowImplicitScrolling: true, // Allow better gesture handling
       onPageChanged: (index) {
         setState(() {
           _currentVariationIndex = index;

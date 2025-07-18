@@ -112,8 +112,8 @@ class ChordFormatter extends StatelessWidget {
               color: Colors.white,
               fontSize: fontSize,
               height: 1.3,
-              // Use a monospace font to ensure consistent spacing if enabled
-              fontFamily: useMonospaceFont ? AppTheme.monospaceFontFamily : AppTheme.primaryFontFamily,
+              // Always use monospace font for chord sheets to ensure proper alignment
+              fontFamily: AppTheme.monospaceFontFamily,
             ),
             // Ensure the text is rendered exactly as it is, preserving all spaces
             textWidthBasis: TextWidthBasis.longestLine,
@@ -149,6 +149,7 @@ class ChordFormatter extends StatelessWidget {
             style: AppTheme.chordSheetStyle.copyWith(
               fontSize: fontSize,
               height: 1.3,
+              fontFamily: AppTheme.monospaceFontFamily,
             ),
           ),
         );
@@ -168,6 +169,7 @@ class ChordFormatter extends StatelessWidget {
               // Use provided chord color, or theme's primary color
               color: chordColor ?? Theme.of(context).colorScheme.primary,
               fontSize: fontSize,
+              fontFamily: AppTheme.monospaceFontFamily, // Ensure chords also use monospace
               decoration: onChordTap != null ? TextDecoration.underline : null,
               decorationStyle: TextDecorationStyle.dotted,
             ),

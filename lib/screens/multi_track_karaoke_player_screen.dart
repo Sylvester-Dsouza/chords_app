@@ -102,6 +102,87 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
     super.dispose();
   }
 
+  /// Validate that all track files exist and are valid before playback
+  Future<bool> _validateTrackFiles() async {
+    debugPrint('🎤 Validating track files before playback...');
+
+    final invalidTracks = <TrackType>[];
+
+    for (final entry in _trackPaths.entries) {
+      final trackType = entry.key;
+      final filePath = entry.value;
+
+      // Skip if filePath is null
+      if (filePath == null) {
+        debugPrint('🎤 ❌ Track file path is null: ${trackType.displayName}');
+        invalidTracks.add(trackType);
+        continue;
+      }
+
+      try {
+        final file = File(filePath);
+        final exists = await file.exists();
+
+        if (!exists) {
+          debugPrint('🎤 ❌ Track file missing: ${trackType.displayName} at $filePath');
+          invalidTracks.add(trackType);
+          continue;
+        }
+
+        final fileSize = await file.length();
+        if (fileSize == 0) {
+          debugPrint('🎤 ❌ Track file is empty: ${trackType.displayName} at $filePath');
+          invalidTracks.add(trackType);
+          continue;
+        }
+
+        debugPrint('🎤 ✅ Track file valid: ${trackType.displayName} ($fileSize bytes)');
+      } catch (e) {
+        debugPrint('🎤 ❌ Error validating track file: ${trackType.displayName} - $e');
+        invalidTracks.add(trackType);
+      }
+    }
+
+    if (invalidTracks.isNotEmpty) {
+      debugPrint('🎤 ❌ Found ${invalidTracks.length} invalid tracks, will re-download');
+
+      // Show loading state
+      setState(() {
+        _isLoading = true;
+        _isDownloading = true;
+        _loadingMessage = 'Re-downloading missing tracks...';
+      });
+
+      // Re-download invalid tracks
+      await _redownloadTracks(invalidTracks);
+
+      return false; // Indicate that re-download was needed
+    }
+
+    debugPrint('🎤 ✅ All track files are valid');
+    return true;
+  }
+
+  /// Re-download specific tracks
+  Future<void> _redownloadTracks(List<TrackType> trackTypes) async {
+    try {
+      // Remove invalid tracks from paths
+      for (final trackType in trackTypes) {
+        _trackPaths.remove(trackType);
+      }
+
+      // Re-initialize tracks
+      await _loadTracks();
+    } catch (e) {
+      debugPrint('🎤 Error re-downloading tracks: $e');
+      setState(() {
+        _isLoading = false;
+        _isDownloading = false;
+        _loadingMessage = 'Error re-downloading tracks: $e';
+      });
+    }
+  }
+
   Future<void> _initializeServices() async {
     await _authService.initializeFirebase();
     _downloadManager = MultiTrackDownloadManager();
@@ -280,18 +361,36 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
           _loadingMessage = 'Processing ${trackType.displayName.toLowerCase()} track...';
         });
 
-        // Check if track is already downloaded
+        // Check if track is already downloaded with robust validation
         debugPrint('🎤 Checking for local track: ${trackType.displayName} for song ID: ${widget.song.id}');
         final localPath = _downloadManager.getLocalPath(widget.song.id, trackType);
         debugPrint('🎤 Download manager returned path: $localPath');
 
+        bool needsDownload = true;
+
         if (localPath != null) {
-          final fileExists = await File(localPath).exists();
+          final file = File(localPath);
+          final fileExists = await file.exists();
           debugPrint('🎤 File exists at path: $fileExists');
 
           if (fileExists) {
-            _trackPaths[trackType] = localPath;
-            debugPrint('🎤 ✅ Found local ${trackType.displayName} track: $localPath');
+            // Additional validation: check file size
+            try {
+              final fileSize = await file.length();
+              debugPrint('🎤 File size: $fileSize bytes');
+
+              if (fileSize > 0) {
+                _trackPaths[trackType] = localPath;
+                needsDownload = false;
+                debugPrint('🎤 ✅ Found valid local ${trackType.displayName} track: $localPath');
+              } else {
+                debugPrint('🎤 ❌ File exists but is empty, will re-download');
+                // Delete the empty file
+                await file.delete();
+              }
+            } catch (e) {
+              debugPrint('🎤 ❌ Error checking file: $e, will re-download');
+            }
           } else {
             debugPrint('🎤 ❌ File does not exist at path: $localPath');
           }
@@ -299,7 +398,7 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
           debugPrint('🎤 ❌ No local path found for ${trackType.displayName}');
         }
 
-        if (localPath == null || !await File(localPath).exists()) {
+        if (needsDownload) {
           // Download the track using the API download URL
           debugPrint('🎤 Downloading ${trackType.displayName} track from: ${trackDownload.downloadUrl}');
           final success = await _downloadManager.downloadTrack(
@@ -329,10 +428,24 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
         });
       }
 
+      // Final validation before setting up audio sources
+      debugPrint('🎤 Performing final validation of all tracks...');
+      final finalValidation = await _validateTrackFiles();
+
+      if (!finalValidation) {
+        // Validation failed and re-download was triggered
+        return;
+      }
+
       // Set up audio sources for all tracks
       await _setupAudioSources(trackDownloads: trackDownloads);
 
-      debugPrint('🎤 Multi-track karaoke player initialized successfully');
+      setState(() {
+        _isLoading = false;
+        _isDownloading = false;
+      });
+
+      debugPrint('🎤 ✅ Multi-track karaoke player initialized and validated successfully');
     } catch (e) {
       debugPrint('🎤 Error loading tracks: $e');
       setState(() {
@@ -354,14 +467,38 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
           _loadingMessage = 'Processing ${track.trackType.displayName.toLowerCase()} track...';
         });
 
-        // Check if track is already downloaded
+        // Check if track is already downloaded with robust validation
         debugPrint('🎤 [Fallback] Checking for local track: ${track.trackType.displayName} for song ID: ${widget.song.id}');
         final localPath = _downloadManager.getLocalPath(widget.song.id, track.trackType);
 
-        if (localPath != null && await File(localPath).exists()) {
-          _trackPaths[track.trackType] = localPath;
-          debugPrint('🎤 [Fallback] ✅ Found local ${track.trackType.displayName} track: $localPath');
-        } else {
+        bool needsDownload = true;
+
+        if (localPath != null) {
+          final file = File(localPath);
+          final fileExists = await file.exists();
+
+          if (fileExists) {
+            // Additional validation: check file size
+            try {
+              final fileSize = await file.length();
+              debugPrint('🎤 [Fallback] File size: $fileSize bytes');
+
+              if (fileSize > 0) {
+                _trackPaths[track.trackType] = localPath;
+                needsDownload = false;
+                debugPrint('🎤 [Fallback] ✅ Found valid local ${track.trackType.displayName} track: $localPath');
+              } else {
+                debugPrint('🎤 [Fallback] ❌ File exists but is empty, will re-download');
+                // Delete the empty file
+                await file.delete();
+              }
+            } catch (e) {
+              debugPrint('🎤 [Fallback] ❌ Error checking file: $e, will re-download');
+            }
+          }
+        }
+
+        if (needsDownload) {
           // Download the track using the song's track URL
           debugPrint('🎤 [Fallback] Downloading ${track.trackType.displayName} track from: ${track.fileUrl}');
           final success = await _downloadManager.downloadTrack(
@@ -387,8 +524,24 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
         });
       }
 
+      // Final validation before setting up audio sources
+      debugPrint('🎤 [Fallback] Performing final validation of all tracks...');
+      final finalValidation = await _validateTrackFiles();
+
+      if (!finalValidation) {
+        // Validation failed and re-download was triggered
+        return;
+      }
+
       // Set up audio sources for all tracks
       await _setupAudioSources(tracks: tracks);
+
+      setState(() {
+        _isLoading = false;
+        _isDownloading = false;
+      });
+
+      debugPrint('🎤 ✅ [Fallback] All tracks loaded and validated successfully');
 
     } catch (e) {
       debugPrint('🎤 Error in fallback track loading: $e');
@@ -813,6 +966,17 @@ class _MultiTrackKaraokePlayerScreenState extends State<MultiTrackKaraokePlayerS
         // Pause all tracks simultaneously
         await _pauseAllTracks();
       } else {
+        // Validate track files before starting playback
+        if (!_hasPlayedBefore) {
+          debugPrint('🎤 First time playing, validating track files...');
+          final isValid = await _validateTrackFiles();
+
+          if (!isValid) {
+            // Files were re-downloaded, validation method handles the UI
+            return;
+          }
+        }
+
         // Start/resume all tracks
         if (!_hasPlayedBefore) {
           await _startAllTracksFirstTime();

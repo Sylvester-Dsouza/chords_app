@@ -1,14 +1,19 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/song.dart';
 import '../models/artist.dart';
 import '../models/collection.dart';
+import '../models/setlist.dart';
+
 
 /// A service for caching data to reduce API calls and improve app performance
 class CacheService {
   static final CacheService _instance = CacheService._internal();
-  // Removed unused _secureStorage field
+
+  // Secure storage for sensitive cache data
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   // In-memory cache for faster access during app session
   final Map<String, dynamic> _memoryCache = {};
@@ -28,6 +33,8 @@ class CacheService {
   static const String _keyNewSongs = 'cache_new_songs';
   static const String _keyHomeSections = 'cache_home_sections';
   static const String _keyBannerImages = 'cache_banner_images';
+  static const String _keySetlists = 'cache_setlists';
+  static const String _keyLikedSongs = 'cache_liked_songs';
 
   // Factory constructor
   factory CacheService() {
@@ -47,9 +54,21 @@ class CacheService {
     debugPrint('Cache service initialized');
   }
 
-  /// Clear all cached data
+  /// Check if cache should be used based on session state
+  bool shouldUseCacheForSession() {
+    try {
+      // Always use cache for better performance, only refresh on new sessions
+      // Session-based refresh is handled by SessionManager in other services
+      return true;
+    } catch (e) {
+      debugPrint('Error checking session state: $e');
+      return true; // Default to using cache
+    }
+  }
+
+  /// Clear all cached data - ONLY for logout or critical situations
   Future<void> clearAllCache() async {
-    debugPrint('Clearing all cached data...');
+    debugPrint('⚠️ CRITICAL: Clearing all cached data - this should be rare...');
     // Clear memory cache
     _memoryCache.clear();
 
@@ -64,8 +83,22 @@ class CacheService {
     await prefs.remove(_keyNewSongs);
     await prefs.remove(_keyHomeSections);
     await prefs.remove(_keyBannerImages);
+    await prefs.remove(_keySetlists);
+    await prefs.remove(_keyLikedSongs);
 
-    debugPrint('All cached data cleared');
+    // Clear secure storage cache
+    await _secureStorage.delete(key: 'setlists_cache');
+    await _secureStorage.delete(key: 'shared_setlists_cache');
+
+    // Clear individual setlist caches
+    final keys = await _secureStorage.readAll();
+    for (final key in keys.keys) {
+      if (key.startsWith('setlist_') || key.contains('cache')) {
+        await _secureStorage.delete(key: key);
+      }
+    }
+
+    debugPrint('⚠️ All cached data cleared - user may experience slower performance');
   }
 
   /// Load cached songs into memory
@@ -959,6 +992,178 @@ class CacheService {
       debugPrint('Removed cached data for key: $key');
     } catch (e) {
       debugPrint('Error removing cached data for key $key: $e');
+    }
+  }
+
+  // ==================== SETLIST CACHING METHODS ====================
+
+  /// Cache setlists
+  Future<void> cacheSetlists(List<Setlist> setlists) async {
+    try {
+      final setlistsJson = setlists.map((setlist) => setlist.toJson()).toList();
+      final cacheData = {
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+        'data': setlistsJson,
+      };
+
+      // Save to memory cache
+      _memoryCache[_keySetlists] = cacheData;
+
+      // Save to persistent storage
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keySetlists, json.encode(cacheData));
+
+      debugPrint('💾 Cached ${setlists.length} setlists');
+    } catch (e) {
+      debugPrint('❌ Error caching setlists: $e');
+    }
+  }
+
+  /// Get cached setlists
+  Future<List<Setlist>?> getCachedSetlists() async {
+    try {
+      // First check memory cache
+      if (_memoryCache.containsKey(_keySetlists)) {
+        final cacheMap = _memoryCache[_keySetlists] as Map<String, dynamic>;
+        final timestamp = cacheMap['timestamp'] as int;
+        final expirationTime = timestamp + (_defaultExpirationMinutes * 60 * 1000);
+
+        // Check if memory cache is still valid
+        if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
+          final setlistsJson = cacheMap['data'] as List;
+          final setlists = setlistsJson.map((json) => Setlist.fromJson(json)).toList();
+          debugPrint('📦 Retrieved ${setlists.length} setlists from memory cache');
+          return setlists;
+        }
+      }
+
+      // Check persistent storage
+      final prefs = await SharedPreferences.getInstance();
+      final cachedData = prefs.getString(_keySetlists);
+
+      if (cachedData != null) {
+        final cacheMap = json.decode(cachedData) as Map<String, dynamic>;
+        final timestamp = cacheMap['timestamp'] as int;
+        final expirationTime = timestamp + (_defaultExpirationMinutes * 60 * 1000);
+
+        // Check if persistent cache is still valid
+        if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
+          final setlistsJson = cacheMap['data'] as List;
+          final setlists = setlistsJson.map((json) => Setlist.fromJson(json)).toList();
+
+          // Update memory cache
+          _memoryCache[_keySetlists] = cacheMap;
+
+          debugPrint('📦 Retrieved ${setlists.length} setlists from persistent cache');
+          return setlists;
+        }
+      }
+
+      // No valid cache found
+      return null;
+    } catch (e) {
+      debugPrint('❌ Error getting cached setlists: $e');
+      return null;
+    }
+  }
+
+  /// Cache liked songs
+  Future<void> cacheLikedSongs(List<Song> likedSongs) async {
+    try {
+      final likedSongsJson = likedSongs.map((song) => song.toJson()).toList();
+      final cacheData = {
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+        'data': likedSongsJson,
+      };
+
+      // Save to memory cache
+      _memoryCache[_keyLikedSongs] = cacheData;
+
+      // Save to persistent storage
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyLikedSongs, json.encode(cacheData));
+
+      debugPrint('💾 Cached ${likedSongs.length} liked songs');
+    } catch (e) {
+      debugPrint('❌ Error caching liked songs: $e');
+    }
+  }
+
+  /// Get cached liked songs
+  Future<List<Song>?> getCachedLikedSongs() async {
+    try {
+      // First check memory cache
+      if (_memoryCache.containsKey(_keyLikedSongs)) {
+        final cacheMap = _memoryCache[_keyLikedSongs] as Map<String, dynamic>;
+        final timestamp = cacheMap['timestamp'] as int;
+        final expirationTime = timestamp + (_defaultExpirationMinutes * 60 * 1000);
+
+        // Check if memory cache is still valid
+        if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
+          final likedSongsJson = cacheMap['data'] as List;
+          final likedSongs = likedSongsJson.map((json) => Song.fromJson(json)).toList();
+          debugPrint('📦 Retrieved ${likedSongs.length} liked songs from memory cache');
+          return likedSongs;
+        }
+      }
+
+      // Check persistent storage
+      final prefs = await SharedPreferences.getInstance();
+      final cachedData = prefs.getString(_keyLikedSongs);
+
+      if (cachedData != null) {
+        final cacheMap = json.decode(cachedData) as Map<String, dynamic>;
+        final timestamp = cacheMap['timestamp'] as int;
+        final expirationTime = timestamp + (_defaultExpirationMinutes * 60 * 1000);
+
+        // Check if persistent cache is still valid
+        if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
+          final likedSongsJson = cacheMap['data'] as List;
+          final likedSongs = likedSongsJson.map((json) => Song.fromJson(json)).toList();
+
+          // Update memory cache
+          _memoryCache[_keyLikedSongs] = cacheMap;
+
+          debugPrint('📦 Retrieved ${likedSongs.length} liked songs from persistent cache');
+          return likedSongs;
+        }
+      }
+
+      // No valid cache found
+      return null;
+    } catch (e) {
+      debugPrint('❌ Error getting cached liked songs: $e');
+      return null;
+    }
+  }
+
+  /// Clear all setlist-related cache (for CRUD operations)
+  Future<void> clearSetlistCache() async {
+    try {
+      debugPrint('🗑️ Clearing all setlist cache...');
+
+      // Remove from memory cache
+      _memoryCache.remove(_keySetlists);
+
+      // Remove from persistent storage
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_keySetlists);
+
+      // Clear any secure storage setlist caches
+      await _secureStorage.delete(key: 'setlists_cache');
+      await _secureStorage.delete(key: 'shared_setlists_cache');
+
+      // Clear individual setlist caches
+      final keys = await _secureStorage.readAll();
+      for (final key in keys.keys) {
+        if (key.startsWith('setlist_')) {
+          await _secureStorage.delete(key: key);
+        }
+      }
+
+      debugPrint('✅ All setlist cache cleared');
+    } catch (e) {
+      debugPrint('❌ Error clearing setlist cache: $e');
     }
   }
 }

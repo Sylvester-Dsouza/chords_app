@@ -15,6 +15,8 @@ import '../widgets/memory_efficient_image.dart';
 import '../widgets/skeleton_loader.dart';
 import '../services/notification_service.dart';
 import '../services/cache_service.dart';
+import '../services/session_manager.dart';
+
 import '../services/home_section_service.dart';
 import '../core/service_locator.dart';
 import '../config/theme.dart';
@@ -112,8 +114,8 @@ class _HomeScreenNewState extends State<HomeScreenNew>
         // Only load data if we don't have it yet
         debugPrint('Home: No existing data, loading from cache/API...');
 
-        // Clear image cache only on first load
-        _clearImageCache();
+        // Handle session-based cache management
+        _handleSessionBasedCache();
 
         // Initialize app data if needed
         if (appDataProvider.homeState == DataState.loading &&
@@ -229,16 +231,22 @@ class _HomeScreenNewState extends State<HomeScreenNew>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Handle app lifecycle changes
+    // Handle app lifecycle changes with session management
     switch (state) {
       case AppLifecycleState.resumed:
         // App is in the foreground and visible to the user
-        debugPrint('App resumed - checking if background refresh needed');
+        debugPrint('App resumed - checking session status');
 
-        // Only trigger background refresh if data is stale and we're on home screen
-        if (_dataInitiallyLoaded) {
-          _checkForBackgroundRefresh();
-        }
+        // Handle app resume with session manager
+        SessionManager().onAppResumed().then((_) {
+          // Only refresh if session manager detects a new session
+          if (SessionManager().shouldRefreshData() && _dataInitiallyLoaded) {
+            debugPrint('New session detected on resume - refreshing data');
+            _checkForBackgroundRefresh();
+          } else {
+            debugPrint('Continuing session - using cached data for performance');
+          }
+        });
         break;
       case AppLifecycleState.inactive:
         // App is inactive, might be entering background
@@ -248,12 +256,14 @@ class _HomeScreenNewState extends State<HomeScreenNew>
         break;
       case AppLifecycleState.paused:
         // App is in the background
-        debugPrint('App paused - no action needed');
-        // Don't clear caches or trigger refreshes
+        debugPrint('App paused - saving session state');
+        // Save session state for session management
+        SessionManager().onAppPaused();
+        // Don't clear caches or trigger refreshes - preserve for next session
         break;
       case AppLifecycleState.detached:
         // App is detached (terminated)
-        debugPrint('App detached - no action needed');
+        debugPrint('App detached - session will be preserved');
         // Don't clear cache on detach, as we want to keep data for next launch
         break;
       default:
@@ -261,15 +271,20 @@ class _HomeScreenNewState extends State<HomeScreenNew>
     }
   }
 
-  // Clear the image cache to ensure fresh images - only used on first load
-  void _clearImageCache() {
+  // Session-based cache management - only clear on new sessions
+  void _handleSessionBasedCache() {
     try {
-      // Don't clear the entire cache, just clear live images
-      // This is less aggressive and prevents unnecessary network requests
-      PaintingBinding.instance.imageCache.clearLiveImages();
-      debugPrint('Cleared live images from cache');
+      final sessionManager = SessionManager();
+
+      if (sessionManager.shouldRefreshData()) {
+        debugPrint('🔄 New session detected - will refresh data');
+        // Don't clear image cache - let it persist for better performance
+        // Only mark that data should be refreshed
+      } else {
+        debugPrint('📦 Continuing session - using cached data for optimal performance');
+      }
     } catch (e) {
-      debugPrint('Error clearing image cache: $e');
+      debugPrint('Error handling session-based cache: $e');
     }
   }
 
@@ -598,9 +613,6 @@ class _HomeScreenNewState extends State<HomeScreenNew>
             // Top spacing
             const SizedBox(height: 12.0),
 
-            // Beta version alert banner
-            _buildBetaVersionBanner(),
-
             // Connectivity Status Widget - Only show when there's a real problem
             Consumer<AppDataProvider>(
               builder: (context, appDataProvider, child) {
@@ -694,8 +706,8 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                 },
                 child: Text(
                   'See all',
-                  style: const TextStyle(
-                    color: AppTheme.textSecondary,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     fontFamily: AppTheme.primaryFontFamily,
@@ -743,75 +755,7 @@ class _HomeScreenNewState extends State<HomeScreenNew>
     );
   }
 
-  Widget _buildBetaVersionBanner() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color.fromARGB(255, 244, 37, 116),
-            const Color.fromARGB(255, 28, 28, 185),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(8.0),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: const Color.fromARGB(
-                255,
-                255,
-                255,
-                255,
-              ).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Icon(
-              Icons.science_outlined,
-              color: Color.fromARGB(255, 255, 255, 255),
-              size: 16,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Beta Version',
-                  style: TextStyle(
-                    color: Color.fromARGB(255, 255, 255, 255),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    fontFamily: AppTheme.primaryFontFamily,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Experimental features and improvements in progress',
-                  style: TextStyle(
-                    color: const Color.fromARGB(
-                      255,
-                      255,
-                      255,
-                      255,
-                    ).withValues(alpha: 0.8),
-                    fontSize: 11,
-                    fontFamily: AppTheme.primaryFontFamily,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildLoadingIndicator() {
     return Column(
@@ -923,12 +867,33 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                   decoration: BoxDecoration(
                     color: _getColorWithOpacity(color, 0.3),
                     borderRadius: BorderRadius.circular(5),
+                    border: Border.all(
+                      color: _getColorWithOpacity(color, 0.5),
+                      width: 1,
+                    ),
                   ),
                   child: Center(
-                    child: Icon(
-                      Icons.collections_bookmark,
-                      color: AppTheme.textPrimary,
-                      size: 40,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.collections_bookmark,
+                          color: AppTheme.textPrimary.withValues(alpha: 0.7),
+                          size: 40,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          title,
+                          style: TextStyle(
+                            color: AppTheme.textPrimary.withValues(alpha: 0.8),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -1018,11 +983,21 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                                   size: 40,
                                 ),
                               )
-                              : Center(
-                                child: Icon(
-                                  Icons.music_note,
-                                  color: AppTheme.textPrimary,
-                                  size: 40,
+                              : Container(
+                                decoration: BoxDecoration(
+                                  color: _getColorWithOpacity(color, 0.3),
+                                  borderRadius: BorderRadius.circular(5),
+                                  border: Border.all(
+                                    color: _getColorWithOpacity(color, 0.5),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    Icons.music_note,
+                                    color: AppTheme.textPrimary.withValues(alpha: 0.7),
+                                    size: 40,
+                                  ),
                                 ),
                               ),
                     ),
@@ -1124,10 +1099,24 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                                 ),
                               ),
                             )
-                            : Icon(
-                              Icons.person,
-                              color: Colors.white,
-                              size: imageSize * 0.5,
+                            : Container(
+                              width: imageSize,
+                              height: imageSize,
+                              decoration: BoxDecoration(
+                                color: _getColorWithOpacity(color, 0.3),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: _getColorWithOpacity(color, 0.5),
+                                  width: 2,
+                                ),
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  Icons.person,
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                  size: imageSize * 0.5,
+                                ),
+                              ),
                             ),
                   ),
 
@@ -1708,11 +1697,21 @@ class _HomeScreenNewState extends State<HomeScreenNew>
                                   ),
                             ),
                           )
-                          : const Center(
-                            child: Icon(
-                              Icons.music_note,
-                              color: Colors.white,
-                              size: 24,
+                          : Container(
+                            decoration: BoxDecoration(
+                              color: _getColorWithOpacity(_getRandomColor(), 0.4),
+                              borderRadius: BorderRadius.circular(5),
+                              border: Border.all(
+                                color: _getColorWithOpacity(_getRandomColor(), 0.6),
+                                width: 1,
+                              ),
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.music_note,
+                                color: Colors.white,
+                                size: 24,
+                              ),
                             ),
                           ),
                 ),

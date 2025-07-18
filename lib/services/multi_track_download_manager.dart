@@ -42,9 +42,60 @@ class MultiTrackDownloadManager extends ChangeNotifier {
     return true;
   }
 
-  /// Check if a specific track is downloaded
+  /// Check if a specific track is downloaded and file exists
   bool isTrackDownloaded(String songId, TrackType trackType) {
-    return _downloadedTracks[songId]?.containsKey(trackType) ?? false;
+    final hasRecord = _downloadedTracks[songId]?.containsKey(trackType) ?? false;
+    if (!hasRecord) return false;
+
+    // Additional check: verify file actually exists
+    final localPath = getLocalPath(songId, trackType);
+    if (localPath == null) return false;
+
+    // Note: We can't use async file.exists() here, so we rely on the record
+    // The validation will be done in the calling code
+    return true;
+  }
+
+  /// Check if a specific track is downloaded and file exists (async version)
+  Future<bool> isTrackDownloadedAndExists(String songId, TrackType trackType) async {
+    final hasRecord = _downloadedTracks[songId]?.containsKey(trackType) ?? false;
+    if (!hasRecord) return false;
+
+    final localPath = getLocalPath(songId, trackType);
+    if (localPath == null) return false;
+
+    try {
+      final file = File(localPath);
+      final exists = await file.exists();
+      if (!exists) {
+        // File doesn't exist, remove from records
+        debugPrint('🎤 Removing stale record for ${trackType.displayName} - file not found');
+        _downloadedTracks[songId]?.remove(trackType);
+        if (_downloadedTracks[songId]?.isEmpty ?? false) {
+          _downloadedTracks.remove(songId);
+        }
+        await _saveDownloadedTracks();
+        return false;
+      }
+
+      // Check file size
+      final fileSize = await file.length();
+      if (fileSize == 0) {
+        debugPrint('🎤 Removing empty file for ${trackType.displayName}');
+        await file.delete();
+        _downloadedTracks[songId]?.remove(trackType);
+        if (_downloadedTracks[songId]?.isEmpty ?? false) {
+          _downloadedTracks.remove(songId);
+        }
+        await _saveDownloadedTracks();
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('🎤 Error checking file existence: $e');
+      return false;
+    }
   }
 
   /// Get local path for a downloaded track
@@ -92,17 +143,30 @@ class MultiTrackDownloadManager extends ChangeNotifier {
     String? fileName,
   }) async {
     try {
-      // Check if already downloaded
-      if (isTrackDownloaded(songId, trackType)) {
-        debugPrint('🎤 Track already downloaded: $songId - ${trackType.displayName}');
+      // Check if already downloaded and file exists
+      if (await isTrackDownloadedAndExists(songId, trackType)) {
+        debugPrint('🎤 Track already downloaded and verified: $songId - ${trackType.displayName}');
         return true;
       }
 
-      // Create karaoke directory
+      // Create karaoke directory with better error handling
       final appDir = await getApplicationDocumentsDirectory();
       final karaokeDir = Directory('${appDir.path}/karaoke/multi_track');
+
+      debugPrint('🎤 App directory: ${appDir.path}');
+      debugPrint('🎤 Karaoke directory: ${karaokeDir.path}');
+
       if (!await karaokeDir.exists()) {
+        debugPrint('🎤 Creating karaoke directory...');
         await karaokeDir.create(recursive: true);
+
+        // Verify directory was created
+        if (!await karaokeDir.exists()) {
+          throw Exception('Failed to create karaoke directory: ${karaokeDir.path}');
+        }
+        debugPrint('🎤 ✅ Karaoke directory created successfully');
+      } else {
+        debugPrint('🎤 ✅ Karaoke directory already exists');
       }
 
       // Generate file name

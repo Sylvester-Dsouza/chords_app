@@ -23,6 +23,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscureConfirmPassword = true;
   bool _agreeToTerms = false;
 
+  // Password strength tracking
+  double _passwordStrength = 0.0;
+  String _passwordStrengthText = '';
+
   // Create an instance of AuthService
   final AuthService _authService = AuthService();
   String? _errorMessage;
@@ -46,6 +50,61 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _toggleConfirmPasswordVisibility() {
     setState(() {
       _obscureConfirmPassword = !_obscureConfirmPassword;
+    });
+  }
+
+  void _checkPasswordStrength(String password) {
+    setState(() {
+      if (password.isEmpty) {
+        _passwordStrength = 0.0;
+        _passwordStrengthText = '';
+        return;
+      }
+
+      double strength = 0.0;
+      List<String> feedback = [];
+
+      // Length check
+      if (password.length >= 8) {
+        strength += 0.25;
+      } else {
+        feedback.add('At least 8 characters');
+      }
+
+      // Uppercase check
+      if (password.contains(RegExp(r'[A-Z]'))) {
+        strength += 0.25;
+      } else {
+        feedback.add('One uppercase letter');
+      }
+
+      // Lowercase check
+      if (password.contains(RegExp(r'[a-z]'))) {
+        strength += 0.25;
+      } else {
+        feedback.add('One lowercase letter');
+      }
+
+      // Number or special character check
+      if (password.contains(RegExp(r'[0-9!@#$%^&*(),.?":{}|<>]'))) {
+        strength += 0.25;
+      } else {
+        feedback.add('One number or special character');
+      }
+
+      _passwordStrength = strength;
+
+      if (strength == 1.0) {
+        _passwordStrengthText = 'Strong';
+      } else if (strength >= 0.75) {
+        _passwordStrengthText = 'Good';
+      } else if (strength >= 0.5) {
+        _passwordStrengthText = 'Fair';
+      } else if (strength >= 0.25) {
+        _passwordStrengthText = 'Weak';
+      } else {
+        _passwordStrengthText = 'Very Weak';
+      }
     });
   }
 
@@ -418,6 +477,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _passwordController,
                     style: const TextStyle(color: Colors.white),
                     obscureText: _obscurePassword,
+                    onChanged: _checkPasswordStrength,
                     decoration: InputDecoration(
                       hintText: 'Password',
                       hintStyle: const TextStyle(color: Colors.grey),
@@ -448,6 +508,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     },
                   ),
                 ),
+
+                // Password strength indicator
+                if (_passwordController.text.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: LinearProgressIndicator(
+                              value: _passwordStrength,
+                              backgroundColor: Colors.grey[800],
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                _passwordStrength >= 0.75
+                                    ? Colors.green
+                                    : _passwordStrength >= 0.5
+                                        ? Colors.orange
+                                        : Colors.red,
+                              ),
+                              minHeight: 4,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _passwordStrengthText,
+                            style: TextStyle(
+                              color: _passwordStrength >= 0.75
+                                  ? Colors.green
+                                  : _passwordStrength >= 0.5
+                                      ? Colors.orange
+                                      : Colors.red,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+
                 const SizedBox(height: 16),
 
                 // Confirm Password field

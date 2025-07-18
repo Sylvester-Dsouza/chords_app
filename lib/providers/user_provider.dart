@@ -6,7 +6,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 import '../services/api_service.dart';
 import '../services/liked_songs_service.dart';
-import '../services/optimized_cache_service.dart';
+import '../services/cache_service.dart';
 
 import '../services/collection_service.dart';
 
@@ -14,7 +14,7 @@ class UserProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   final LikedSongsService _likedSongsService = LikedSongsService();
-  final OptimizedCacheService _cacheService = OptimizedCacheService();
+  final CacheService _cacheService = CacheService();
   final DefaultCacheManager _imageCacheManager = DefaultCacheManager();
 
   final CollectionService _collectionService = CollectionService();
@@ -415,7 +415,7 @@ class UserProvider extends ChangeNotifier {
     cleanupTasks.add(
       Future(() async {
         try {
-          await _cacheService.clearAllCaches();
+          await _cacheService.clearAllCache();
           debugPrint('Successfully cleared all data caches');
         } catch (e) {
           debugPrint('Error clearing data caches: $e');

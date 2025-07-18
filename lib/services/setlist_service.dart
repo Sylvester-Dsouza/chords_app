@@ -4,12 +4,13 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/setlist.dart';
 import 'api_service.dart';
-import 'incremental_sync_service.dart';
+import 'cache_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SetlistService {
   final ApiService _apiService = ApiService();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  final CacheService _cacheService = CacheService();
 
   // Check if user is authenticated
   Future<bool> isAuthenticated() async {
@@ -196,13 +197,19 @@ class SetlistService {
       });
 
       if (response.statusCode == 201) {
-        debugPrint('Setlist created successfully: ${response.data}');
+        debugPrint('✅ Setlist created successfully: ${response.data}');
         try {
           final setlist = Setlist.fromJson(response.data);
-          debugPrint('Parsed setlist: ${setlist.id} - ${setlist.name}');
+          debugPrint('✅ Parsed setlist: ${setlist.id} - ${setlist.name}');
+
+          // Clear all setlist caches to force refresh
+          debugPrint('🗑️ Clearing all caches after setlist creation...');
+          await _clearAllSetlistCaches();
+          debugPrint('✅ All caches cleared after creation');
+
           return setlist;
         } catch (parseError) {
-          debugPrint('Error parsing created setlist: $parseError');
+          debugPrint('❌ Error parsing created setlist: $parseError');
           throw Exception('Failed to parse created setlist: $parseError');
         }
       } else {
@@ -295,6 +302,9 @@ class SetlistService {
       });
 
       if (response.statusCode == 200) {
+        // Clear all setlist caches to force refresh
+        await _clearAllSetlistCaches();
+
         return Setlist.fromJson(response.data);
       } else {
         throw Exception('Failed to update setlist');
@@ -316,15 +326,30 @@ class SetlistService {
         throw Exception('Authentication required. Please log in.');
       }
 
+      debugPrint('🗑️ Attempting to delete setlist: $id');
       final response = await _apiService.delete('/setlists/$id');
 
+      debugPrint('🗑️ Delete response status: ${response.statusCode}');
+      debugPrint('🗑️ Delete response data: ${response.data}');
+
       if (response.statusCode != 200 && response.statusCode != 204) {
-        throw Exception('Failed to delete setlist');
+        debugPrint('❌ Delete failed with status: ${response.statusCode}');
+        throw Exception('Failed to delete setlist - Status: ${response.statusCode}');
       }
+
+      debugPrint('✅ Setlist deleted successfully from backend');
+
+      // Clear all setlist caches to force refresh
+      await _clearAllSetlistCaches();
+
+      debugPrint('✅ All caches cleared after deletion');
     } catch (e) {
-      debugPrint('Error deleting setlist: $e');
-      if (e is DioException && e.response?.statusCode == 401) {
-        throw Exception('Authentication required. Please log in.');
+      debugPrint('❌ Error deleting setlist: $e');
+      if (e is DioException) {
+        debugPrint('❌ DioException details: ${e.response?.statusCode} - ${e.response?.data}');
+        if (e.response?.statusCode == 401) {
+          throw Exception('Authentication required. Please log in.');
+        }
       }
       throw Exception('Failed to delete setlist: $e');
     }
@@ -565,6 +590,33 @@ class SetlistService {
     }
   }
 
+  // Reorder songs in setlist
+  Future<void> reorderSongs(String setlistId, List<String> songIds) async {
+    try {
+      // Check if user is authenticated
+      if (!await isAuthenticated()) {
+        throw Exception('Authentication required. Please log in.');
+      }
+
+      debugPrint('Reordering songs in setlist $setlistId');
+
+      final response = await _apiService.patch('/setlists/$setlistId/reorder', data: {
+        'songIds': songIds,
+      });
+
+      if (response.statusCode == 200) {
+        debugPrint('Songs reordered successfully');
+        // Clear cache to force refresh
+        await _clearSetlistCaches(setlistId);
+      } else {
+        throw Exception('Failed to reorder songs');
+      }
+    } catch (e) {
+      debugPrint('Error reordering songs: $e');
+      throw Exception('Failed to reorder songs: $e');
+    }
+  }
+
   // Sync setlist changes for real-time collaboration
   Future<Setlist> syncSetlist(String setlistId, Map<String, dynamic> changes, int currentVersion) async {
     try {
@@ -665,9 +717,11 @@ class SetlistService {
     }
   }
 
-  // Clear setlist-related caches
+  // Clear setlist-related caches with improved timing
   Future<void> _clearSetlistCaches(String setlistId) async {
     try {
+      debugPrint('🗑️ Starting cache clearing for setlist $setlistId...');
+
       // Clear specific setlist cache from secure storage
       await _secureStorage.delete(key: 'setlist_$setlistId');
 
@@ -675,16 +729,82 @@ class SetlistService {
       await _secureStorage.delete(key: 'setlists_cache');
       await _secureStorage.delete(key: 'shared_setlists_cache');
 
-      // IMPORTANT: Also clear incremental sync cache
-      final incrementalSyncService = IncrementalSyncService();
-      await incrementalSyncService.clearSetlistCache(setlistId);
+      // IMPORTANT: Also clear unified cache
+      await _cacheService.clearSetlistCache();
 
-      debugPrint('🗑️ Cleared all caches (secure storage + incremental sync) for setlist $setlistId');
+      // Add a small delay to ensure cache clearing propagates
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      debugPrint('🗑️ Cleared all caches (secure storage + unified cache) for setlist $setlistId');
 
       // Verify cache was cleared by trying to get fresh data
       await _verifySetlistAfterOperation(setlistId);
+
+      debugPrint('✅ Cache clearing and verification completed for setlist $setlistId');
     } catch (e) {
       debugPrint('⚠️ Error clearing setlist caches: $e');
+    }
+  }
+
+  // Clear all setlist caches (for create/delete operations)
+  Future<void> _clearAllSetlistCaches() async {
+    try {
+      debugPrint('🗑️ Starting aggressive cache clearing...');
+
+      // Clear all setlists cache from secure storage
+      await _secureStorage.delete(key: 'setlists_cache');
+      await _secureStorage.delete(key: 'shared_setlists_cache');
+
+      // Clear any individual setlist caches
+      final keys = await _secureStorage.readAll();
+      for (final key in keys.keys) {
+        if (key.startsWith('setlist_')) {
+          await _secureStorage.delete(key: key);
+          debugPrint('🗑️ Cleared individual setlist cache: $key');
+        }
+      }
+
+      // Clear unified cache
+      await _cacheService.clearSetlistCache();
+
+      debugPrint('🗑️ Cleared ALL setlist caches (secure storage + unified cache)');
+
+      // Add a small delay to ensure cache clearing is complete
+      await Future.delayed(const Duration(milliseconds: 500));
+
+    } catch (e) {
+      debugPrint('⚠️ Error clearing all setlist caches: $e');
+    }
+  }
+
+  // Force clear all caches via API call
+  Future<void> forceClearAllCaches() async {
+    try {
+      debugPrint('🚨 Force clearing all caches via API...');
+
+      // Check if user is authenticated
+      if (!await isAuthenticated()) {
+        throw Exception('Authentication required. Please log in.');
+      }
+
+      // Call the API cache clearing endpoint
+      final response = await _apiService.post('/setlists/cache/clear');
+
+      if (response.statusCode == 200) {
+        debugPrint('✅ API cache clearing successful');
+
+        // Also clear local caches
+        await _clearAllSetlistCaches();
+
+        debugPrint('✅ Force cache clearing completed successfully');
+      } else {
+        throw Exception('API cache clearing failed with status: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('❌ Error force clearing caches: $e');
+      // Still try to clear local caches even if API call fails
+      await _clearAllSetlistCaches();
+      rethrow;
     }
   }
 

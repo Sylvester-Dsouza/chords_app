@@ -17,9 +17,13 @@ class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
   // Animation controllers
   late AnimationController _fadeAnimationController;
+  late AnimationController _scaleAnimationController;
+  late AnimationController _progressAnimationController;
 
   // Animations
   late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _progressAnimation;
 
   // Data loading progress
   double _loadingProgress = 0.0;
@@ -37,42 +41,90 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // Set up fade animation
-    _fadeAnimationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    );
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(_fadeAnimationController);
-
-    // Start fade animation
-    _fadeAnimationController.forward();
+    _setupAnimations();
+    _startAnimations();
 
     // Initialize Firebase and preload data
     _initializeFirebaseAndPreloadData();
   }
 
+  void _setupAnimations() {
+    // Fade animation for overall content - optimized duration
+    _fadeAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _fadeAnimationController,
+      curve: Curves.easeOut,
+    ));
+
+    // Scale animation for logo with optimized bounce effect
+    _scaleAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _scaleAnimationController,
+      curve: Curves.elasticOut,
+    ));
+
+    // Progress animation for smooth loading bar
+    _progressAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    _progressAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _progressAnimationController,
+      curve: Curves.easeInOut,
+    ));
+  }
+
+  void _startAnimations() {
+    // Start fade animation immediately
+    _fadeAnimationController.forward();
+    
+    // Start scale animation with slight delay
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        _scaleAnimationController.forward();
+      }
+    });
+
+    // Start progress animation after logo appears
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        _progressAnimationController.forward();
+      }
+    });
+  }
+
   Future<void> _initializeFirebaseAndPreloadData() async {
     debugPrint('SplashScreen: Starting initialization');
     try {
-      // Update loading status
-      _updateLoadingStatus('Initializing...', 0.2);
+      // Optimized loading simulation with fewer setState calls
+      final loadingSteps = [
+        ('Initializing...', 0.2),
+        ('Loading app...', 0.4),
+        ('Preparing resources...', 0.6),
+        ('Almost ready...', 0.8),
+        ('Ready!', 1.0),
+      ];
 
-      // Skip permission requests at startup - request only when needed
-      _updateLoadingStatus('Loading app...', 0.3);
-
-      // Simulate loading with a simple timer
-      // This gives a smooth loading experience without actually preloading data
-      for (int i = 3; i <= 10; i++) {
+      for (final (status, progress) in loadingSteps) {
         if (!mounted) return;
-        await Future.delayed(const Duration(milliseconds: 150));
-        _updateLoadingStatus('Loading...', i * 0.1);
+        _updateLoadingStatus(status, progress);
+        await Future.delayed(const Duration(milliseconds: 200));
       }
-
-      // Final loading status
-      _updateLoadingStatus('Ready!', 1.0);
 
       // Navigate to next screen after a short delay
       debugPrint('SplashScreen: Loading complete, navigating to next screen');
@@ -177,8 +229,10 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
-    // Dispose animation controller
+    // Dispose all animation controllers
     _fadeAnimationController.dispose();
+    _scaleAnimationController.dispose();
+    _progressAnimationController.dispose();
     super.dispose();
   }
 
@@ -202,12 +256,15 @@ class _SplashScreenState extends State<SplashScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo image (static, smaller size)
-                  Image.asset(
-                    AppLogos.getSplashLogo(),
-                    width: 120,
-                    height: 120,
-                    fit: BoxFit.contain,
+                  // Logo image with scale animation
+                  ScaleTransition(
+                    scale: _scaleAnimation,
+                    child: Image.asset(
+                      AppLogos.getSplashLogo(),
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                   const SizedBox(height: 60),
 
@@ -218,7 +275,7 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                   const SizedBox(height: 16),
 
-                  // Loading progress bar
+                  // Loading progress bar with animation
                   Container(
                     width: 240,
                     height: 4,
@@ -226,12 +283,17 @@ class _SplashScreenState extends State<SplashScreen>
                       color: const Color(0xFF202020),
                       borderRadius: BorderRadius.circular(5),
                     ),
-                    child: LinearProgressIndicator(
-                      backgroundColor: Colors.transparent,
-                      value: _loadingProgress, // Use actual progress value
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Theme.of(context).colorScheme.primary, // Use primary color
-                      ),
+                    child: AnimatedBuilder(
+                      animation: _progressAnimation,
+                      builder: (context, child) {
+                        return LinearProgressIndicator(
+                          backgroundColor: Colors.transparent,
+                          value: _loadingProgress * _progressAnimation.value,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Theme.of(context).colorScheme.primary,
+                          ),
+                        );
+                      },
                     ),
                   ),
 

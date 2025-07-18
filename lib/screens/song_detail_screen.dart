@@ -387,6 +387,14 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
     });
   }
 
+  // Check if karaoke mode is available for this song
+  bool get _hasKaraokeAvailable {
+    return _song.karaoke != null &&
+           _song.karaoke!.isActive &&
+           _song.karaoke!.tracks.isNotEmpty &&
+           _song.karaoke!.tracks.any((track) => track.isActive);
+  }
+
   // Get the current key after transposition
   String _getCurrentKey() {
     if (_transposeValue == 0) return _song.key;
@@ -586,6 +594,10 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
     if (_song.karaoke != null) {
       debugPrint('Karaoke tracks: ${_song.karaoke!.tracks.length}');
       debugPrint('Karaoke status: ${_song.karaoke!.status}');
+      debugPrint('Karaoke is active: ${_song.karaoke!.isActive}');
+      final activeTracks = _song.karaoke!.tracks.where((track) => track.isActive).length;
+      debugPrint('Active tracks: $activeTracks');
+      debugPrint('Karaoke mode available: $_hasKaraokeAvailable');
     }
 
     showModalBottomSheet(
@@ -641,48 +653,49 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                   _openPresentationMode();
                 },
               ),
-              // AI Karaoke Mode option (always visible)
-              ListTile(
-                leading: Icon(
-                  Icons.multitrack_audio,
-                  color: const Color(0xFF9BB5FF),
-                ),
-                title: Row(
-                  children: [
-                    const Text(
-                      'AI Karaoke Mode',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
+              // AI Karaoke Mode option (only show if song has active karaoke tracks)
+              if (_hasKaraokeAvailable)
+                ListTile(
+                  leading: Icon(
+                    Icons.multitrack_audio,
+                    color: const Color(0xFF9BB5FF),
+                  ),
+                  title: Row(
+                    children: [
+                      const Text(
+                        'AI Karaoke Mode',
+                        style: TextStyle(color: Colors.white),
                       ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF9BB5FF).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        'Multi-Track',
-                        style: TextStyle(
-                          color: Color(0xFF9BB5FF),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF9BB5FF).withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'Multi-Track',
+                          style: TextStyle(
+                            color: Color(0xFF9BB5FF),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  subtitle: const Text(
+                    'AI-separated tracks with individual controls',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _openKaraokeMode();
+                  },
                 ),
-                subtitle: const Text(
-                  'AI-separated tracks with individual controls',
-                  style: TextStyle(color: Colors.white70),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _openKaraokeMode();
-                },
-              ),
             ],
           ),
         );

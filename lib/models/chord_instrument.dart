@@ -24,7 +24,7 @@ extension ChordInstrumentExtension on ChordInstrument {
       case ChordInstrument.guitar:
         return '🎸';
       case ChordInstrument.ukulele:
-        return '🎺'; // Using trumpet as closest emoji
+        return '🪕'; // Using banjo as closest to ukulele
       case ChordInstrument.piano:
         return '🎹';
     }

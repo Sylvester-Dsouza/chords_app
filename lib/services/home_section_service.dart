@@ -4,6 +4,8 @@ import 'package:chords_app/models/song.dart';
 import 'package:chords_app/models/artist.dart';
 import 'package:chords_app/services/api_service.dart';
 import 'package:chords_app/services/cache_service.dart';
+import 'package:chords_app/services/session_manager.dart';
+
 
 // ignore_for_file: constant_identifier_names
 enum SectionType {
@@ -119,10 +121,11 @@ class HomeSectionService {
         sections = cachedSectionsJson.map((json) => HomeSection.fromJson(json)).toList();
         debugPrint('Using cached home sections (${sections.length} sections)');
 
-        // If not forcing refresh, check if cache is stale (older than 30 minutes)
+        // Use session-based refresh logic instead of time-based
         if (!forceRefresh) {
-          final isCacheStale = await _cacheService.isCacheStale('cache_home_sections', 30);
-          shouldRefreshInBackground = isCacheStale;
+          final sessionManager = SessionManager();
+          shouldRefreshInBackground = sessionManager.shouldRefreshData();
+          debugPrint('Session-based refresh decision: $shouldRefreshInBackground');
         } else {
           shouldRefreshInBackground = true;
         }

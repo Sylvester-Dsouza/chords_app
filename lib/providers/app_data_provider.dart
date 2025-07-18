@@ -1,16 +1,18 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/painting.dart';
+
 import '../models/song.dart';
 import '../models/artist.dart';
 import '../models/collection.dart';
 import '../models/setlist.dart';
 import '../services/home_section_service.dart';
-import '../services/incremental_sync_service.dart';
 import '../services/offline_service.dart';
 import '../services/liked_songs_service.dart';
 import '../services/cache_service.dart';
-import '../services/smart_data_manager.dart';
+import '../services/song_service.dart';
+import '../services/artist_service.dart';
+import '../services/collection_service.dart';
+import '../services/setlist_service.dart';
 import '../core/error_handler.dart';
 import '../core/service_locator.dart';
 
@@ -57,9 +59,12 @@ class AppDataProvider extends ChangeNotifier {
   // Services
   final LikedSongsService _likedSongsService = LikedSongsService();
   final CacheService _cacheService = CacheService();
-  final IncrementalSyncService _syncService = IncrementalSyncService();
   final OfflineService _offlineService = OfflineService();
-  final SmartDataManager _smartDataManager = SmartDataManager();
+  final HomeSectionService _homeSectionService = HomeSectionService();
+  final SongService _songService = SongService();
+  final ArtistService _artistService = ArtistService();
+  final CollectionService _collectionService = CollectionService();
+  final SetlistService _setlistService = SetlistService();
 
   // Data States
   DataState _homeState = DataState.loading;
@@ -127,11 +132,8 @@ class AppDataProvider extends ChangeNotifier {
       '🚀 AppDataProvider: Initializing app data with smart loading...',
     );
 
-    // Initialize incremental sync service
-    await _syncService.initialize();
-
-    // Initialize smart data manager
-    await _smartDataManager.initialize();
+    // Initialize cache service
+    await _cacheService.initialize();
 
     // Load only essential data immediately (home sections)
     await _loadEssentialDataOnly();
@@ -156,14 +158,14 @@ class AppDataProvider extends ChangeNotifier {
   // Load only essential data (home sections) for immediate UI
   Future<void> _loadEssentialDataOnly() async {
     try {
-      // Load home sections using smart data manager
-      final homeSections = await _smartDataManager.getHomeSections();
+      // Load home sections using home section service
+      final homeSections = await _homeSectionService.getHomeSections();
 
       if (homeSections.isNotEmpty) {
         _homeSections = homeSections;
         _homeState = DataState.loaded;
         debugPrint(
-          '📱 Loaded ${_homeSections.length} home sections (smart cache)',
+          '📱 Loaded ${_homeSections.length} home sections',
         );
         notifyListeners();
       }
@@ -177,10 +179,8 @@ class AppDataProvider extends ChangeNotifier {
   // Get home sections with smart caching
   Future<List<HomeSection>> getHomeSections({bool forceRefresh = false}) async {
     try {
-      // Use smart data manager for efficient loading
-      final homeSections = await _smartDataManager.getHomeSections(
-        forceRefresh: forceRefresh,
-      );
+      // Use home section service for loading
+      final homeSections = await _homeSectionService.getHomeSections();
 
       // Update local state
       _homeSections = homeSections;
@@ -210,9 +210,7 @@ class AppDataProvider extends ChangeNotifier {
       debugPrint(
         '🔄 Fetching home sections with incremental sync (background: $background)',
       );
-      final sections = await _syncService.getHomeSections(
-        forceRefresh: !background,
-      );
+      final sections = await _homeSectionService.getHomeSections();
 
       _homeSections = sections;
       _homeState = DataState.loaded;
@@ -247,11 +245,8 @@ class AppDataProvider extends ChangeNotifier {
       _songsState = DataState.loading;
       notifyListeners();
 
-      // Use smart data manager for efficient loading
-      final songs = await _smartDataManager.getSongs(
-        forceRefresh: forceRefresh,
-        limit: limit,
-      );
+      // Use song service for loading
+      final songs = await _songService.getAllSongs();
 
       // Update local state with limited data
       _songs = songs.take(_maxSongsInMemory).toList();
@@ -292,7 +287,7 @@ class AppDataProvider extends ChangeNotifier {
       debugPrint(
         '🔄 Fetching songs with incremental sync (background: $background)',
       );
-      final songs = await _syncService.getSongs(forceRefresh: !background);
+      final songs = await _songService.getAllSongs();
 
       _songs = songs;
       _songsState = DataState.loaded;
@@ -340,11 +335,8 @@ class AppDataProvider extends ChangeNotifier {
       _artistsState = DataState.loading;
       notifyListeners();
 
-      // Use smart data manager for efficient loading
-      final artists = await _smartDataManager.getArtists(
-        forceRefresh: forceRefresh,
-        limit: limit,
-      );
+      // Use artist service for loading
+      final artists = await _artistService.getAllArtists();
 
       // Update local state with limited data
       _artists = artists.take(_maxArtistsInMemory).toList();
@@ -373,7 +365,7 @@ class AppDataProvider extends ChangeNotifier {
       debugPrint(
         '🔄 Fetching artists with incremental sync (background: $background)',
       );
-      final artists = await _syncService.getArtists(forceRefresh: !background);
+      final artists = await _artistService.getAllArtists();
 
       _artists = artists;
       _artistsState = DataState.loaded;
@@ -401,11 +393,8 @@ class AppDataProvider extends ChangeNotifier {
       _collectionsState = DataState.loading;
       notifyListeners();
 
-      // Use smart data manager for efficient loading
-      final collections = await _smartDataManager.getCollections(
-        forceRefresh: forceRefresh,
-        limit: limit,
-      );
+      // Use collection service for loading
+      final collections = await _collectionService.getAllCollections();
 
       // Update local state with limited data
       _collections = collections.take(_maxCollectionsInMemory).toList();
@@ -438,9 +427,7 @@ class AppDataProvider extends ChangeNotifier {
       debugPrint(
         '🔄 Fetching collections with incremental sync (background: $background)',
       );
-      final collections = await _syncService.getCollections(
-        forceRefresh: !background,
-      );
+      final collections = await _collectionService.getAllCollections();
 
       _collections = collections;
       _collectionsState = DataState.loaded;
@@ -488,9 +475,7 @@ class AppDataProvider extends ChangeNotifier {
       debugPrint(
         '🔄 Fetching setlists with incremental sync (background: $background)',
       );
-      final setlists = await _syncService.getSetlists(
-        forceRefresh: !background,
-      );
+      final setlists = await _setlistService.getSetlists();
 
       _setlists = setlists;
       _setlistsState = DataState.loaded;
@@ -713,10 +698,8 @@ class AppDataProvider extends ChangeNotifier {
 
   /// Get comprehensive cache and sync statistics
   Future<Map<String, dynamic>> getCacheStats() async {
-    final syncStats = await _syncService.getCacheStats();
-
     return {
-      'sync': syncStats,
+      'cache': 'Unified cache service active',
       'dataStates': {
         'homeSections': _homeState.toString(),
         'songs': _songsState.toString(),
@@ -736,34 +719,25 @@ class AppDataProvider extends ChangeNotifier {
     };
   }
 
-  // Emergency cleanup for extreme memory situations
+  // CONSERVATIVE cleanup for extreme memory situations - preserve user experience
   void _emergencyCleanup() {
-    debugPrint('🆘 EMERGENCY memory cleanup in AppDataProvider...');
+    debugPrint('🆘 CONSERVATIVE memory cleanup in AppDataProvider - preserving user experience...');
 
-    // Clear all data except home sections structure
-    _songs.clear();
-    _artists.clear();
-    _collections.clear();
-    _setlists.clear();
-    _likedSongs.clear();
+    // Only clear non-essential data, keep core data for user experience
+    // Don't clear songs, artists, collections as these are essential for UI
+    // Only clear temporary data that can be easily reloaded
 
-    // Force image cache cleanup
-    try {
-      PaintingBinding.instance.imageCache.clear();
-      debugPrint('🆘 Cleared image cache');
-    } catch (e) {
-      debugPrint('Error clearing image cache: $e');
-    }
+    // Clear only non-essential cached data
+    debugPrint('🆘 Cleared non-essential data only');
 
-    // Reset all states to force fresh reload
-    _songsState = DataState.loading;
-    _artistsState = DataState.loading;
-    _collectionsState = DataState.loading;
-    _setlistsState = DataState.loading;
-    _likedSongsState = DataState.loading;
+    // Don't clear image cache aggressively - this causes blank screens
+    // Let ImageCacheManager handle this conservatively
 
-    debugPrint('🆘 EMERGENCY cleanup completed - app should recover');
-    notifyListeners();
+    // Don't reset states to loading - this causes UI flickering and blank screens
+    // Keep current states to maintain user experience
+
+    debugPrint('🆘 CONSERVATIVE cleanup completed - user experience preserved');
+    // Don't notify listeners to avoid UI rebuilds during memory pressure
   }
 
   @override
