@@ -140,8 +140,8 @@ class AuthService {
               final payload = String.fromCharCodes(
                 base64Decode(base64.normalize(tokenParts[1]))
               );
-              final Map<String, dynamic> decodedToken = jsonDecode(payload);
-              final String? audience = decodedToken['aud'];
+              final Map<String, dynamic> decodedToken = jsonDecode(payload) as Map<String, dynamic>;
+              final String? audience = decodedToken['aud'] as String?;
 
               debugPrint('Token audience (project ID): $audience');
               if (audience != 'chords-app-ecd47') {
@@ -281,8 +281,8 @@ class AuthService {
               final payload = String.fromCharCodes(
                 base64Decode(base64.normalize(tokenParts[1]))
               );
-              final Map<String, dynamic> decodedToken = jsonDecode(payload);
-              final String? audience = decodedToken['aud'];
+              final Map<String, dynamic> decodedToken = jsonDecode(payload) as Map<String, dynamic>;
+              final String? audience = decodedToken['aud'] as String?;
 
               debugPrint('Token audience (project ID): $audience');
               if (audience != 'chords-app-ecd47') {
@@ -709,8 +709,8 @@ class AuthService {
             final payload = String.fromCharCodes(
               base64Decode(base64.normalize(tokenParts[1]))
             );
-            final Map<String, dynamic> decodedToken = jsonDecode(payload);
-            final String? audience = decodedToken['aud'];
+            final Map<String, dynamic> decodedToken = jsonDecode(payload) as Map<String, dynamic>;
+            final String? audience = decodedToken['aud'] as String?;
 
             debugPrint('Token audience (project ID): $audience');
             if (audience != 'chords-app-ecd47') {

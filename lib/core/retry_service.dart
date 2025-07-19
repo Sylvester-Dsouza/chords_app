@@ -27,43 +27,48 @@ class RetryService {
         }
 
         final result = await operation();
-        
-        if (attempt > 1 && EnvironmentConstants.enableLogging && context != null) {
+
+        if (attempt > 1 &&
+            EnvironmentConstants.enableLogging &&
+            context != null) {
           debugPrint('✅ $context succeeded on attempt $attempt');
         }
-        
+
         return result;
       } catch (error) {
         lastError = error;
-        
+
         if (EnvironmentConstants.enableLogging && context != null) {
           debugPrint('❌ $context failed on attempt $attempt: $error');
         }
 
         // Check if we should retry this error
-        final customShouldRetry = shouldRetry?.call(error) ?? ErrorHandler.isRetryableError(error);
-        
+        final customShouldRetry =
+            shouldRetry?.call(error) ?? ErrorHandler.isRetryableError(error);
+
         if (!customShouldRetry || attempt >= maxAttempts) {
           if (EnvironmentConstants.enableLogging && context != null) {
-            debugPrint('🚫 Not retrying $context: ${!customShouldRetry ? 'not retryable' : 'max attempts reached'}');
+            debugPrint(
+              '🚫 Not retrying $context: ${!customShouldRetry ? 'not retryable' : 'max attempts reached'}',
+            );
           }
           rethrow;
         }
 
         // Calculate delay for next attempt
         final delay = initialDelay ?? ErrorHandler.getRetryDelay(attempt);
-        
+
         if (EnvironmentConstants.enableLogging && context != null) {
           debugPrint('⏳ Retrying $context in ${delay.inSeconds}s...');
         }
-        
-        await Future.delayed(delay);
+
+        await Future<void>.delayed(delay);
         attempt++;
       }
     }
 
     // This should never be reached, but just in case
-    throw lastError ?? Exception('Unknown error in retry logic');
+    throw (lastError as Object?) ?? Exception('Unknown error in retry logic');
   }
 
   /// Execute with retry and return a result object instead of throwing
@@ -82,10 +87,13 @@ class RetryService {
         shouldRetry: shouldRetry,
         context: context,
       );
-      
+
       return ErrorHandler.createSuccessResult(result);
     } catch (error) {
-      final message = ErrorHandler.handleErrorWithContext(context ?? 'Operation', error);
+      final message = ErrorHandler.handleErrorWithContext(
+        context ?? 'Operation',
+        error,
+      );
       return ErrorHandler.createErrorResult(message);
     }
   }
@@ -99,7 +107,10 @@ class RetryService {
     return executeWithRetry(
       apiCall,
       maxAttempts: maxAttempts,
-      shouldRetry: (error) => ErrorHandler.isRetryableError(error) && !ErrorHandler.isAuthError(error),
+      shouldRetry:
+          (error) =>
+              ErrorHandler.isRetryableError(error) &&
+              !ErrorHandler.isAuthError(error),
       context: endpoint != null ? 'API call to $endpoint' : 'API call',
     );
   }
@@ -127,7 +138,9 @@ class RetryService {
     return executeWithRetry(
       operation,
       maxAttempts: maxAttempts,
-      initialDelay: const Duration(milliseconds: 100), // Shorter delay for cache
+      initialDelay: const Duration(
+        milliseconds: 100,
+      ), // Shorter delay for cache
       shouldRetry: (error) {
         // Retry cache operations for most errors except auth
         return !ErrorHandler.isAuthError(error);
@@ -147,7 +160,7 @@ class RetryService {
     }
 
     dynamic lastError;
-    
+
     for (int i = 0; i < operations.length; i++) {
       try {
         final result = await executeWithRetry(
@@ -165,7 +178,7 @@ class RetryService {
     }
 
     // All operations failed
-    throw lastError ?? Exception('All operations failed');
+    throw (lastError as Object?) ?? Exception('All operations failed');
   }
 
   /// Create a circuit breaker pattern for repeated failures
@@ -187,7 +200,7 @@ class CircuitBreaker {
   final String name;
   final int failureThreshold;
   final Duration timeout;
-  
+
   int _failureCount = 0;
   DateTime? _lastFailureTime;
   bool _isOpen = false;
@@ -201,7 +214,7 @@ class CircuitBreaker {
   /// Execute operation through circuit breaker
   Future<T> execute<T>(Future<T> Function() operation) async {
     if (_isOpen) {
-      if (_lastFailureTime != null && 
+      if (_lastFailureTime != null &&
           DateTime.now().difference(_lastFailureTime!) > timeout) {
         // Try to close the circuit
         _reset();
@@ -209,7 +222,9 @@ class CircuitBreaker {
           debugPrint('🔄 Circuit breaker $name: Attempting to close');
         }
       } else {
-        throw Exception('Circuit breaker $name is open. Service temporarily unavailable.');
+        throw Exception(
+          'Circuit breaker $name is open. Service temporarily unavailable.',
+        );
       }
     }
 
@@ -234,11 +249,13 @@ class CircuitBreaker {
   void _onFailure() {
     _failureCount++;
     _lastFailureTime = DateTime.now();
-    
+
     if (_failureCount >= failureThreshold) {
       _isOpen = true;
       if (EnvironmentConstants.enableLogging) {
-        debugPrint('🚫 Circuit breaker $name: Opened due to $_failureCount failures');
+        debugPrint(
+          '🚫 Circuit breaker $name: Opened due to $_failureCount failures',
+        );
       }
     }
   }

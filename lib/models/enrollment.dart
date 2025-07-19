@@ -46,14 +46,24 @@ class Enrollment {
       currentDay: json['currentDay'] as int? ?? 1,
       progress: (json['progress'] as num?)?.toDouble() ?? 0.0,
       enrolledAt: DateTime.parse(json['enrolledAt'] as String),
-      startedAt: json['startedAt'] != null ? DateTime.parse(json['startedAt'] as String) : null,
-      completedAt: json['completedAt'] != null ? DateTime.parse(json['completedAt'] as String) : null,
-      lastAccessedAt: json['lastAccessedAt'] != null ? DateTime.parse(json['lastAccessedAt'] as String) : null,
-      rating: json['rating'] != null ? (json['rating'] as num).toDouble() : null,
+      startedAt:
+          json['startedAt'] != null
+              ? DateTime.parse(json['startedAt'] as String)
+              : null,
+      completedAt:
+          json['completedAt'] != null
+              ? DateTime.parse(json['completedAt'] as String)
+              : null,
+      lastAccessedAt:
+          json['lastAccessedAt'] != null
+              ? DateTime.parse(json['lastAccessedAt'] as String)
+              : null,
+      rating:
+          json['rating'] != null ? (json['rating'] as num).toDouble() : null,
       review: json['review'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
-      course: json['course'] != null ? Course.fromJson(json['course']) : null,
+      course: json['course'] != null ? Course.fromJson(json['course'] as Map<String, dynamic>) : null,
     );
   }
 
@@ -219,7 +229,10 @@ class LessonProgress {
       enrollmentId: json['enrollmentId'] as String,
       lessonId: json['lessonId'] as String,
       isCompleted: json['isCompleted'] as bool? ?? false,
-      completedAt: json['completedAt'] != null ? DateTime.parse(json['completedAt'] as String) : null,
+      completedAt:
+          json['completedAt'] != null
+              ? DateTime.parse(json['completedAt'] as String)
+              : null,
       timeSpent: json['timeSpent'] as int?,
       notes: json['notes'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),

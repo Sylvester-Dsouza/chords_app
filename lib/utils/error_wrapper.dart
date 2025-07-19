@@ -6,7 +6,8 @@ import '../core/crashlytics_service.dart';
 
 /// Utility class for wrapping operations with error tracking
 class ErrorWrapper {
-  static CrashlyticsService get _crashlytics => serviceLocator.crashlyticsService;
+  static CrashlyticsService get _crashlytics =>
+      serviceLocator.crashlyticsService;
 
   /// Wrap an async operation with error tracking
   static Future<T?> wrapAsync<T>(
@@ -18,10 +19,10 @@ class ErrorWrapper {
     bool reportToCrashlytics = true,
   }) async {
     final stopwatch = Stopwatch()..start();
-    
+
     try {
       final result = await operation();
-      
+
       // Record performance if operation was slow
       if (stopwatch.elapsedMilliseconds > 2000) {
         await _crashlytics.recordPerformanceIssue(
@@ -30,15 +31,15 @@ class ErrorWrapper {
           performanceData: context,
         );
       }
-      
+
       return result;
     } catch (error, stackTrace) {
       stopwatch.stop();
-      
+
       if (logErrors && kDebugMode) {
         debugPrint('🐛 Error in ${operationName ?? 'async operation'}: $error');
       }
-      
+
       if (reportToCrashlytics) {
         await _crashlytics.recordError(
           error,
@@ -51,7 +52,7 @@ class ErrorWrapper {
           reason: 'Async operation failed: ${operationName ?? 'unknown'}',
         );
       }
-      
+
       return fallbackValue;
     } finally {
       stopwatch.stop();
@@ -68,11 +69,11 @@ class ErrorWrapper {
     bool reportToCrashlytics = true,
   }) {
     final stopwatch = Stopwatch()..start();
-    
+
     try {
       final result = operation();
       stopwatch.stop();
-      
+
       // Record performance if operation was slow
       if (stopwatch.elapsedMilliseconds > 1000) {
         _crashlytics.recordPerformanceIssue(
@@ -81,15 +82,15 @@ class ErrorWrapper {
           performanceData: context,
         );
       }
-      
+
       return result;
     } catch (error, stackTrace) {
       stopwatch.stop();
-      
+
       if (logErrors && kDebugMode) {
         debugPrint('🐛 Error in ${operationName ?? 'sync operation'}: $error');
       }
-      
+
       if (reportToCrashlytics) {
         _crashlytics.recordError(
           error,
@@ -102,7 +103,7 @@ class ErrorWrapper {
           reason: 'Sync operation failed: ${operationName ?? 'unknown'}',
         );
       }
-      
+
       return fallbackValue;
     }
   }
@@ -116,11 +117,11 @@ class ErrorWrapper {
     bool logErrors = true,
   }) async {
     final stopwatch = Stopwatch()..start();
-    
+
     try {
       final result = await apiCall();
       stopwatch.stop();
-      
+
       // Log successful API calls that are slow
       if (stopwatch.elapsedMilliseconds > 3000) {
         await _crashlytics.logEvent('slow_api_call', {
@@ -129,7 +130,7 @@ class ErrorWrapper {
           'status': 'success',
         });
       }
-      
+
       return result;
     } catch (error, stackTrace) {
       stopwatch.stop();
@@ -138,7 +139,7 @@ class ErrorWrapper {
         debugPrint('🌐 API Error for $endpoint: $error');
         debugPrint('Stack trace: $stackTrace');
       }
-      
+
       // Extract status code if available
       int? statusCode;
       if (error.toString().contains('status code')) {
@@ -147,14 +148,14 @@ class ErrorWrapper {
           statusCode = int.tryParse(match.group(1) ?? '');
         }
       }
-      
+
       await _crashlytics.recordApiError(
         endpoint,
         statusCode,
         error,
         requestData: requestData,
       );
-      
+
       return fallbackValue;
     }
   }
@@ -174,13 +175,13 @@ class ErrorWrapper {
         debugPrint('🧭 Navigation Error for $route: $error');
         debugPrint('Stack trace: $stackTrace');
       }
-      
+
       await _crashlytics.recordNavigationError(
         route,
         error,
         routeArguments: routeArguments,
       );
-      
+
       return fallbackValue;
     }
   }
@@ -201,14 +202,14 @@ class ErrorWrapper {
         debugPrint('🎵 Media Error for $mediaType: $error');
         debugPrint('Stack trace: $stackTrace');
       }
-      
+
       await _crashlytics.recordMediaError(
         mediaType,
         mediaUrl,
         error,
         mediaInfo: mediaInfo,
       );
-      
+
       return fallbackValue;
     }
   }
@@ -224,9 +225,11 @@ class ErrorWrapper {
       return builder();
     } catch (error, stackTrace) {
       if (kDebugMode) {
-        debugPrint('🎨 Widget Error in ${widgetName ?? 'unknown widget'}: $error');
+        debugPrint(
+          '🎨 Widget Error in ${widgetName ?? 'unknown widget'}: $error',
+        );
       }
-      
+
       _crashlytics.recordError(
         error,
         stackTrace,
@@ -237,7 +240,7 @@ class ErrorWrapper {
         },
         reason: 'Widget build failed: ${widgetName ?? 'unknown'}',
       );
-      
+
       return fallbackWidget ?? const SizedBox.shrink();
     }
   }
@@ -249,11 +252,13 @@ class ErrorWrapper {
     Map<String, dynamic>? context,
     bool logErrors = true,
   }) {
-    return stream.handleError((error, stackTrace) {
+    return stream.handleError((Object error, StackTrace stackTrace) {
       if (logErrors && kDebugMode) {
-        debugPrint('🌊 Stream Error in ${streamName ?? 'unknown stream'}: $error');
+        debugPrint(
+          '🌊 Stream Error in ${streamName ?? 'unknown stream'}: $error',
+        );
       }
-      
+
       _crashlytics.recordError(
         error,
         stackTrace,

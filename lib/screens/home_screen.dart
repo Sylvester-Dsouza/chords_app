@@ -1161,7 +1161,7 @@ class _HomeScreenNewState extends State<HomeScreenNew>
       Function? onTap;
 
       if (item is Map<String, dynamic>) {
-        imageUrl = item['imageUrl'];
+        imageUrl = item['imageUrl'] as String?;
 
         // If there's a targetId and targetType, create an onTap function
         if (item['targetId'] != null && item['targetType'] != null) {
@@ -1530,9 +1530,9 @@ class _HomeScreenNewState extends State<HomeScreenNew>
               section.items
                   .map(
                     (collection) => _buildCollectionItem(
-                      collection.title,
-                      collection.color,
-                      collection: collection,
+                      (collection as dynamic).title as String,
+                      (collection as dynamic).color as Color,
+                      collection: collection as Collection?,
                     ),
                   )
                   .toList(),
@@ -1545,9 +1545,9 @@ class _HomeScreenNewState extends State<HomeScreenNew>
               section.items
                   .map(
                     (song) => _buildSongItem(
-                      song.title,
+                      (song as dynamic).title as String,
                       _getRandomColor(),
-                      song: song,
+                      song: song as Song?,
                     ),
                   )
                   .toList(),
@@ -1560,9 +1560,9 @@ class _HomeScreenNewState extends State<HomeScreenNew>
               section.items
                   .map(
                     (artist) => _buildArtistItem(
-                      artist.name,
+                      (artist as dynamic).name as String,
                       _getRandomColor(),
-                      artist: artist,
+                      artist: artist as Artist?,
                     ),
                   )
                   .toList(),

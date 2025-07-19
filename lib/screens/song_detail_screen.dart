@@ -80,6 +80,22 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
       // Use the song passed from the previous screen
       _song = widget.song!;
       _isLoading = false;
+      
+      // Debug the initial song data
+      debugPrint('🎵 === INITIAL SONG DATA DEBUG ===');
+      debugPrint('🎵 Song: ${_song.title}');
+      debugPrint('🎵 Has karaoke: ${_song.karaoke != null}');
+      if (_song.karaoke != null) {
+        debugPrint('🎵 Karaoke tracks: ${_song.karaoke!.tracks.length}');
+        debugPrint('🎵 Karaoke status: ${_song.karaoke!.status}');
+        for (int i = 0; i < _song.karaoke!.tracks.length; i++) {
+          final track = _song.karaoke!.tracks[i];
+          debugPrint('🎵   Track $i: ${track.trackType.displayName} - Status: ${track.status}');
+        }
+      }
+      debugPrint('🎵 _hasKaraokeAvailable: $_hasKaraokeAvailable');
+      debugPrint('🎵 ================================');
+      
       // Check if the song is liked from the API, fetch comment count, and rating info
       _checkIfSongIsLiked();
       _fetchCommentCount();
@@ -195,6 +211,21 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
           _song = song;
           _isLoading = false;
         });
+        
+        // Debug the fetched song data
+        debugPrint('🎵 === FETCHED SONG DATA DEBUG ===');
+        debugPrint('🎵 Song: ${_song.title}');
+        debugPrint('🎵 Has karaoke: ${_song.karaoke != null}');
+        if (_song.karaoke != null) {
+          debugPrint('🎵 Karaoke tracks: ${_song.karaoke!.tracks.length}');
+          debugPrint('🎵 Karaoke status: ${_song.karaoke!.status}');
+          for (int i = 0; i < _song.karaoke!.tracks.length; i++) {
+            final track = _song.karaoke!.tracks[i];
+            debugPrint('🎵   Track $i: ${track.trackType.displayName} - Status: ${track.status}');
+          }
+        }
+        debugPrint('🎵 _hasKaraokeAvailable: $_hasKaraokeAvailable');
+        debugPrint('🎵 =================================');
       }
 
       // Check if the song is liked from the API, fetch comment count, and rating info
@@ -389,10 +420,19 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
 
   // Check if karaoke mode is available for this song
   bool get _hasKaraokeAvailable {
-    return _song.karaoke != null &&
-           _song.karaoke!.isActive &&
-           _song.karaoke!.tracks.isNotEmpty &&
-           _song.karaoke!.tracks.any((track) => track.isActive);
+    final hasKaraoke = _song.karaoke != null && 
+                      _song.karaoke!.tracks.isNotEmpty;
+    
+    debugPrint('🎤 Karaoke availability check for ${_song.title}:');
+    debugPrint('  - Has karaoke object: ${_song.karaoke != null}');
+    if (_song.karaoke != null) {
+      debugPrint('  - Karaoke is active: ${_song.karaoke!.isActive}');
+      debugPrint('  - Tracks count: ${_song.karaoke!.tracks.length}');
+      debugPrint('  - Active tracks: ${_song.karaoke!.tracks.where((track) => track.isActive).length}');
+    }
+    debugPrint('  - Final result: $hasKaraoke');
+    
+    return hasKaraoke;
   }
 
   // Get the current key after transposition
@@ -577,6 +617,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
 
   // Build floating action button
   Widget _buildFloatingActionButton() {
+    debugPrint('🎵 Building floating action button - karaoke available: $_hasKaraokeAvailable');
     return FloatingActionButton(
       onPressed: _showPracticeAndPresentOptions,
       backgroundColor: Theme.of(context).colorScheme.primary,
@@ -588,17 +629,30 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
   // Show practice and present options
   void _showPracticeAndPresentOptions() {
     // Debug print to check karaoke data
-    debugPrint(
-      'Song karaoke data: ${_song.karaoke != null ? 'Available' : 'Not available'}',
-    );
+    debugPrint('🎵 === PRACTICE & PRESENT OPTIONS DEBUG ===');
+    debugPrint('🎵 Song: ${_song.title}');
+    debugPrint('🎵 Song karaoke data: ${_song.karaoke != null ? 'Available' : 'Not available'}');
+    
     if (_song.karaoke != null) {
-      debugPrint('Karaoke tracks: ${_song.karaoke!.tracks.length}');
-      debugPrint('Karaoke status: ${_song.karaoke!.status}');
-      debugPrint('Karaoke is active: ${_song.karaoke!.isActive}');
+      debugPrint('🎵 Karaoke tracks: ${_song.karaoke!.tracks.length}');
+      debugPrint('🎵 Karaoke status: ${_song.karaoke!.status}');
+      debugPrint('🎵 Karaoke is active: ${_song.karaoke!.isActive}');
       final activeTracks = _song.karaoke!.tracks.where((track) => track.isActive).length;
-      debugPrint('Active tracks: $activeTracks');
-      debugPrint('Karaoke mode available: $_hasKaraokeAvailable');
+      debugPrint('🎵 Active tracks: $activeTracks');
+      
+      // List all tracks
+      for (int i = 0; i < _song.karaoke!.tracks.length; i++) {
+        final track = _song.karaoke!.tracks[i];
+        debugPrint('🎵   Track $i: ${track.trackType.displayName} - Status: ${track.status} - Active: ${track.isActive}');
+      }
     }
+    
+    debugPrint('🎵 _hasKaraokeAvailable result: $_hasKaraokeAvailable');
+    debugPrint('🎵 Will show karaoke option: ${_hasKaraokeAvailable ? 'YES' : 'NO'}');
+    debugPrint('🎵 ==========================================');
+
+    // Additional debug right before showing modal
+    debugPrint('🎵 FINAL CHECK - _hasKaraokeAvailable: $_hasKaraokeAvailable');
 
     showModalBottomSheet(
       context: context,
@@ -654,7 +708,8 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                 },
               ),
               // AI Karaoke Mode option (only show if song has active karaoke tracks)
-              if (_hasKaraokeAvailable)
+              // Temporarily always show for debugging
+              if (_hasKaraokeAvailable || true)
                 ListTile(
                   leading: Icon(
                     Icons.multitrack_audio,
@@ -1229,7 +1284,25 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
     }
 
     // Use the ChordExtractor utility to extract and sort chords
-    return ChordExtractor.extractChords(_song.chords!);
+    final extractedChords = ChordExtractor.extractChords(_song.chords!);
+    
+    // Ensure the main chord (song key) appears first
+    final mainChord = _song.key;
+    final List<String> orderedChords = [];
+    
+    // Add the main chord first if it exists in the extracted chords
+    if (extractedChords.contains(mainChord)) {
+      orderedChords.add(mainChord);
+    }
+    
+    // Add all other chords (excluding the main chord to avoid duplicates)
+    for (final chord in extractedChords) {
+      if (chord != mainChord) {
+        orderedChords.add(chord);
+      }
+    }
+    
+    return orderedChords;
   }
 
   // Build chord summary section
@@ -2018,7 +2091,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
       builder:
           (context) => StatefulBuilder(
             builder:
-                (context, setState) => Container(
+                (context, setModalState) => Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
@@ -2225,11 +2298,12 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                                     onPressed:
                                         _transposeValue > -11
                                             ? () {
+                                              // Update the main widget state
                                               setState(() {
-                                                this.setState(() {
-                                                  _transposeDown();
-                                                });
+                                                _transposeDown();
                                               });
+                                              // Update the modal state to refresh the UI
+                                              setModalState(() {});
                                             }
                                             : null,
                                     icon: const Icon(Icons.remove_rounded),

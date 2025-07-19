@@ -141,8 +141,8 @@ class OfflineService {
       final songsString = prefs.getString(_keyOfflineSongs);
 
       if (songsString != null) {
-        final List<dynamic> songsJson = jsonDecode(songsString);
-        final songs = songsJson.map((json) => Song.fromJson(json)).toList();
+        final List<dynamic> songsData = jsonDecode(songsString) as List<dynamic>;
+        final songs = songsData.map((json) => Song.fromJson(json as Map<String, dynamic>)).toList();
         debugPrint('🔌 Retrieved ${songs.length} cached songs');
         return songs;
       }
@@ -171,8 +171,8 @@ class OfflineService {
       final artistsString = prefs.getString(_keyOfflineArtists);
 
       if (artistsString != null) {
-        final List<dynamic> artistsJson = jsonDecode(artistsString);
-        final artists = artistsJson.map((json) => Artist.fromJson(json)).toList();
+        final List<dynamic> artistsData = jsonDecode(artistsString) as List<dynamic>;
+        final artists = artistsData.map((json) => Artist.fromJson(json as Map<String, dynamic>)).toList();
         debugPrint('🔌 Retrieved ${artists.length} cached artists');
         return artists;
       }
@@ -201,8 +201,8 @@ class OfflineService {
       final collectionsString = prefs.getString(_keyOfflineCollections);
 
       if (collectionsString != null) {
-        final List<dynamic> collectionsJson = jsonDecode(collectionsString);
-        final collections = collectionsJson.map((json) => Collection.fromJson(json)).toList();
+        final List<dynamic> collectionsData = jsonDecode(collectionsString) as List<dynamic>;
+        final collections = collectionsData.map((json) => Collection.fromJson(json as Map<String, dynamic>)).toList();
         debugPrint('🔌 Retrieved ${collections.length} cached collections');
         return collections;
       }

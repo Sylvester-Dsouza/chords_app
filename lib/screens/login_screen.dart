@@ -111,7 +111,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
             await Provider.of<UserProvider>(
               context,
               listen: false,
-            ).setUserData(result['data']);
+            ).setUserData(result['data'] as Map<String, dynamic>);
           }
 
           // Initialize app data after successful login (non-blocking)
@@ -128,7 +128,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
         } else {
           // Show error message
           setState(() {
-            _errorMessage = result['message'] ?? 'Login failed';
+            _errorMessage = result['message'] as String? ?? 'Login failed';
 
             // Make the error message more user-friendly
             if (_errorMessage!.contains('social login') ||
@@ -196,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
           await Provider.of<UserProvider>(
             context,
             listen: false,
-          ).setUserData(result['data']);
+          ).setUserData(result['data'] as Map<String, dynamic>);
         }
 
         // Initialize app data after successful login (non-blocking)
@@ -213,7 +213,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       } else {
         // Show error message
         setState(() {
-          _errorMessage = result['message'] ?? 'Google login failed';
+          _errorMessage = result['message'] as String? ?? 'Google login failed';
 
           // Make the error message more user-friendly
           if (_errorMessage!.contains('social login') ||
@@ -259,7 +259,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     } else {
       // Show error message
       setState(() {
-        _errorMessage = result['message'] ?? 'Apple login failed';
+        _errorMessage = result['message'] as String? ?? 'Apple login failed';
       });
       _safeShowErrorToast(_errorMessage!);
     }
@@ -271,7 +271,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
   // Handle back button press
   Future<bool> _onWillPop() async {
-    return await showDialog(
+    return await showDialog<bool>(
           context: context,
           builder:
               (context) => AlertDialog(

@@ -53,7 +53,7 @@ class CourseService {
           courses = (data['courses'] as List)
               .map((courseJson) {
                 try {
-                  return Course.fromJson(courseJson);
+                  return Course.fromJson(courseJson as Map<String, dynamic>);
                 } catch (e) {
                   debugPrint('❌ Error parsing course: $e');
                   debugPrint('📦 Course JSON: $courseJson');
@@ -99,7 +99,8 @@ class CourseService {
       final response = await _apiService.get('/courses/$courseId', queryParameters: queryParams);
 
       if (response.statusCode == 200) {
-        final course = Course.fromJson(response.data);
+        final data = response.data;
+        final course = Course.fromJson(data as Map<String, dynamic>);
         debugPrint('✅ Successfully fetched course: ${course.title}');
         return course;
       } else {
@@ -166,7 +167,7 @@ class CourseService {
       });
 
       if (response.statusCode == 201) {
-        final enrollment = Enrollment.fromJson(response.data);
+        final enrollment = Enrollment.fromJson(response.data as Map<String, dynamic>);
         debugPrint('✅ Successfully enrolled in course');
         return enrollment;
       } else {
@@ -191,7 +192,7 @@ class CourseService {
         List<Enrollment> enrollments = [];
 
         if (data is List) {
-          enrollments = data.map((enrollmentJson) => Enrollment.fromJson(enrollmentJson)).toList();
+          enrollments = data.map((json) => Enrollment.fromJson(json as Map<String, dynamic>)).toList();
         }
 
         debugPrint('✅ Successfully fetched ${enrollments.length} enrollments');
@@ -214,7 +215,7 @@ class CourseService {
       final response = await _apiService.get('/courses/enrollments/course/$courseId');
 
       if (response.statusCode == 200) {
-        final enrollment = Enrollment.fromJson(response.data);
+        final enrollment = Enrollment.fromJson(response.data as Map<String, dynamic>);
         debugPrint('✅ Found enrollment for course');
         return enrollment;
       } else if (response.statusCode == 404) {
@@ -247,7 +248,7 @@ class CourseService {
       final response = await _apiService.put('/courses/enrollments/$enrollmentId', data: updateData);
 
       if (response.statusCode == 200) {
-        final enrollment = Enrollment.fromJson(response.data);
+        final enrollment = Enrollment.fromJson(response.data as Map<String, dynamic>);
         debugPrint('✅ Successfully updated enrollment progress');
         return enrollment;
       } else {
@@ -274,7 +275,7 @@ class CourseService {
       });
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final lessonProgress = LessonProgress.fromJson(response.data);
+        final lessonProgress = LessonProgress.fromJson(response.data as Map<String, dynamic>);
         debugPrint('✅ Successfully marked lesson as completed');
         return lessonProgress;
       } else {
@@ -298,7 +299,7 @@ class CourseService {
       });
 
       if (response.statusCode == 200) {
-        final enrollment = Enrollment.fromJson(response.data);
+        final enrollment = Enrollment.fromJson(response.data as Map<String, dynamic>);
         debugPrint('✅ Successfully rated course');
         return enrollment;
       } else {

@@ -219,14 +219,22 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
                 label: 'VIEW',
                 textColor: Colors.white,
                 onPressed: () {
-                  Navigator.pushNamed(
-                    context,
-                    '/setlist_detail',
-                    arguments: {
-                      'setlistId': setlistId,
-                      'setlistName': setlistName,
-                    },
-                  );
+                  // Close the bottom sheet first to prevent navigation stack issues
+                  Navigator.pop(context);
+                  // Add a small delay to ensure the bottom sheet is fully closed
+                  Future.delayed(const Duration(milliseconds: 100), () {
+                    if (mounted) {
+                      // Then navigate to setlist detail screen
+                      Navigator.pushNamed(
+                        context,
+                        '/setlist_detail',
+                        arguments: {
+                          'setlistId': setlistId,
+                          'setlistName': setlistName,
+                        },
+                      );
+                    }
+                  });
                 },
               ),
             ),
@@ -269,6 +277,8 @@ class _SetlistBottomSheetState extends State<SetlistBottomSheet> {
 
   // Save all selections and close the bottom sheet
   void _saveAndClose() {
+    if (!mounted) return;
+    
     // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(

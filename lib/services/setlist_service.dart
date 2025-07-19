@@ -111,14 +111,14 @@ class SetlistService {
       final response = await _apiService.get('/setlists');
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
+        final List<dynamic> data = response.data as List<dynamic>;
         debugPrint('Received ${data.length} owned setlists from API');
 
         if (data.isEmpty) {
           return [];
         }
 
-        final setlists = data.map((json) => Setlist.fromJson(json)).toList();
+        final setlists = data.map((json) => Setlist.fromJson(json as Map<String, dynamic>)).toList();
         debugPrint('Parsed ${setlists.length} owned setlists');
         return setlists;
       } else {
@@ -140,7 +140,7 @@ class SetlistService {
       debugPrint('🔍 Shared setlists response data: ${response.data}');
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
+        final List<dynamic> data = response.data as List<dynamic>;
         debugPrint('🔍 Received ${data.length} shared setlists from API');
 
         if (data.isEmpty) {
@@ -151,7 +151,7 @@ class SetlistService {
         final setlists = data.map((json) {
           debugPrint('🔍 Processing shared setlist: ${json['name']} (${json['id']})');
           // Mark shared setlists with a flag for UI distinction
-          final setlistJson = Map<String, dynamic>.from(json);
+          final setlistJson = Map<String, dynamic>.from(json as Map<dynamic, dynamic>);
           setlistJson['isSharedWithMe'] = true;
           return Setlist.fromJson(setlistJson);
         }).toList();
@@ -199,7 +199,7 @@ class SetlistService {
       if (response.statusCode == 201) {
         debugPrint('✅ Setlist created successfully: ${response.data}');
         try {
-          final setlist = Setlist.fromJson(response.data);
+          final setlist = Setlist.fromJson(response.data as Map<String, dynamic>);
           debugPrint('✅ Parsed setlist: ${setlist.id} - ${setlist.name}');
 
           // Clear all setlist caches to force refresh
@@ -258,14 +258,14 @@ class SetlistService {
         // Log songs data if available
         if (response.data['songs'] != null) {
           debugPrint('Songs in response: ${response.data['songs'].length}');
-          for (var song in response.data['songs']) {
+          for (var song in response.data['songs'] as List) {
             debugPrint('Song: ${song['title'] ?? 'Unknown'} by ${song['artist']?['name'] ?? 'Unknown Artist'}');
           }
         } else {
           debugPrint('No songs in response');
         }
 
-        return Setlist.fromJson(response.data);
+        return Setlist.fromJson(response.data as Map<String, dynamic>);
       } else {
         debugPrint('Failed to load setlist: ${response.statusCode}');
         throw Exception('Failed to load setlist: Status ${response.statusCode}');
@@ -305,7 +305,7 @@ class SetlistService {
         // Clear all setlist caches to force refresh
         await _clearAllSetlistCaches();
 
-        return Setlist.fromJson(response.data);
+        return Setlist.fromJson(response.data as Map<String, dynamic>);
       } else {
         throw Exception('Failed to update setlist');
       }
@@ -374,7 +374,7 @@ class SetlistService {
 
       if (response.statusCode == 201) {
         debugPrint('Setlist shared successfully');
-        return response.data;
+        return response.data as Map<String, dynamic>;
       } else {
         throw Exception('Failed to share setlist');
       }
@@ -407,7 +407,7 @@ class SetlistService {
 
       if (response.statusCode == 200) {
         debugPrint('Invitation accepted successfully');
-        return Setlist.fromJson(response.data);
+        return Setlist.fromJson(response.data as Map<String, dynamic>);
       } else {
         throw Exception('Failed to accept invitation');
       }
@@ -438,7 +438,7 @@ class SetlistService {
 
       if (response.statusCode == 200) {
         debugPrint('Got ${response.data.length} collaborators');
-        return List<Map<String, dynamic>>.from(response.data);
+        return List<Map<String, dynamic>>.from(response.data as Iterable);
       } else {
         throw Exception('Failed to get collaborators');
       }
@@ -467,7 +467,7 @@ class SetlistService {
 
       if (response.statusCode == 200) {
         debugPrint('Collaborator updated successfully');
-        return response.data;
+        return response.data as Map<String, dynamic>;
       } else {
         throw Exception('Failed to update collaborator');
       }
@@ -520,7 +520,7 @@ class SetlistService {
 
       if (response.statusCode == 200) {
         debugPrint('Got ${response.data.length} activities');
-        return List<Map<String, dynamic>>.from(response.data);
+        return List<Map<String, dynamic>>.from(response.data as Iterable);
       } else {
         throw Exception('Failed to get activities');
       }
@@ -550,7 +550,7 @@ class SetlistService {
 
       if (response.statusCode == 201) {
         debugPrint('Comment added successfully');
-        return response.data;
+        return response.data as Map<String, dynamic>;
       } else {
         throw Exception('Failed to add comment');
       }
@@ -577,7 +577,7 @@ class SetlistService {
 
       if (response.statusCode == 200) {
         debugPrint('Got ${response.data.length} comments');
-        return List<Map<String, dynamic>>.from(response.data);
+        return List<Map<String, dynamic>>.from(response.data as Iterable);
       } else {
         throw Exception('Failed to get comments');
       }
@@ -634,7 +634,7 @@ class SetlistService {
 
       if (response.statusCode == 200) {
         debugPrint('Setlist synced successfully');
-        return Setlist.fromJson(response.data);
+        return Setlist.fromJson(response.data as Map<String, dynamic>);
       } else {
         throw Exception('Failed to sync setlist');
       }
@@ -665,7 +665,7 @@ class SetlistService {
 
       if (response.statusCode == 200) {
         debugPrint('Settings updated successfully');
-        return Setlist.fromJson(response.data);
+        return Setlist.fromJson(response.data as Map<String, dynamic>);
       } else {
         throw Exception('Failed to update settings');
       }
@@ -691,7 +691,7 @@ class SetlistService {
       final response = await _apiService.get('/setlists/shared');
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
+        final List<dynamic> data = response.data as List<dynamic>;
         debugPrint('Got ${data.length} shared setlists');
 
         if (data.isEmpty) {
@@ -699,7 +699,7 @@ class SetlistService {
         }
 
         try {
-          final setlists = data.map((json) => Setlist.fromJson(json)).toList();
+          final setlists = data.map((json) => Setlist.fromJson(json as Map<String, dynamic>)).toList();
           return setlists;
         } catch (parseError) {
           debugPrint('Error parsing shared setlists: $parseError');
@@ -823,9 +823,9 @@ class SetlistService {
         final songCount = response.data['songs']?.length ?? 0;
         debugPrint('✅ Verification: Setlist $setlistId now has $songCount songs');
 
-        if (response.data['songs'] != null && response.data['songs'].isNotEmpty) {
+        if (response.data['songs'] != null && (response.data['songs'] as List).isNotEmpty) {
           debugPrint('🎵 Current songs in setlist:');
-          for (var i = 0; i < response.data['songs'].length; i++) {
+          for (var i = 0; i < (response.data['songs'] as List).length; i++) {
             final song = response.data['songs'][i];
             debugPrint('  ${i + 1}. ${song['title'] ?? 'Unknown'} - ${song['artist']?['name'] ?? 'Unknown Artist'}');
           }
@@ -879,7 +879,7 @@ class SetlistService {
 
       debugPrint('Found offline data for setlist $id, saved at ${json['timestamp']}');
 
-      return Setlist.fromJson(setlistData);
+      return Setlist.fromJson(setlistData as Map<String, dynamic>);
     } catch (e) {
       debugPrint('Error getting offline setlist: $e');
       return null;
@@ -911,7 +911,7 @@ class SetlistService {
           if (data != null) {
             final json = jsonDecode(data);
             final setlistData = json['data'];
-            final setlist = Setlist.fromJson(setlistData);
+            final setlist = Setlist.fromJson(setlistData as Map<String, dynamic>);
             setlists.add(setlist);
           }
         } catch (e) {
@@ -990,7 +990,7 @@ class SetlistService {
           final collaborators = setlistData['collaborators'] ?? [];
           bool hasEditPermission = false;
           
-          for (final collaborator in collaborators) {
+          for (final collaborator in collaborators as List) {
             if (collaborator['customerId'] == userId && 
                 (collaborator['permission'] == 'EDIT' || collaborator['permission'] == 'ADMIN')) {
               hasEditPermission = true;
@@ -1302,7 +1302,7 @@ class SetlistService {
 
       if (response.statusCode == 200) {
         debugPrint('Setlist retrieved successfully');
-        return Setlist.fromJson(response.data);
+        return Setlist.fromJson(response.data as Map<String, dynamic>);
       } else {
         throw Exception('Failed to get setlist');
       }
@@ -1341,7 +1341,7 @@ class SetlistService {
         debugPrint('Setlist settings updated successfully');
         try {
           debugPrint('Attempting to parse setlist response...');
-          final setlist = Setlist.fromJson(response.data);
+          final setlist = Setlist.fromJson(response.data as Map<String, dynamic>);
           debugPrint('Setlist parsed successfully');
           return setlist;
         } catch (parseError) {
@@ -1360,13 +1360,13 @@ class SetlistService {
               name: data['name']?.toString() ?? '',
               description: data['description']?.toString(),
               customerId: data['customerId']?.toString() ?? '',
-              createdAt: data['createdAt'] != null ? DateTime.parse(data['createdAt']) : DateTime.now(),
-              updatedAt: data['updatedAt'] != null ? DateTime.parse(data['updatedAt']) : DateTime.now(),
-              isPublic: data['isPublic'] ?? false,
-              isShared: data['isShared'] ?? false,
+              createdAt: data['createdAt'] != null ? DateTime.parse(data['createdAt'] as String) : DateTime.now(),
+              updatedAt: data['updatedAt'] != null ? DateTime.parse(data['updatedAt'] as String) : DateTime.now(),
+              isPublic: data['isPublic'] as bool? ?? false,
+              isShared: data['isShared'] as bool? ?? false,
               shareCode: data['shareCode']?.toString(),
-              allowEditing: data['allowEditing'] ?? false,
-              allowComments: data['allowComments'] ?? true,
+              allowEditing: data['allowEditing'] as bool? ?? false,
+              allowComments: data['allowComments'] as bool? ?? true,
               version: data['version'] ?? 1,
               songs: [], // Empty songs list for settings update
             );
@@ -1416,7 +1416,7 @@ class SetlistService {
 
       if (response.statusCode == 200) {
         debugPrint('Setlist retrieved successfully by share code');
-        return Setlist.fromJson(response.data);
+        return Setlist.fromJson(response.data as Map<String, dynamic>);
       } else {
         throw Exception('Setlist not found or invalid share code');
       }

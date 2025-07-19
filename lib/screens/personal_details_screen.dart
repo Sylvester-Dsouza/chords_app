@@ -50,9 +50,9 @@ class _PersonalDetailsScreenState extends State<PersonalDetailsScreen> {
     final userData = userProvider.userData;
 
     if (userData != null) {
-      _nameController.text = userData['name'] ?? '';
-      _emailController.text = userData['email'] ?? '';
-      _phoneController.text = userData['phone'] ?? '';
+      _nameController.text = userData['name'] as String? ?? '';
+      _emailController.text = userData['email'] as String? ?? '';
+      _phoneController.text = userData['phone'] as String? ?? '';
     }
   }
 

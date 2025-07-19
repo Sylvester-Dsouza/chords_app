@@ -79,7 +79,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Check if user has a profile picture URL in their data
     if (userData['profilePicture'] != null &&
         userData['profilePicture'].toString().isNotEmpty) {
-      return userData['profilePicture'];
+      return userData['profilePicture'] as String?;
     }
 
     // Check auth provider
@@ -181,7 +181,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         },
                       ),
                     )
-                    : const Icon(Icons.person, color: AppTheme.textPrimary, size: 32),
+                    : const Icon(
+                      Icons.person,
+                      color: AppTheme.textPrimary,
+                      size: 32,
+                    ),
           ),
           const SizedBox(width: 16),
 
@@ -192,7 +196,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 // User Name
                 Text(
-                  displayName,
+                  displayName as String,
                   style: const TextStyle(
                     color: AppTheme.textPrimary,
                     fontSize: 18,
@@ -205,7 +209,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 // Email
                 Text(
-                  displayEmail,
+                  displayEmail as String,
                   style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -461,7 +465,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               CircularProgressIndicator(),
               SizedBox(height: 16),
-              Text('Logging out...', style: TextStyle(color: AppTheme.textPrimary)),
+              Text(
+                'Logging out...',
+                style: TextStyle(color: AppTheme.textPrimary),
+              ),
             ],
           ),
         );
@@ -522,7 +529,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               child: Icon(
                 icon,
-                color: isHighlighted ? AppTheme.primary : AppTheme.textSecondary,
+                color:
+                    isHighlighted ? AppTheme.primary : AppTheme.textSecondary,
                 size: 18,
               ),
             ),

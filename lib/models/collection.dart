@@ -44,7 +44,7 @@ class Collection {
       if (songsJson == null || songsJson.isEmpty) return null;
 
       try {
-        return songsJson.map((songJson) => Song.fromJson(songJson)).toList();
+        return songsJson.map((songJson) => Song.fromJson(songJson as Map<String, dynamic>)).toList();
       } catch (e) {
         debugPrint('Error parsing songs in collection: $e');
         return null;
@@ -52,16 +52,16 @@ class Collection {
     }
 
     return Collection(
-      id: json['id'] ?? '',
-      title: json['name'] ?? json['title'] ?? '',
-      description: json['description'],
-      songCount: json['songCount'] ?? json['songs']?.length ?? 0,
-      likeCount: json['likeCount'] ?? json['likes'] ?? 0,
-      isLiked: json['isLiked'] ?? false,
-      color: parseColor(json['color']),
-      imageUrl: json['imageUrl'],
+      id: json['id']?.toString() ?? '',
+      title: json['name']?.toString() ?? json['title']?.toString() ?? '',
+      description: json['description']?.toString(),
+      songCount: (json['songCount'] as int?) ?? (json['songs'] as List?)?.length ?? 0,
+      likeCount: (json['likeCount'] as int?) ?? (json['likes'] as int?) ?? 0,
+      isLiked: (json['isLiked'] as bool?) ?? false,
+      color: parseColor(json['color']?.toString()),
+      imageUrl: json['imageUrl']?.toString(),
       songs: parseSongs(json['songs'] as List<dynamic>?),
-      isPublic: json['isPublic'] ?? true,
+      isPublic: (json['isPublic'] as bool?) ?? true,
     );
   }
 

@@ -52,21 +52,28 @@ class CourseProvider with ChangeNotifier {
   }
 
   // Courses by type
-  List<Course> get vocalCourses => _courses.where((course) => course.courseType == 'vocal').toList();
-  List<Course> get guitarCourses => _courses.where((course) => course.courseType == 'guitar').toList();
-  List<Course> get pianoCourses => _courses.where((course) => course.courseType == 'piano').toList();
+  List<Course> get vocalCourses =>
+      _courses.where((course) => course.courseType == 'vocal').toList();
+  List<Course> get guitarCourses =>
+      _courses.where((course) => course.courseType == 'guitar').toList();
+  List<Course> get pianoCourses =>
+      _courses.where((course) => course.courseType == 'piano').toList();
 
   // Enrolled courses
   List<Course> get enrolledCourses {
     final enrolledCourseIds = _enrollments.map((e) => e.courseId).toSet();
-    return _courses.where((course) => enrolledCourseIds.contains(course.id)).toList();
+    return _courses
+        .where((course) => enrolledCourseIds.contains(course.id))
+        .toList();
   }
 
   // Active enrollments
-  List<Enrollment> get activeEnrollments => _enrollments.where((e) => e.isActive).toList();
+  List<Enrollment> get activeEnrollments =>
+      _enrollments.where((e) => e.isActive).toList();
 
   // Completed enrollments
-  List<Enrollment> get completedEnrollments => _enrollments.where((e) => e.isCompleted).toList();
+  List<Enrollment> get completedEnrollments =>
+      _enrollments.where((e) => e.isCompleted).toList();
 
   // Initialize and load data
   Future<void> initialize() async {
@@ -196,14 +203,17 @@ class CourseProvider with ChangeNotifier {
 
   // Check if user is enrolled in course
   bool isEnrolledInCourse(String courseId) {
-    return _enrollments.any((enrollment) =>
-        enrollment.courseId == courseId && enrollment.isActive);
+    return _enrollments.any(
+      (enrollment) => enrollment.courseId == courseId && enrollment.isActive,
+    );
   }
 
   // Get enrollment for course
   Enrollment? getEnrollmentForCourse(String courseId) {
     try {
-      return _enrollments.firstWhere((enrollment) => enrollment.courseId == courseId);
+      return _enrollments.firstWhere(
+        (enrollment) => enrollment.courseId == courseId,
+      );
     } catch (e) {
       return null;
     }
@@ -221,11 +231,12 @@ class CourseProvider with ChangeNotifier {
       final cached = prefs.getString(_coursesKey);
       if (cached != null) {
         final cacheData = json.decode(cached) as Map<String, dynamic>;
-        final timestamp = DateTime.parse(cacheData['timestamp']);
+        final timestamp = DateTime.parse(cacheData['timestamp'].toString());
         if (DateTime.now().difference(timestamp) < _cacheExpiry) {
-          _courses = (cacheData['data'] as List)
-              .map((json) => Course.fromJson(json))
-              .toList();
+          _courses =
+              (cacheData['data'] as List)
+                  .map((json) => Course.fromJson(json as Map<String, dynamic>))
+                  .toList();
           debugPrint('✅ Loaded ${_courses.length} courses from cache');
         }
       }

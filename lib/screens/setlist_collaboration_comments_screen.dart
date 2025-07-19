@@ -14,10 +14,12 @@ class SetlistCollaborationCommentsScreen extends StatefulWidget {
   });
 
   @override
-  State<SetlistCollaborationCommentsScreen> createState() => _SetlistCollaborationCommentsScreenState();
+  State<SetlistCollaborationCommentsScreen> createState() =>
+      _SetlistCollaborationCommentsScreenState();
 }
 
-class _SetlistCollaborationCommentsScreenState extends State<SetlistCollaborationCommentsScreen> {
+class _SetlistCollaborationCommentsScreenState
+    extends State<SetlistCollaborationCommentsScreen> {
   final SetlistService _setlistService = SetlistService();
   final TextEditingController _commentController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -46,7 +48,8 @@ class _SetlistCollaborationCommentsScreenState extends State<SetlistCollaboratio
       });
 
       final commentsData = await _setlistService.getComments(widget.setlist.id);
-      final comments = commentsData.map((data) => SetlistComment.fromJson(data)).toList();
+      final comments =
+          commentsData.map((data) => SetlistComment.fromJson(data)).toList();
 
       if (mounted) {
         setState(() {
@@ -162,19 +165,12 @@ class _SetlistCollaborationCommentsScreenState extends State<SetlistCollaboratio
             decoration: const BoxDecoration(
               color: Color(0xFF1A1A1A),
               border: Border(
-                bottom: BorderSide(
-                  color: Color(0xFF333333),
-                  width: 1,
-                ),
+                bottom: BorderSide(color: Color(0xFF333333), width: 1),
               ),
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.people,
-                  color: const Color(0xFFC19FFF),
-                  size: 20,
-                ),
+                const Icon(Icons.people, color: Color(0xFFC19FFF), size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(
@@ -191,24 +187,24 @@ class _SetlistCollaborationCommentsScreenState extends State<SetlistCollaboratio
                       const SizedBox(height: 2),
                       Text(
                         'Collaborative setlist comments',
-                        style: TextStyle(
-                          color: Colors.grey[400],
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: Colors.grey[400], fontSize: 12),
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFC19FFF).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(5),
                   ),
-                  child: Text(
+                  child: const Text(
                     'SHARED',
                     style: TextStyle(
-                      color: const Color(0xFFC19FFF),
+                      color: Color(0xFFC19FFF),
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                     ),
@@ -220,55 +216,58 @@ class _SetlistCollaborationCommentsScreenState extends State<SetlistCollaboratio
 
           // Comments list
           Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC19FFF)),
-                    ),
-                  )
-                : _comments.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.comment_outlined,
-                              size: 64,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No comments yet',
-                              style: TextStyle(
-                                color: Colors.grey[400],
-                                fontSize: 18,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Be the first to add a comment!',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _loadComments,
-                        color: const Color(0xFFC19FFF),
-                        child: ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _comments.length,
-                          itemBuilder: (context, index) {
-                            final comment = _comments[index];
-                            return _buildCommentItem(comment);
-                          },
+            child:
+                _isLoading
+                    ? const Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Color(0xFFC19FFF),
                         ),
                       ),
+                    )
+                    : _comments.isEmpty
+                    ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.comment_outlined,
+                            size: 64,
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No comments yet',
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Be the first to add a comment!',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                    : RefreshIndicator(
+                      onRefresh: _loadComments,
+                      color: const Color(0xFFC19FFF),
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _comments.length,
+                        itemBuilder: (context, index) {
+                          final comment = _comments[index];
+                          return _buildCommentItem(comment);
+                        },
+                      ),
+                    ),
           ),
 
           // Add comment section
@@ -282,10 +281,7 @@ class _SetlistCollaborationCommentsScreenState extends State<SetlistCollaboratio
             decoration: const BoxDecoration(
               color: Color(0xFF1A1A1A),
               border: Border(
-                top: BorderSide(
-                  color: Color(0xFF333333),
-                  width: 1,
-                ),
+                top: BorderSide(color: Color(0xFF333333), width: 1),
               ),
             ),
             child: Row(
@@ -319,20 +315,23 @@ class _SetlistCollaborationCommentsScreenState extends State<SetlistCollaboratio
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: IconButton(
-                    icon: _isAddingComment
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                    icon:
+                        _isAddingComment
+                            ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.black,
+                                ),
+                              ),
+                            )
+                            : const Icon(
+                              Icons.send,
+                              color: Colors.black,
+                              size: 20,
                             ),
-                          )
-                        : const Icon(
-                            Icons.send,
-                            color: Colors.black,
-                            size: 20,
-                          ),
                     onPressed: _isAddingComment ? null : _addComment,
                   ),
                 ),
@@ -351,10 +350,7 @@ class _SetlistCollaborationCommentsScreenState extends State<SetlistCollaboratio
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
         borderRadius: BorderRadius.circular(5),
-        border: Border.all(
-          color: const Color(0xFF333333),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0xFF333333), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -382,7 +378,7 @@ class _SetlistCollaborationCommentsScreenState extends State<SetlistCollaboratio
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      comment.customer?['name'] ?? 'Anonymous',
+                      comment.customer?['name']?.toString() ?? 'Anonymous',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -391,10 +387,7 @@ class _SetlistCollaborationCommentsScreenState extends State<SetlistCollaboratio
                     ),
                     Text(
                       _formatCommentDate(comment.createdAt),
-                      style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
                     ),
                   ],
                 ),

@@ -86,7 +86,7 @@ class ArtistService {
           final List<Artist> artists = [];
           for (var artistJson in data) {
             // Create the artist object
-            final artist = Artist.fromJson(artistJson);
+            final artist = Artist.fromJson(artistJson as Map<String, dynamic>);
 
             // Update song count from our accurate count if available
             final String artistNameLower = artist.name.toLowerCase();
@@ -296,7 +296,7 @@ class ArtistService {
           final List<Artist> artists = [];
           for (var artistJson in data) {
             // Create the artist object
-            final artist = Artist.fromJson(artistJson);
+            final artist = Artist.fromJson(artistJson as Map<String, dynamic>);
 
             // Update song count from our accurate count if available
             final String artistNameLower = artist.name.toLowerCase();
@@ -419,7 +419,7 @@ class ArtistService {
 
         try {
           // Create the artist object
-          final artist = Artist.fromJson(data);
+          final artist = Artist.fromJson(data as Map<String, dynamic>);
 
           // Update song count from our accurate count if available
           final String artistNameLower = artist.name.toLowerCase();
@@ -504,7 +504,7 @@ class ArtistService {
 
         try {
           // Create the artist object
-          final artist = Artist.fromJson(exactMatch);
+          final artist = Artist.fromJson(exactMatch as Map<String, dynamic>);
 
           // Update song count from our accurate count if available
           final String artistNameLower = artist.name.toLowerCase();

@@ -79,7 +79,7 @@ class Course {
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
       lessons: json['lessons'] != null
-          ? (json['lessons'] as List).map((lesson) => Lesson.fromJson(lesson)).toList()
+          ? (json['lessons'] as List).map((lesson) => Lesson.fromJson(lesson as Map<String, dynamic>)).toList()
           : null,
     );
   }

@@ -62,7 +62,9 @@ class UserProvider extends ChangeNotifier {
       final token = await _secureStorage.read(key: 'access_token');
       if (token != null) {
         final previewLength = token.length > 20 ? 20 : token.length;
-        debugPrint('Found access token during initialization: ${token.substring(0, previewLength)}...');
+        debugPrint(
+          'Found access token during initialization: ${token.substring(0, previewLength)}...',
+        );
 
         // Try to get user data
         final userData = await _secureStorage.read(key: 'user_data');
@@ -70,7 +72,9 @@ class UserProvider extends ChangeNotifier {
           try {
             _userData = json.decode(userData);
             _isLoggedIn = true;
-            debugPrint('Loaded user data from secure storage: ${_userData?['name']}');
+            debugPrint(
+              'Loaded user data from secure storage: ${_userData?['name']}',
+            );
           } catch (e) {
             debugPrint('Error parsing user data: $e');
             // Try to fetch profile if parsing fails
@@ -89,7 +93,9 @@ class UserProvider extends ChangeNotifier {
       // No access token, check Firebase authentication
       final firebaseUser = FirebaseAuth.instance.currentUser;
       if (firebaseUser != null) {
-        debugPrint('No access token but Firebase user is authenticated: ${firebaseUser.email}');
+        debugPrint(
+          'No access token but Firebase user is authenticated: ${firebaseUser.email}',
+        );
 
         try {
           // Get Firebase token
@@ -109,7 +115,9 @@ class UserProvider extends ChangeNotifier {
           _userData = null;
         }
       } else {
-        debugPrint('No access token and no Firebase user found during initialization');
+        debugPrint(
+          'No access token and no Firebase user found during initialization',
+        );
         _isLoggedIn = false;
         _userData = null;
       }
@@ -131,10 +139,7 @@ class UserProvider extends ChangeNotifier {
     // Save user data to secure storage
     try {
       final encodedData = json.encode(userData);
-      await _secureStorage.write(
-        key: 'user_data',
-        value: encodedData,
-      );
+      await _secureStorage.write(key: 'user_data', value: encodedData);
       debugPrint('Saved user data to secure storage: ${userData['name']}');
 
       // Verify the data was saved correctly
@@ -195,7 +200,9 @@ class UserProvider extends ChangeNotifier {
         if (firebaseUser != null) {
           // We have a Firebase user but couldn't get profile
           // This might be a temporary issue, so keep the user logged in
-          debugPrint('Firebase user exists, keeping user logged in despite profile fetch failure');
+          debugPrint(
+            'Firebase user exists, keeping user logged in despite profile fetch failure',
+          );
           _isLoggedIn = true;
         } else {
           // No Firebase user and profile fetch failed, log out
@@ -210,7 +217,9 @@ class UserProvider extends ChangeNotifier {
 
       // Don't logout on timeout if we have a Firebase user
       if (e.toString().contains('timeout') && firebaseUser != null) {
-        debugPrint('Profile fetch timed out, but Firebase user exists. Keeping user logged in.');
+        debugPrint(
+          'Profile fetch timed out, but Firebase user exists. Keeping user logged in.',
+        );
         _isLoggedIn = true;
       }
       // Don't logout on timeout if we have existing user data
@@ -307,10 +316,7 @@ class UserProvider extends ChangeNotifier {
 
       // Save updated user data to secure storage
       final encodedData = json.encode(_userData);
-      await _secureStorage.write(
-        key: 'user_data',
-        value: encodedData,
-      );
+      await _secureStorage.write(key: 'user_data', value: encodedData);
 
       debugPrint('Updated user data: ${_userData?['name']}');
 
@@ -353,7 +359,7 @@ class UserProvider extends ChangeNotifier {
           debugPrint('Error during logout API call: $e');
           // Continue with local logout even if API call fails
         }
-      })
+      }),
     );
 
     // 2. Sign out from Firebase
@@ -366,7 +372,7 @@ class UserProvider extends ChangeNotifier {
           debugPrint('Error signing out from Firebase: $e');
           // Continue with local logout even if Firebase sign out fails
         }
-      })
+      }),
     );
 
     // 3. Clear all authentication tokens
@@ -393,7 +399,7 @@ class UserProvider extends ChangeNotifier {
         } catch (e) {
           debugPrint('Error clearing authentication tokens: $e');
         }
-      })
+      }),
     );
 
     // 4. Clear liked songs data
@@ -405,7 +411,7 @@ class UserProvider extends ChangeNotifier {
         } catch (e) {
           debugPrint('Error clearing liked songs data: $e');
         }
-      })
+      }),
     );
 
     // 5. Song request upvote state is now managed by the backend database
@@ -420,7 +426,7 @@ class UserProvider extends ChangeNotifier {
         } catch (e) {
           debugPrint('Error clearing data caches: $e');
         }
-      })
+      }),
     );
 
     // 7. Clear all image caches
@@ -432,7 +438,7 @@ class UserProvider extends ChangeNotifier {
         } catch (e) {
           debugPrint('Error clearing image caches: $e');
         }
-      })
+      }),
     );
 
     // Execute all cleanup tasks in parallel for faster logout

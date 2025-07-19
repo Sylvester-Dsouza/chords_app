@@ -54,7 +54,9 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
   @override
   void initState() {
     super.initState();
-    debugPrint('SetlistDetailScreen initState for setlist ID: ${widget.setlistId}');
+    debugPrint(
+      'SetlistDetailScreen initState for setlist ID: ${widget.setlistId}',
+    );
 
     // First check login status, then fetch setlist details
     _checkLoginStatus().then((_) {
@@ -66,16 +68,22 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
     });
   }
 
+  Timer? _refreshTimer;
+
   void _setupPeriodicRefresh() {
+    // Cancel any existing timer first
+    _refreshTimer?.cancel();
+    
     // Refresh every 30 seconds if setlist is collaborative
-    Timer.periodic(const Duration(seconds: 30), (timer) {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
       }
 
       // Only refresh if setlist is collaborative (has share code or collaborators)
-      if (_setlist?.shareCode != null || (_setlist?.collaborators?.isNotEmpty == true)) {
+      if (_setlist?.shareCode != null ||
+          (_setlist?.collaborators?.isNotEmpty == true)) {
         debugPrint('🔄 Auto-refreshing collaborative setlist');
         _refreshSetlistData();
       }
@@ -84,12 +92,19 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
 
   @override
   void dispose() {
-    debugPrint('🚨 SetlistDetailScreen dispose() called - screen is being removed from navigation stack');
+    debugPrint(
+      '🚨 SetlistDetailScreen dispose() called - screen is being removed from navigation stack',
+    );
     debugPrint('🔄 Setlist was modified: $_hasModifiedSetlist');
+
+    // Cancel the refresh timer to prevent memory leaks
+    _refreshTimer?.cancel();
 
     // If the setlist was modified, we should trigger a refresh of the parent screen
     if (_hasModifiedSetlist) {
-      debugPrint('📤 Setlist was modified - parent screens should refresh their data');
+      debugPrint(
+        '📤 Setlist was modified - parent screens should refresh their data',
+      );
       // The parent screen should listen for this and refresh accordingly
     }
 
@@ -97,8 +112,6 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
     _searchController.dispose();
     super.dispose();
   }
-
-
 
   Future<void> _checkLoginStatus() async {
     try {
@@ -155,11 +168,16 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
       if (query.isEmpty) {
         _filteredLikedSongs = _likedSongs;
       } else {
-        _filteredLikedSongs = _likedSongs.where((song) {
-          final titleMatch = song.title.toLowerCase().contains(query.toLowerCase());
-          final artistMatch = song.artist.toLowerCase().contains(query.toLowerCase());
-          return titleMatch || artistMatch;
-        }).toList();
+        _filteredLikedSongs =
+            _likedSongs.where((song) {
+              final titleMatch = song.title.toLowerCase().contains(
+                query.toLowerCase(),
+              );
+              final artistMatch = song.artist.toLowerCase().contains(
+                query.toLowerCase(),
+              );
+              return titleMatch || artistMatch;
+            }).toList();
       }
     });
   }
@@ -183,10 +201,12 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
       // Log song details for debugging
       if (setlist.songs != null && setlist.songs!.isNotEmpty) {
         debugPrint('📋 Songs in refreshed setlist:');
-        for (var i = 0; i <setlist.songs!.length; i++) {
+        for (var i = 0; i < setlist.songs!.length; i++) {
           final song = setlist.songs![i];
           if (song is Map<String, dynamic>) {
-            debugPrint('  ${i + 1}. ${song['title'] ?? 'Unknown'} - ${song['artist'] is Map ? song['artist']['name'] : song['artist'] ?? 'Unknown Artist'}');
+            debugPrint(
+              '  ${i + 1}. ${song['title'] ?? 'Unknown'} - ${song['artist'] is Map ? song['artist']['name'] : song['artist'] ?? 'Unknown Artist'}',
+            );
           }
         }
       }
@@ -196,7 +216,9 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
           _setlist = setlist;
           _songs = setlist.songs ?? [];
         });
-        debugPrint('🔄 State updated with refreshed setlist details - UI should now show ${_songs.length} songs');
+        debugPrint(
+          '🔄 State updated with refreshed setlist details - UI should now show ${_songs.length} songs',
+        );
       } else {
         debugPrint('⚠️ Widget not mounted, skipping state update');
       }
@@ -218,15 +240,17 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
         return;
       }
 
-      debugPrint('🔄 Force refreshing setlist directly from API (bypassing cache)');
-      
+      debugPrint(
+        '🔄 Force refreshing setlist directly from API (bypassing cache)',
+      );
+
       // Clear all local state first
       if (mounted) {
         setState(() {
           _songs = [];
         });
       }
-      
+
       // Clear cache completely for this setlist
       await _cacheService.clearSetlistCache();
 
@@ -245,7 +269,9 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
         for (var i = 0; i < setlist.songs!.length; i++) {
           final song = setlist.songs![i];
           if (song is Map<String, dynamic>) {
-            debugPrint('  ${i + 1}. ${song['title'] ?? 'Unknown'} - ${song['artist'] is Map ? song['artist']['name'] : song['artist'] ?? 'Unknown Artist'}');
+            debugPrint(
+              '  ${i + 1}. ${song['title'] ?? 'Unknown'} - ${song['artist'] is Map ? song['artist']['name'] : song['artist'] ?? 'Unknown Artist'}',
+            );
           }
         }
       } else {
@@ -257,7 +283,9 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
           _setlist = setlist;
           _songs = setlist.songs ?? [];
         });
-        debugPrint('🔄 State updated with fresh API data - UI now shows ${_songs.length} songs');
+        debugPrint(
+          '🔄 State updated with fresh API data - UI now shows ${_songs.length} songs',
+        );
       }
     } catch (e) {
       debugPrint('❌ Error force refreshing from API: $e');
@@ -331,7 +359,10 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
           );
 
           // Clear auth state in UserProvider
-          final userProvider = Provider.of<UserProvider>(context, listen: false);
+          final userProvider = Provider.of<UserProvider>(
+            context,
+            listen: false,
+          );
           await userProvider.logout(silent: true);
 
           // Navigate to login screen after a short delay
@@ -365,12 +396,16 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
 
     try {
       // Update the order on the backend
-      final songIds = _songs.map((song) {
-        if (song is Map<String, dynamic>) {
-          return song['id']?.toString() ?? '';
-        }
-        return '';
-      }).where((id) => id.isNotEmpty).toList();
+      final songIds =
+          _songs
+              .map((song) {
+                if (song is Map<String, dynamic>) {
+                  return song['id']?.toString() ?? '';
+                }
+                return '';
+              })
+              .where((id) => id.isNotEmpty)
+              .toList();
 
       await _setlistService.reorderSongs(widget.setlistId, songIds);
 
@@ -382,7 +417,8 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
       debugPrint('Error reordering songs: $e');
 
       // Check if it's a conflict error
-      if (e.toString().contains('conflict') || e.toString().contains('version')) {
+      if (e.toString().contains('conflict') ||
+          e.toString().contains('version')) {
         // Show conflict resolution dialog
         _showConflictResolutionDialog();
       } else {
@@ -404,43 +440,71 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
     }
   }
 
+  // Handle back navigation properly
+  void _handleBackNavigation() {
+    // Check if the widget is still mounted before navigating
+    if (!mounted) {
+      debugPrint('⚠️ Widget not mounted, skipping navigation');
+      return;
+    }
+    
+    debugPrint(
+      'Navigating back from setlist detail screen with result: $_hasModifiedSetlist',
+    );
+    
+    try {
+      // Return modification flag to indicate if the setlist was modified
+      // This will trigger a refresh in the setlist screen if needed
+      Navigator.of(context).pop(_hasModifiedSetlist);
+    } catch (e) {
+      debugPrint('❌ Error during back navigation: $e');
+      // Fallback: try to pop without result
+      try {
+        Navigator.of(context).pop();
+      } catch (e2) {
+        debugPrint('❌ Fallback navigation also failed: $e2');
+      }
+    }
+  }
+
   // Show conflict resolution dialog
   void _showConflictResolutionDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        title: const Text(
-          'Setlist Conflict Detected',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: const Text(
-          'Another user has modified this setlist. Would you like to refresh to see the latest changes?',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Keep local changes
-            },
-            child: const Text('Keep My Changes'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Refresh to get latest version
-              _fetchSetlistDetails();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.black,
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: const Color(0xFF1E1E1E),
+            title: const Text(
+              'Setlist Conflict Detected',
+              style: TextStyle(color: Colors.white),
             ),
-            child: const Text('Refresh'),
+            content: const Text(
+              'Another user has modified this setlist. Would you like to refresh to see the latest changes?',
+              style: TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  // Keep local changes
+                },
+                child: const Text('Keep My Changes'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  // Refresh to get latest version
+                  _fetchSetlistDetails();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.black,
+                ),
+                child: const Text('Refresh'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -464,9 +528,10 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
         songList.add({
           'id': song['id'] ?? '',
           'title': song['title'] ?? 'Unknown Song',
-          'artist': song['artist'] is Map<String, dynamic>
-              ? song['artist']['name'] ?? 'Unknown Artist'
-              : song['artist'] ?? 'Unknown Artist',
+          'artist':
+              song['artist'] is Map<String, dynamic>
+                  ? song['artist']['name'] ?? 'Unknown Artist'
+                  : song['artist'] ?? 'Unknown Artist',
           'lyrics': song['lyrics'],
           'chords': song['chords'],
           'key': song['key'],
@@ -563,10 +628,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
           ),
         ),
 
-        const Divider(
-          color: Color(0xFF333333),
-          height: 32,
-        ),
+        const Divider(color: Color(0xFF333333), height: 32),
 
         // Songs list skeleton
         Expanded(
@@ -582,49 +644,41 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: true, // Allow normal back navigation
+      canPop: false, // Prevent automatic back navigation to handle it manually
       onPopInvokedWithResult: (didPop, result) {
-        if (didPop && _hasModifiedSetlist) {
-          debugPrint('🔄 Screen popped with modifications - parent should refresh');
-          // Try to pass back the modification status
-          try {
-            Navigator.of(context).pop({'modified': true});
-          } catch (e) {
-            debugPrint('⚠️ Could not pass back modification status: $e');
-          }
+        // This will be called when user tries to go back
+        if (!didPop) {
+          // Handle the back navigation manually
+          _handleBackNavigation();
         }
       },
       child: Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      appBar: InnerScreenAppBar(
-        title: _setlist?.name ?? 'Edit Setlist',
-        centerTitle: true,
-        onBackPressed: () {
-          // Return modification flag to indicate if the setlist was modified
-          // This will trigger a refresh in the setlist screen if needed
-          debugPrint('Navigating back from setlist detail screen with result: $_hasModifiedSetlist');
-          Navigator.of(context).pop(_hasModifiedSetlist);
-        },
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: () async {
-              debugPrint('🔄 Manual refresh triggered by user');
-              await _forceRefreshFromAPI();
-            },
-            tooltip: 'Refresh Setlist',
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit, color: Colors.white),
-            onPressed: _showEditSetlistDialog,
-            tooltip: 'Edit Setlist',
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? _buildLoadingSkeleton()
-          : !_isLoggedIn
-              ? Center(
+        backgroundColor: const Color(0xFF121212),
+        appBar: InnerScreenAppBar(
+          title: _setlist?.name ?? 'Edit Setlist',
+          centerTitle: true,
+          onBackPressed: _handleBackNavigation,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.white),
+              onPressed: () async {
+                debugPrint('🔄 Manual refresh triggered by user');
+                await _forceRefreshFromAPI();
+              },
+              tooltip: 'Refresh Setlist',
+            ),
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.white),
+              onPressed: _showEditSetlistDialog,
+              tooltip: 'Edit Setlist',
+            ),
+          ],
+        ),
+        body:
+            _isLoading
+                ? _buildLoadingSkeleton()
+                : !_isLoggedIn
+                ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -646,249 +700,286 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                     ],
                   ),
                 )
-              : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Action Buttons Section
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 16.0),
-                  child: Row(
-                    children: [
-                      // Present Button
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          icon: const Icon(
-                            Icons.present_to_all,
-                            size: 18,
-                          ),
-                          label: const Text(
-                            'Present',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _songs.isEmpty
-                                ? Colors.grey.withValues(alpha: 0.2)
-                                : AppTheme.primary,
-                            foregroundColor: _songs.isEmpty
-                                ? Colors.grey
-                                : Colors.black,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                            elevation: 0,
-                            shadowColor: Colors.transparent,
-                          ),
-                          onPressed: _songs.isEmpty ? null : () {
-                            // Navigate to setlist presentation
-                            _startSetlistPresentation();
-                          },
-                        ),
-                      ),
-
-                      const SizedBox(width: 12),
-
-                      // Share Button
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          icon: const Icon(
-                            Icons.share,
-                            size: 18,
-                          ),
-                          label: const Text(
-                            'Share',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 13,
-                            ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            backgroundColor: Colors.white.withValues(alpha: 0.05),
-                            side: const BorderSide(color: Colors.white24, width: 1),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                          ),
-                          onPressed: () {
-                            // Show share dialog
-                            if (_setlist != null) {
-                              showDialog(
-                                context: context,
-                                builder: (context) => EnhancedSetlistShareDialog(
-                                  setlist: _setlist!,
-                                  onSetlistUpdated: () {
-                                    // Refresh setlist data after sharing
-                                    _refreshSetlistData();
-                                    setState(() {
-                                      _hasModifiedSetlist = true;
-                                    });
-                                  },
+                : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Action Buttons Section
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 16.0),
+                      child: Row(
+                        children: [
+                          // Present Button
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.present_to_all, size: 18),
+                              label: const Text(
+                                'Present',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
                                 ),
-                              );
-                            } else {
-                              UIHelpers.showErrorSnackBar(
-                                context,
-                                'Unable to share setlist. Please try again.',
-                              );
-                            }
-                          },
-                        ),
-                      ),
-
-                      const SizedBox(width: 12),
-
-                      // Settings Button
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          icon: const Icon(
-                            Icons.settings,
-                            size: 18,
-                          ),
-                          label: const Text(
-                            'Settings',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 13,
-                            ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            backgroundColor: Colors.white.withValues(alpha: 0.05),
-                            side: const BorderSide(color: Colors.white24, width: 1),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                          ),
-                          onPressed: () {
-                            // Show settings dialog
-                            if (_setlist != null) {
-                              showDialog(
-                                context: context,
-                                builder: (context) => SetlistSettingsDialog(
-                                  setlist: _setlist!,
-                                  onSetlistUpdated: () {
-                                    // Refresh setlist data after updating settings
-                                    _refreshSetlistData();
-                                    setState(() {
-                                      _hasModifiedSetlist = true;
-                                    });
-                                  },
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    _songs.isEmpty
+                                        ? Colors.grey.withValues(alpha: 0.2)
+                                        : AppTheme.primary,
+                                foregroundColor:
+                                    _songs.isEmpty ? Colors.grey : Colors.black,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 14,
                                 ),
-                              );
-                            } else {
-                              UIHelpers.showErrorSnackBar(
-                                context,
-                                'Unable to update settings. Please try again.',
-                              );
-                            }
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                                elevation: 0,
+                                shadowColor: Colors.transparent,
+                              ),
+                              onPressed:
+                                  _songs.isEmpty
+                                      ? null
+                                      : () {
+                                        // Navigate to setlist presentation
+                                        _startSetlistPresentation();
+                                      },
+                            ),
+                          ),
 
-                // Description
-                if (_setlist?.description != null && _setlist!.description!.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 12.0),
-                    child: Text(
-                      _setlist!.description!,
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                        height: 1.4,
+                          const SizedBox(width: 12),
+
+                          // Share Button
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.share, size: 18),
+                              label: const Text(
+                                'Share',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor: Colors.white.withValues(
+                                  alpha: 0.05,
+                                ),
+                                side: const BorderSide(
+                                  color: Colors.white24,
+                                  width: 1,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                              ),
+                              onPressed: () {
+                                // Show share dialog
+                                if (_setlist != null) {
+                                  showDialog(
+                                    context: context,
+                                    builder:
+                                        (context) => EnhancedSetlistShareDialog(
+                                          setlist: _setlist!,
+                                          onSetlistUpdated: () {
+                                            // Refresh setlist data after sharing
+                                            _refreshSetlistData();
+                                            setState(() {
+                                              _hasModifiedSetlist = true;
+                                            });
+                                          },
+                                        ),
+                                  );
+                                } else {
+                                  UIHelpers.showErrorSnackBar(
+                                    context,
+                                    'Unable to share setlist. Please try again.',
+                                  );
+                                }
+                              },
+                            ),
+                          ),
+
+                          const SizedBox(width: 12),
+
+                          // Settings Button
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.settings, size: 18),
+                              label: const Text(
+                                'Settings',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor: Colors.white.withValues(
+                                  alpha: 0.05,
+                                ),
+                                side: const BorderSide(
+                                  color: Colors.white24,
+                                  width: 1,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                              ),
+                              onPressed: () {
+                                // Show settings dialog
+                                if (_setlist != null) {
+                                  showDialog(
+                                    context: context,
+                                    builder:
+                                        (context) => SetlistSettingsDialog(
+                                          setlist: _setlist!,
+                                          onSetlistUpdated: () {
+                                            // Refresh setlist data after updating settings
+                                            _refreshSetlistData();
+                                            setState(() {
+                                              _hasModifiedSetlist = true;
+                                            });
+                                          },
+                                        ),
+                                  );
+                                } else {
+                                  UIHelpers.showErrorSnackBar(
+                                    context,
+                                    'Unable to update settings. Please try again.',
+                                  );
+                                }
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
 
-                // Songs List
-                Expanded(
-                  child: Column(
-                    children: [
-                      // Collaborative indicator (inside scrollable area)
-                      if (_setlist?.shareCode != null || (_setlist?.collaborators?.isNotEmpty == true))
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 16.0),
-                          child: _buildCollaborativeIndicator(),
-                        ),
-
-                      // Songs content
-                      Expanded(
-                        child: _songs.isEmpty
-                            ? const Center(
-                                child: Text(
-                                  'No songs in this setlist yet',
-                                  style: TextStyle(color: Colors.white70),
-                                ),
-                              )
-                            : RefreshIndicator(
-                                onRefresh: () async {
-                                  // Force refresh setlist details
-                                  await _fetchSetlistDetails();
-                                },
-                          color: AppTheme.primary,
-                          child: ReorderableListView.builder(
-                            itemCount: _songs.length,
-                            onReorder: _reorderSongs,
-                            itemBuilder: (context, index) {
-                              final song = _songs[index];
-                              debugPrint('Building song item for index $index: ${song.toString()}');
-
-                              // Extract song data safely
-                              String title = 'Unknown Song';
-                              String artist = 'Unknown Artist';
-                              String songId = '';
-
-                              try {
-                                if (song is Map<String, dynamic>) {
-                                  title = song['title'] ?? 'Unknown Song';
-
-                                  // Handle artist data which could be a string or a map
-                                  if (song['artist'] is Map<String, dynamic>) {
-                                    artist = song['artist']['name'] ?? 'Unknown Artist';
-                                  } else if (song['artist'] is String) {
-                                    artist = song['artist'];
-                                  } else {
-                                    artist = 'Unknown Artist';
-                                  }
-
-                                  songId = song['id'] ?? '';
-                                  debugPrint('Extracted song data - Title: $title, Artist: $artist, ID: $songId');
-                                }
-                              } catch (e) {
-                                debugPrint('Error extracting song data: $e');
-                              }
-
-                              return _buildSongItem(title, artist, songId);
-                            },
+                    // Description
+                    if (_setlist?.description != null &&
+                        _setlist!.description!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 12.0),
+                        child: Text(
+                          _setlist!.description!,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 14,
+                            height: 1.4,
                           ),
                         ),
                       ),
-                    ],
-                  ),
+
+                    // Songs List
+                    Expanded(
+                      child: Column(
+                        children: [
+                          // Collaborative indicator (inside scrollable area)
+                          if (_setlist?.shareCode != null ||
+                              (_setlist?.collaborators?.isNotEmpty == true))
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                16.0,
+                                8.0,
+                                16.0,
+                                16.0,
+                              ),
+                              child: _buildCollaborativeIndicator(),
+                            ),
+
+                          // Songs content
+                          Expanded(
+                            child:
+                                _songs.isEmpty
+                                    ? const Center(
+                                      child: Text(
+                                        'No songs in this setlist yet',
+                                        style: TextStyle(color: Colors.white70),
+                                      ),
+                                    )
+                                    : RefreshIndicator(
+                                      onRefresh: () async {
+                                        // Force refresh setlist details
+                                        await _fetchSetlistDetails();
+                                      },
+                                      color: AppTheme.primary,
+                                      child: ReorderableListView.builder(
+                                        itemCount: _songs.length,
+                                        onReorder: _reorderSongs,
+                                        itemBuilder: (context, index) {
+                                          final song = _songs[index];
+                                          debugPrint(
+                                            'Building song item for index $index: ${song.toString()}',
+                                          );
+
+                                          // Extract song data safely
+                                          String title = 'Unknown Song';
+                                          String artist = 'Unknown Artist';
+                                          String songId = '';
+
+                                          try {
+                                            if (song is Map<String, dynamic>) {
+                                              title =
+                                                  (song['title'] as String?) ??
+                                                  'Unknown Song';
+
+                                              // Handle artist data which could be a string or a map
+                                              if (song['artist']
+                                                  is Map<String, dynamic>) {
+                                                final artistMap = song['artist'] as Map<String, dynamic>;
+                                                artist =
+                                                    (artistMap['name'] as String?) ??
+                                                    'Unknown Artist';
+                                              } else if (song['artist']
+                                                  is String) {
+                                                artist = song['artist'] as String;
+                                              } else {
+                                                artist = 'Unknown Artist';
+                                              }
+
+                                              songId = (song['id'] as String?) ?? '';
+                                              debugPrint(
+                                                'Extracted song data - Title: $title, Artist: $artist, ID: $songId',
+                                              );
+                                            }
+                                          } catch (e) {
+                                            debugPrint(
+                                              'Error extracting song data: $e',
+                                            );
+                                          }
+
+                                          return _buildSongItem(
+                                            title,
+                                            artist,
+                                            songId,
+                                          );
+                                        },
+                                      ),
+                                    ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.white,
-        child: const Icon(
-          Icons.add,
-          color: Colors.black,
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: Colors.white,
+          child: const Icon(Icons.add, color: Colors.black),
+          onPressed: () {
+            // Add new song to setlist
+            _showAddSongDialog();
+          },
         ),
-        onPressed: () {
-          // Add new song to setlist
-          _showAddSongDialog();
-        },
+        // Bottom navigation bar removed from inner screens
       ),
-      // Bottom navigation bar removed from inner screens
-    ),
     );
   }
 
@@ -900,15 +991,15 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
       key: ValueKey(songId), // Add key for reordering
       decoration: const BoxDecoration(
         border: Border(
-          bottom: BorderSide(
-            color: Color(0xFF333333),
-            width: 1.0,
-          ),
+          bottom: BorderSide(color: Color(0xFF333333), width: 1.0),
         ),
       ),
       child: ListTile(
         // Reduce vertical padding to decrease space between items
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16.0,
+          vertical: 4.0,
+        ),
         leading: const SongPlaceholder(size: placeholderSize),
         title: Text(
           title,
@@ -921,20 +1012,14 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
         ),
         subtitle: Text(
           artist,
-          style: const TextStyle(
-            color: Colors.grey,
-          ),
+          style: const TextStyle(color: Colors.grey),
           overflow: TextOverflow.ellipsis,
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             // Drag handle
-            Icon(
-              Icons.drag_handle,
-              color: Colors.grey[600],
-              size: 20,
-            ),
+            Icon(Icons.drag_handle, color: Colors.grey[600], size: 20),
             const SizedBox(width: 8),
             // Delete button
             IconButton(
@@ -945,10 +1030,13 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
               ),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
-              onPressed: _isRemovingSong ? null : () {
-                // Delete song from setlist
-                _showRemoveSongDialog(songId, title);
-              },
+              onPressed:
+                  _isRemovingSong
+                      ? null
+                      : () {
+                        // Delete song from setlist
+                        _showRemoveSongDialog(songId, title);
+                      },
             ),
           ],
         ),
@@ -957,10 +1045,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
           Navigator.pushNamed(
             context,
             '/song_detail',
-            arguments: {
-              'songId': songId,
-              'songTitle': title,
-            },
+            arguments: {'songId': songId, 'songTitle': title},
           );
         },
       ),
@@ -989,11 +1074,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
           // Main collaborative info row
           Row(
             children: [
-              Icon(
-                Icons.people,
-                color: const Color(0xFFC19FFF),
-                size: 20,
-              ),
+              Icon(Icons.people, color: const Color(0xFFC19FFF), size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
@@ -1026,7 +1107,10 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
               if (isShared) ...[
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFC19FFF),
                     borderRadius: BorderRadius.circular(5),
@@ -1105,20 +1189,24 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => SetlistCollaborationCommentsScreen(
-            setlist: _setlist!,
-            onCommentsUpdated: () {
-              // Refresh setlist data when comments are updated
-              _refreshSetlistData();
-            },
-          ),
+          builder:
+              (context) => SetlistCollaborationCommentsScreen(
+                setlist: _setlist!,
+                onCommentsUpdated: () {
+                  // Refresh setlist data when comments are updated
+                  _refreshSetlistData();
+                },
+              ),
         ),
       );
     }
   }
 
   // Helper method to check if all filtered songs are selected
-  bool _areAllFilteredSongsSelected(Set<String> selectedSongIds, Set<String> existingSongIds) {
+  bool _areAllFilteredSongsSelected(
+    Set<String> selectedSongIds,
+    Set<String> existingSongIds,
+  ) {
     for (var song in _filteredLikedSongs) {
       if (!selectedSongIds.contains(song.id)) {
         return false;
@@ -1145,7 +1233,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
     // Extract song IDs from the setlist songs
     for (var song in _songs) {
       if (song is Map<String, dynamic> && song['id'] != null) {
-        existingSongIds.add(song['id']);
+        existingSongIds.add((song['id'] as String?) ?? '');
       }
     }
 
@@ -1156,7 +1244,8 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
     // Show bottom sheet instead of dialog for better scrolling with long lists
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // Makes the bottom sheet take up the full screen
+      isScrollControlled:
+          true, // Makes the bottom sheet take up the full screen
       backgroundColor: const Color(0xFF1E1E1E),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -1168,14 +1257,16 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return Container(
-              constraints: BoxConstraints(
-                maxHeight: availableHeight,
-              ),
+              constraints: BoxConstraints(maxHeight: availableHeight),
               padding: EdgeInsets.only(
                 left: 16.0,
                 right: 16.0,
                 top: 16.0,
-                bottom: 16.0 + MediaQuery.of(context).padding.bottom, // Add safe area bottom padding
+                bottom:
+                    16.0 +
+                    MediaQuery.of(
+                      context,
+                    ).padding.bottom, // Add safe area bottom padding
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1222,23 +1313,33 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                     decoration: InputDecoration(
                       hintText: 'Search songs...',
                       hintStyle: const TextStyle(color: Colors.white54),
-                      prefixIcon: const Icon(Icons.search, color: Colors.white54),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear, color: Colors.white54),
-                              onPressed: () {
-                                _searchController.clear();
-                                _filterLikedSongs('');
-                              },
-                            )
-                          : null,
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: Colors.white54,
+                      ),
+                      suffixIcon:
+                          _searchController.text.isNotEmpty
+                              ? IconButton(
+                                icon: const Icon(
+                                  Icons.clear,
+                                  color: Colors.white54,
+                                ),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _filterLikedSongs('');
+                                },
+                              )
+                              : null,
                       filled: true,
                       fillColor: const Color(0xFF2A2A2A),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                     onChanged: _filterLikedSongs,
                   ),
@@ -1255,100 +1356,124 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
 
                   // Song list (scrollable) - More compact
                   Expanded(
-                    child: _filteredLikedSongs.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No songs found',
-                              style: TextStyle(color: Colors.white54),
-                            ),
-                          )
-                        : ListView.builder(
-                            itemCount: _filteredLikedSongs.length,
-                            itemBuilder: (context, index) {
-                              final song = _filteredLikedSongs[index];
-                        final bool isInSetlist = existingSongIds.contains(song.id);
-                        final bool isSelected = selectedSongIds.contains(song.id);
+                    child:
+                        _filteredLikedSongs.isEmpty
+                            ? const Center(
+                              child: Text(
+                                'No songs found',
+                                style: TextStyle(color: Colors.white54),
+                              ),
+                            )
+                            : ListView.builder(
+                              itemCount: _filteredLikedSongs.length,
+                              itemBuilder: (context, index) {
+                                final song = _filteredLikedSongs[index];
+                                final bool isInSetlist = existingSongIds
+                                    .contains(song.id);
+                                final bool isSelected = selectedSongIds
+                                    .contains(song.id);
 
-                              return Container(
-                                decoration: BoxDecoration(
-                                  border: index < _filteredLikedSongs.length - 1
-                                ? const Border(
-                                    bottom: BorderSide(
-                                      color: Color(0xFF333333),
-                                      width: 0.5,
-                                    ),
-                                  )
-                                : null,
-                            color: isInSetlist ? const Color(0xFF252525) : null, // Subtle background for existing songs
-                          ),
-                          child: ListTile(
-                            dense: true, // Makes the list tile more compact
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 0.0),
-                            title: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    song.title,
-                                    style: TextStyle(
-                                      color: isSelected ? AppTheme.primary : Colors.white,
-                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                      fontSize: 15, // Slightly smaller font
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    border:
+                                        index < _filteredLikedSongs.length - 1
+                                            ? const Border(
+                                              bottom: BorderSide(
+                                                color: Color(0xFF333333),
+                                                width: 0.5,
+                                              ),
+                                            )
+                                            : null,
+                                    color:
+                                        isInSetlist
+                                            ? const Color(0xFF252525)
+                                            : null, // Subtle background for existing songs
                                   ),
-                                ),
-                                if (isInSetlist)
-                                  const Padding(
-                                    padding: EdgeInsets.only(left: 4.0),
-                                    child: Icon(
-                                      Icons.playlist_add_check,
-                                      color: AppTheme.primary,
-                                      size: 16,
+                                  child: ListTile(
+                                    dense:
+                                        true, // Makes the list tile more compact
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 8.0,
+                                      vertical: 0.0,
                                     ),
+                                    title: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            song.title,
+                                            style: TextStyle(
+                                              color:
+                                                  isSelected
+                                                      ? AppTheme.primary
+                                                      : Colors.white,
+                                              fontWeight:
+                                                  isSelected
+                                                      ? FontWeight.bold
+                                                      : FontWeight.normal,
+                                              fontSize:
+                                                  15, // Slightly smaller font
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (isInSetlist)
+                                          const Padding(
+                                            padding: EdgeInsets.only(left: 4.0),
+                                            child: Icon(
+                                              Icons.playlist_add_check,
+                                              color: AppTheme.primary,
+                                              size: 16,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    subtitle: Text(
+                                      song.artist,
+                                      style: TextStyle(
+                                        color:
+                                            isSelected
+                                                ? Colors.white70
+                                                : Colors.grey,
+                                        fontSize:
+                                            13, // Smaller font for subtitle
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    trailing: Checkbox(
+                                      value: isSelected,
+                                      activeColor: AppTheme.primary,
+                                      checkColor: Colors.black,
+                                      side: const BorderSide(
+                                        color: Colors.grey,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(5),
+                                      ),
+                                      onChanged: (bool? value) {
+                                        setState(() {
+                                          if (value == true) {
+                                            selectedSongIds.add(song.id);
+                                          } else {
+                                            selectedSongIds.remove(song.id);
+                                          }
+                                        });
+                                      },
+                                    ),
+                                    onTap: () {
+                                      setState(() {
+                                        if (selectedSongIds.contains(song.id)) {
+                                          selectedSongIds.remove(song.id);
+                                        } else {
+                                          selectedSongIds.add(song.id);
+                                        }
+                                      });
+                                    },
                                   ),
-                              ],
-                            ),
-                            subtitle: Text(
-                              song.artist,
-                              style: TextStyle(
-                                color: isSelected ? Colors.white70 : Colors.grey,
-                                fontSize: 13, // Smaller font for subtitle
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            trailing: Checkbox(
-                              value: isSelected,
-                              activeColor: AppTheme.primary,
-                              checkColor: Colors.black,
-                              side: const BorderSide(color: Colors.grey),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                              onChanged: (bool? value) {
-                                setState(() {
-                                  if (value == true) {
-                                    selectedSongIds.add(song.id);
-                                  } else {
-                                    selectedSongIds.remove(song.id);
-                                  }
-                                });
+                                );
                               },
                             ),
-                            onTap: () {
-                              setState(() {
-                                if (selectedSongIds.contains(song.id)) {
-                                  selectedSongIds.remove(song.id);
-                                } else {
-                                  selectedSongIds.add(song.id);
-                                }
-                              });
-                            },
-                          ),
-                        );
-                      },
-                    ),
                   ),
 
                   const SizedBox(height: 16),
@@ -1361,12 +1486,20 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                       TextButton.icon(
                         icon: const Icon(Icons.select_all, color: Colors.grey),
                         label: Text(
-                          _areAllFilteredSongsSelected(selectedSongIds, existingSongIds) ? 'Deselect All' : 'Select All',
+                          _areAllFilteredSongsSelected(
+                                selectedSongIds,
+                                existingSongIds,
+                              )
+                              ? 'Deselect All'
+                              : 'Select All',
                           style: const TextStyle(color: Colors.grey),
                         ),
                         onPressed: () {
                           setState(() {
-                            if (_areAllFilteredSongsSelected(selectedSongIds, existingSongIds)) {
+                            if (_areAllFilteredSongsSelected(
+                              selectedSongIds,
+                              existingSongIds,
+                            )) {
                               // If all filtered songs are selected, deselect them except those already in setlist
                               for (var song in _filteredLikedSongs) {
                                 if (!existingSongIds.contains(song.id)) {
@@ -1399,210 +1532,327 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                           // Add button
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: _isAddingSongs ? Colors.grey : AppTheme.primary,
+                              backgroundColor:
+                                  _isAddingSongs
+                                      ? Colors.grey
+                                      : AppTheme.primary,
                               foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(5),
                               ),
                             ),
-                            onPressed: _isAddingSongs ? null : () async {
-                              // Handle both adding and removing songs
-                              if (selectedSongIds.isNotEmpty || existingSongIds.isNotEmpty) {
-                                // Find songs to add (selected but not in setlist)
-                                final Set<String> newSongIds = selectedSongIds.difference(existingSongIds);
-                                
-                                // Find songs to remove (in setlist but not selected)
-                                final Set<String> removeSongIds = existingSongIds.difference(selectedSongIds);
+                            onPressed:
+                                _isAddingSongs
+                                    ? null
+                                    : () async {
+                                      // Handle both adding and removing songs
+                                      if (selectedSongIds.isNotEmpty ||
+                                          existingSongIds.isNotEmpty) {
+                                        // Find songs to add (selected but not in setlist)
+                                        final Set<String> newSongIds =
+                                            selectedSongIds.difference(
+                                              existingSongIds,
+                                            );
 
-                                // If no changes, show message and return
-                                if (newSongIds.isEmpty && removeSongIds.isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('No changes to apply'),
-                                      backgroundColor: Colors.orange,
-                                    ),
-                                  );
-                                  return;
-                                }
+                                        // Find songs to remove (in setlist but not selected)
+                                        final Set<String> removeSongIds =
+                                            existingSongIds.difference(
+                                              selectedSongIds,
+                                            );
 
-                                // DON'T close the bottom sheet - keep it open to see if that fixes navigation
-                                debugPrint('🔄 Keeping bottom sheet open during song modifications');
+                                        // If no changes, show message and return
+                                        if (newSongIds.isEmpty &&
+                                            removeSongIds.isEmpty) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'No changes to apply',
+                                              ),
+                                              backgroundColor: Colors.orange,
+                                            ),
+                                          );
+                                          return;
+                                        }
 
-                                // Store context before async operations
-                                final scaffoldMessenger = ScaffoldMessenger.of(context);
-                                final navigator = Navigator.of(context);
+                                        // DON'T close the bottom sheet - keep it open to see if that fixes navigation
+                                        debugPrint(
+                                          '🔄 Keeping bottom sheet open during song modifications',
+                                        );
 
-                                // Set loading state with mounted check
-                                if (mounted) {
-                                  setState(() {
-                                    _isAddingSongs = true;
-                                  });
-                                }
+                                        // Store context before async operations
+                                        final scaffoldMessenger =
+                                            ScaffoldMessenger.of(context);
+                                        final navigator = Navigator.of(context);
 
-                                // Show loading dialog with appropriate message
-                                String loadingMessage = '';
-                                if (newSongIds.isNotEmpty && removeSongIds.isNotEmpty) {
-                                  loadingMessage = 'Adding ${newSongIds.length} and removing ${removeSongIds.length} songs...';
-                                } else if (newSongIds.isNotEmpty) {
-                                  loadingMessage = 'Adding ${newSongIds.length} song${newSongIds.length > 1 ? "s" : ""} to setlist...';
-                                } else {
-                                  loadingMessage = 'Removing ${removeSongIds.length} song${removeSongIds.length > 1 ? "s" : ""} from setlist...';
-                                }
+                                        // Set loading state with mounted check
+                                        if (mounted) {
+                                          setState(() {
+                                            _isAddingSongs = true;
+                                          });
+                                        }
 
-                                showDialog(
-                                  context: context,
-                                  barrierDismissible: false,
-                                  builder: (BuildContext context) {
-                                    return AlertDialog(
-                                      backgroundColor: const Color(0xFF1E1E1E),
-                                      content: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const CircularProgressIndicator(
-                                            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
-                                          ),
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            loadingMessage,
-                                            style: const TextStyle(color: Colors.white),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                );
+                                        // Show loading dialog with appropriate message
+                                        String loadingMessage = '';
+                                        if (newSongIds.isNotEmpty &&
+                                            removeSongIds.isNotEmpty) {
+                                          loadingMessage =
+                                              'Adding ${newSongIds.length} and removing ${removeSongIds.length} songs...';
+                                        } else if (newSongIds.isNotEmpty) {
+                                          loadingMessage =
+                                              'Adding ${newSongIds.length} song${newSongIds.length > 1 ? "s" : ""} to setlist...';
+                                        } else {
+                                          loadingMessage =
+                                              'Removing ${removeSongIds.length} song${removeSongIds.length > 1 ? "s" : ""} from setlist...';
+                                        }
 
-                                try {
-                                  // Remove songs first
-                                  if (removeSongIds.isNotEmpty) {
-                                    debugPrint('🗑️ Removing ${removeSongIds.length} songs from setlist...');
-                                    await _setlistService.removeMultipleSongsFromSetlist(widget.setlistId, removeSongIds.toList());
-                                    debugPrint('✅ All songs removed successfully');
-                                  }
+                                        showDialog(
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              backgroundColor: const Color(
+                                                0xFF1E1E1E,
+                                              ),
+                                              content: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const CircularProgressIndicator(
+                                                    valueColor:
+                                                        AlwaysStoppedAnimation<
+                                                          Color
+                                                        >(AppTheme.primary),
+                                                  ),
+                                                  const SizedBox(height: 16),
+                                                  Text(
+                                                    loadingMessage,
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                        );
 
-                                  // Add new songs
-                                  if (newSongIds.isNotEmpty) {
-                                    debugPrint('➕ Adding ${newSongIds.length} songs to setlist...');
-                                    await _setlistService.addMultipleSongsToSetlist(widget.setlistId, newSongIds.toList());
-                                    debugPrint('✅ All songs added successfully');
-                                  }
+                                        try {
+                                          // Remove songs first
+                                          if (removeSongIds.isNotEmpty) {
+                                            debugPrint(
+                                              '🗑️ Removing ${removeSongIds.length} songs from setlist...',
+                                            );
+                                            await _setlistService
+                                                .removeMultipleSongsFromSetlist(
+                                                  widget.setlistId,
+                                                  removeSongIds.toList(),
+                                                );
+                                            debugPrint(
+                                              '✅ All songs removed successfully',
+                                            );
+                                          }
 
-                                  // Close loading dialog first
-                                  if (mounted) {
-                                    debugPrint('🔄 Closing loading dialog after successful song modifications');
-                                    navigator.pop();
-                                  }
+                                          // Add new songs
+                                          if (newSongIds.isNotEmpty) {
+                                            debugPrint(
+                                              '➕ Adding ${newSongIds.length} songs to setlist...',
+                                            );
+                                            await _setlistService
+                                                .addMultipleSongsToSetlist(
+                                                  widget.setlistId,
+                                                  newSongIds.toList(),
+                                                );
+                                            debugPrint(
+                                              '✅ All songs added successfully',
+                                            );
+                                          }
 
-                                  // Reset loading state and mark setlist as modified
-                                  if (mounted) {
-                                    setState(() {
-                                      _isAddingSongs = false;
-                                      _hasModifiedSetlist = true; // Mark that setlist was modified
-                                    });
-                                  }
+                                          // Close loading dialog first
+                                          if (mounted) {
+                                            debugPrint(
+                                              '🔄 Closing loading dialog after successful song modifications',
+                                            );
+                                            navigator.pop();
+                                          }
 
-                                  // Show success message
-                                  if (mounted) {
-                                    String successMessage = '';
-                                    if (newSongIds.isNotEmpty && removeSongIds.isNotEmpty) {
-                                      successMessage = 'Added ${newSongIds.length} and removed ${removeSongIds.length} songs';
-                                    } else if (newSongIds.isNotEmpty) {
-                                      successMessage = 'Added ${newSongIds.length} song${newSongIds.length > 1 ? "s" : ""} to setlist';
-                                    } else {
-                                      successMessage = 'Removed ${removeSongIds.length} song${removeSongIds.length > 1 ? "s" : ""} from setlist';
-                                    }
+                                          // Reset loading state and mark setlist as modified
+                                          if (mounted) {
+                                            setState(() {
+                                              _isAddingSongs = false;
+                                              _hasModifiedSetlist =
+                                                  true; // Mark that setlist was modified
+                                            });
+                                          }
 
-                                    scaffoldMessenger.showSnackBar(
-                                      SnackBar(
-                                        content: Text(successMessage),
-                                        backgroundColor: Colors.green,
-                                        duration: const Duration(seconds: 2),
-                                      ),
-                                    );
-                                  }
+                                          // Show success message
+                                          if (mounted) {
+                                            String successMessage = '';
+                                            if (newSongIds.isNotEmpty &&
+                                                removeSongIds.isNotEmpty) {
+                                              successMessage =
+                                                  'Added ${newSongIds.length} and removed ${removeSongIds.length} songs';
+                                            } else if (newSongIds.isNotEmpty) {
+                                              successMessage =
+                                                  'Added ${newSongIds.length} song${newSongIds.length > 1 ? "s" : ""} to setlist';
+                                            } else {
+                                              successMessage =
+                                                  'Removed ${removeSongIds.length} song${removeSongIds.length > 1 ? "s" : ""} from setlist';
+                                            }
 
-                                  // Update the setlist data in the background WITHOUT closing bottom sheet
-                                  if (mounted) {
-                                    debugPrint('🔄 Refreshing setlist data in background while keeping bottom sheet open...');
+                                            scaffoldMessenger.showSnackBar(
+                                              SnackBar(
+                                                content: Text(successMessage),
+                                                backgroundColor: Colors.green,
+                                                duration: const Duration(
+                                                  seconds: 2,
+                                                ),
+                                              ),
+                                            );
+                                          }
 
-                                    // Wait a moment for the backend to process
-                                    await Future.delayed(const Duration(milliseconds: 1000));
+                                          // Update the setlist data in the background WITHOUT closing bottom sheet
+                                          if (mounted) {
+                                            debugPrint(
+                                              '🔄 Refreshing setlist data in background while keeping bottom sheet open...',
+                                            );
 
-                                    // Force refresh directly from API bypassing all cache
-                                    await _forceRefreshFromAPI();
+                                            // Wait a moment for the backend to process
+                                            await Future.delayed(
+                                              const Duration(
+                                                milliseconds: 1000,
+                                              ),
+                                            );
 
-                                    // Mark that we've modified the setlist so parent screens know to refresh
-                                    debugPrint('✅ Setlist modifications completed successfully - bottom sheet still open');
+                                            // Force refresh directly from API bypassing all cache
+                                            await _forceRefreshFromAPI();
 
-                                    // Force clear ALL setlist caches to ensure parent screens refresh
-                                    await _cacheService.clearSetlistCache();
-                                    debugPrint('🗑️ Cleared unified cache service');
+                                            // Mark that we've modified the setlist so parent screens know to refresh
+                                            debugPrint(
+                                              '✅ Setlist modifications completed successfully - bottom sheet still open',
+                                            );
 
-                                    // Wait longer to ensure backend has processed the changes
-                                    await Future.delayed(const Duration(milliseconds: 2000));
-                                    debugPrint('🕐 Waited 2 seconds for backend to process changes');
+                                            // Force clear ALL setlist caches to ensure parent screens refresh
+                                            await _cacheService
+                                                .clearSetlistCache();
+                                            debugPrint(
+                                              '🗑️ Cleared unified cache service',
+                                            );
 
-                                    // Update the existing song IDs in the bottom sheet to reflect current state
-                                    final updatedSetlist = await _setlistService.getSetlistById(widget.setlistId);
-                                    final updatedSongIds = updatedSetlist.songs?.map((song) {
-                                      if (song is Map<String, dynamic>) {
-                                        return song['id'] as String;
+                                            // Wait longer to ensure backend has processed the changes
+                                            await Future.delayed(
+                                              const Duration(
+                                                milliseconds: 2000,
+                                              ),
+                                            );
+                                            debugPrint(
+                                              '🕐 Waited 2 seconds for backend to process changes',
+                                            );
+
+                                            // Update the existing song IDs in the bottom sheet to reflect current state
+                                            final updatedSetlist =
+                                                await _setlistService
+                                                    .getSetlistById(
+                                                      widget.setlistId,
+                                                    );
+                                            final updatedSongIds =
+                                                updatedSetlist.songs
+                                                    ?.map((song) {
+                                                      if (song
+                                                          is Map<
+                                                            String,
+                                                            dynamic
+                                                          >) {
+                                                        return song['id']
+                                                            as String;
+                                                      }
+                                                      return '';
+                                                    })
+                                                    .where(
+                                                      (id) => id.isNotEmpty,
+                                                    )
+                                                    .toSet() ??
+                                                <String>{};
+
+                                            // Update the selected songs in the bottom sheet
+                                            if (mounted) {
+                                              setState(() {
+                                                selectedSongIds.clear();
+                                                selectedSongIds.addAll(
+                                                  updatedSongIds,
+                                                );
+                                              });
+                                              debugPrint(
+                                                '🔄 Updated bottom sheet selection to reflect current setlist state',
+                                              );
+                                            }
+                                          }
+                                        } catch (e) {
+                                          debugPrint(
+                                            '❌ Error modifying setlist songs: $e',
+                                          );
+                                          debugPrint(
+                                            '❌ Error type: ${e.runtimeType}',
+                                          );
+                                          debugPrint(
+                                            '❌ Stack trace: ${StackTrace.current}',
+                                          );
+
+                                          // Close loading dialog
+                                          if (mounted) {
+                                            debugPrint(
+                                              '🔄 Closing loading dialog after error in song modifications',
+                                            );
+                                            try {
+                                              navigator.pop();
+                                            } catch (popError) {
+                                              debugPrint(
+                                                '⚠️ Error closing loading dialog: $popError',
+                                              );
+                                            }
+                                          }
+
+                                          // Reset loading state on error (only if mounted)
+                                          if (mounted) {
+                                            setState(() {
+                                              _isAddingSongs = false;
+                                            });
+                                          }
+
+                                          // Show error message
+                                          if (mounted) {
+                                            scaffoldMessenger.showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Failed to modify setlist: $e',
+                                                ),
+                                                backgroundColor: Colors.red,
+                                                duration: const Duration(
+                                                  seconds: 3,
+                                                ),
+                                              ),
+                                            );
+                                          }
+
+                                          // DO NOT NAVIGATE AWAY - Stay on current screen
+                                          debugPrint(
+                                            '🚨 Error handled, staying on setlist details screen',
+                                          );
+                                        }
                                       }
-                                      return '';
-                                    }).where((id) => id.isNotEmpty).toSet() ?? <String>{};
-
-                                    // Update the selected songs in the bottom sheet
-                                    if (mounted) {
-                                      setState(() {
-                                        selectedSongIds.clear();
-                                        selectedSongIds.addAll(updatedSongIds);
-                                      });
-                                      debugPrint('🔄 Updated bottom sheet selection to reflect current setlist state');
-                                    }
-                                  }
-                                } catch (e) {
-                                  debugPrint('❌ Error modifying setlist songs: $e');
-                                  debugPrint('❌ Error type: ${e.runtimeType}');
-                                  debugPrint('❌ Stack trace: ${StackTrace.current}');
-
-                                  // Close loading dialog
-                                  if (mounted) {
-                                    debugPrint('🔄 Closing loading dialog after error in song modifications');
-                                    try {
-                                      navigator.pop();
-                                    } catch (popError) {
-                                      debugPrint('⚠️ Error closing loading dialog: $popError');
-                                    }
-                                  }
-
-                                  // Reset loading state on error (only if mounted)
-                                  if (mounted) {
-                                    setState(() {
-                                      _isAddingSongs = false;
-                                    });
-                                  }
-
-                                  // Show error message
-                                  if (mounted) {
-                                    scaffoldMessenger.showSnackBar(
-                                      SnackBar(
-                                        content: Text('Failed to modify setlist: $e'),
-                                        backgroundColor: Colors.red,
-                                        duration: const Duration(seconds: 3),
-                                      ),
-                                    );
-                                  }
-
-                                  // DO NOT NAVIGATE AWAY - Stay on current screen
-                                  debugPrint('🚨 Error handled, staying on setlist details screen');
-                                }
-                              }
-                            },
+                                    },
                             child: Text(
-                              _isAddingSongs ? 'Processing...' : 'Apply Changes',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              _isAddingSongs
+                                  ? 'Processing...'
+                                  : 'Apply Changes',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -1673,10 +1923,7 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
           ),
           actions: [
             TextButton(
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Colors.grey),
-              ),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
               onPressed: () {
                 Navigator.of(context).pop();
               },
@@ -1706,7 +1953,8 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                     await _setlistService.updateSetlist(
                       widget.setlistId,
                       newName,
-                      description: newDescription.isNotEmpty ? newDescription : null,
+                      description:
+                          newDescription.isNotEmpty ? newDescription : null,
                     );
 
                     // Mark setlist as modified
@@ -1774,19 +2022,13 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
           ),
           actions: [
             TextButton(
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Colors.grey),
-              ),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             TextButton(
-              child: const Text(
-                'Remove',
-                style: TextStyle(color: Colors.red),
-              ),
+              child: const Text('Remove', style: TextStyle(color: Colors.red)),
               onPressed: () async {
                 Navigator.of(context).pop();
 
@@ -1809,14 +2051,19 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
                 );
 
                 try {
-                  debugPrint('🗑️ Removing song ID: $songId from setlist: ${widget.setlistId}');
+                  debugPrint(
+                    '🗑️ Removing song ID: $songId from setlist: ${widget.setlistId}',
+                  );
 
                   // Optimistically remove from UI first
                   setState(() {
                     _songs.removeWhere((song) => song['id'] == songId);
                   });
 
-                  await _setlistService.removeSongFromSetlist(widget.setlistId, songId);
+                  await _setlistService.removeSongFromSetlist(
+                    widget.setlistId,
+                    songId,
+                  );
                   debugPrint('✅ Successfully removed song from setlist');
 
                   // Mark setlist as modified
@@ -1829,7 +2076,9 @@ class _SetlistDetailScreenState extends State<SetlistDetailScreen> {
 
                   // Clear specific setlist cache and refresh setlist details
                   if (mounted) {
-                    debugPrint('🔄 Force refreshing setlist data from API after song removal...');
+                    debugPrint(
+                      '🔄 Force refreshing setlist data from API after song removal...',
+                    );
 
                     // Wait a moment for the backend to process
                     await Future.delayed(const Duration(milliseconds: 1500));

@@ -7,7 +7,7 @@ class ChordFormatter extends StatelessWidget {
   final double fontSize;
   final bool highlightChords;
   final int transposeValue;
-  final Function(String)? onChordTap;
+  final void Function(String)? onChordTap;
   final bool useMonospaceFont;
   final Color? chordColor; // Added parameter for chord color
 
@@ -25,7 +25,7 @@ class ChordFormatter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (chordSheet.isEmpty) {
-      return Center(
+      return const Center(
         child: Text(
           'No chord sheet available',
           style: TextStyle(
@@ -46,7 +46,9 @@ class ChordFormatter extends StatelessWidget {
     final List<Widget> widgets = [];
     final lines = chordSheet.split('\n');
 
-    for (final line in lines) {
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i];
+      
       if (line.trim().isEmpty) {
         widgets.add(const SizedBox(height: 12));
         continue;
@@ -89,7 +91,25 @@ class ChordFormatter extends StatelessWidget {
         continue;
       }
 
-      // Check if line contains chord patterns [Chord]
+      // Check if this line contains only chords and the next line contains lyrics
+      if (_isChordOnlyLine(line) && i + 1 < lines.length && _hasLyrics(lines[i + 1])) {
+        // This is a chord line followed by a lyric line - handle them together
+        final chordLine = line;
+        final lyricLine = lines[i + 1];
+        
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 4.0, bottom: 4.0),
+            child: _buildChordLyricPair(context, chordLine, lyricLine),
+          ),
+        );
+        
+        // Skip the next line since we processed it as part of this pair
+        i++;
+        continue;
+      }
+
+      // Check if line contains chord patterns [Chord] (inline chords)
       if (line.contains('[') && line.contains(']')) {
         widgets.add(
           Padding(
@@ -205,6 +225,58 @@ class ChordFormatter extends StatelessWidget {
       softWrap: true,
       // Ensure the text is rendered exactly as it is, preserving all spaces
       textWidthBasis: TextWidthBasis.longestLine,
+    );
+  }
+
+  // Check if a line contains only chords (and spaces)
+  bool _isChordOnlyLine(String line) {
+    if (line.trim().isEmpty) return false;
+    
+    // Remove all chord patterns and see if anything meaningful remains
+    final withoutChords = line.replaceAll(RegExp(r'\[[^\]]+\]'), '').trim();
+    
+    // If after removing chords, only spaces remain, it's a chord-only line
+    return withoutChords.isEmpty || withoutChords.replaceAll(' ', '').isEmpty;
+  }
+
+  // Check if a line contains lyrics (not just chords or empty)
+  bool _hasLyrics(String line) {
+    if (line.trim().isEmpty) return false;
+    
+    // Remove all chord patterns and see if meaningful text remains
+    final withoutChords = line.replaceAll(RegExp(r'\[[^\]]+\]'), '').trim();
+    
+    // If there's meaningful text after removing chords, it has lyrics
+    return withoutChords.isNotEmpty && withoutChords.replaceAll(' ', '').isNotEmpty;
+  }
+
+  // Build a chord-lyric pair where chords are on one line and lyrics on the next
+  Widget _buildChordLyricPair(BuildContext context, String chordLine, String lyricLine) {
+    // Calculate spacing based on font size to maintain proportional spacing
+    final spacingHeight = (fontSize * 0.15).clamp(2.0, 6.0);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Chord line
+        if (highlightChords)
+          _buildFormattedLine(context, chordLine),
+        
+        // Proportional spacing between chord and lyric based on font size
+        SizedBox(height: spacingHeight),
+        
+        // Lyric line
+        Text(
+          lyricLine,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: fontSize,
+            height: 1.3,
+            fontFamily: AppTheme.monospaceFontFamily,
+          ),
+          textWidthBasis: TextWidthBasis.longestLine,
+        ),
+      ],
     );
   }
 

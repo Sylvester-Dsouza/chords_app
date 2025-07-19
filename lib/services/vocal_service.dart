@@ -167,9 +167,9 @@ class VocalService extends ChangeNotifier {
         final cachedData = await _cacheService.get(_categoriesCacheKey);
         if (cachedData != null) {
           try {
-            final List<dynamic> categoriesJson = json.decode(cachedData);
+            final List<dynamic> categoriesJson = json.decode(cachedData) as List<dynamic>;
             _categories = categoriesJson
-                .map((json) => VocalCategory.fromJson(json))
+                .map((json) => VocalCategory.fromJson(json as Map<String, dynamic>))
                 .where((category) => category.isActive)
                 .toList();
             _categories.sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
@@ -202,9 +202,9 @@ class VocalService extends ChangeNotifier {
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        final List<dynamic> categoriesJson = json.decode(response.body);
+        final List<dynamic> categoriesJson = json.decode(response.body) as List<dynamic>;
         _categories = categoriesJson
-            .map((json) => VocalCategory.fromJson(json))
+            .map((json) => VocalCategory.fromJson(json as Map<String, dynamic>))
             .toList();
         _categories.sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
 
@@ -252,9 +252,9 @@ class VocalService extends ChangeNotifier {
       if (!forceRefresh) {
         final cachedData = await _cacheService.get(cacheKey);
         if (cachedData != null) {
-          final List<dynamic> itemsJson = json.decode(cachedData);
+          final List<dynamic> itemsJson = json.decode(cachedData) as List<dynamic>;
           final items = itemsJson
-              .map((json) => VocalItem.fromJson(json))
+              .map((json) => VocalItem.fromJson(json as Map<String, dynamic>))
               .where((item) => item.isActive)
               .toList();
           
@@ -271,9 +271,9 @@ class VocalService extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> itemsJson = json.decode(response.body);
+        final List<dynamic> itemsJson = json.decode(response.body) as List<dynamic>;
         final items = itemsJson
-            .map((json) => VocalItem.fromJson(json))
+            .map((json) => VocalItem.fromJson(json as Map<String, dynamic>))
             .toList();
         items.sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
 
@@ -301,7 +301,7 @@ class VocalService extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        final categoryJson = json.decode(response.body);
+        final categoryJson = json.decode(response.body) as Map<String, dynamic>;
         final category = VocalCategory.fromJson(categoryJson);
         
         // Update local state

@@ -60,10 +60,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Widget _buildNotificationItem(dynamic notification) {
     final notificationData = notification['notification'];
     final bool isRead = notification['status'] != 'DELIVERED';
-    final String title = notificationData['title'] ?? 'Notification';
-    final String body = notificationData['body'] ?? '';
-    final String date = _formatDate(notification['createdAt']);
-    final String notificationId = notification['notificationId'];
+    final String title = notificationData['title'] as String? ?? 'Notification';
+    final String body = notificationData['body'] as String? ?? '';
+    final String date = _formatDate(notification['createdAt'] as String);
+    final String notificationId = notification['notificationId'] as String;
 
     // Determine icon based on notification type
     IconData iconData;
@@ -331,7 +331,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       // Mark all unread notifications as read
       for (final notification in _notifications) {
         if (notification['status'] == 'DELIVERED') {
-          await _notificationService.markNotificationAsRead(notification['notificationId']);
+          await _notificationService.markNotificationAsRead(notification['notificationId'] as String);
           notification['status'] = 'READ';
         }
       }

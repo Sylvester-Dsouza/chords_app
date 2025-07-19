@@ -644,9 +644,9 @@ class _KaraokeScreenState extends State<KaraokeScreen>
       if (downloadData != null) {
         final success = await _downloadManager.downloadTrack(
           song.id,
-          downloadData['downloadUrl'],
-          fileSize: downloadData['fileSize'] ?? 0,
-          duration: downloadData['duration'] ?? 0,
+          downloadData['downloadUrl'] as String,
+          fileSize: downloadData['fileSize'] as int? ?? 0,
+          duration: downloadData['duration'] as int? ?? 0,
           fileName: '${song.title}_${song.artistName}.mp3',
         );
 

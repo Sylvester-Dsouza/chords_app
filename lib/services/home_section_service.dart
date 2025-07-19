@@ -60,12 +60,12 @@ class HomeSection {
     List<dynamic> items = [];
     if (json['items'] != null) {
       if (type == SectionType.COLLECTIONS) {
-        items = (json['items'] as List).map((item) => Collection.fromJson(item)).toList();
+        items = (json['items'] as List).map((item) => Collection.fromJson(item as Map<String, dynamic>)).toList();
       } else if (type == SectionType.SONGS || type == SectionType.SONG_LIST) {
         // Both SONGS and SONG_LIST contain Song objects, just displayed differently
-        items = (json['items'] as List).map((item) => Song.fromJson(item)).toList();
+        items = (json['items'] as List).map((item) => Song.fromJson(item as Map<String, dynamic>)).toList();
       } else if (type == SectionType.ARTISTS) {
-        items = (json['items'] as List).map((item) => Artist.fromJson(item)).toList();
+        items = (json['items'] as List).map((item) => Artist.fromJson(item as Map<String, dynamic>)).toList();
       } else if (type == SectionType.BANNER) {
         // For banner items, we'll just keep the raw JSON for now
         items = json['items'] as List;
@@ -73,11 +73,11 @@ class HomeSection {
     }
 
     return HomeSection(
-      id: json['id'],
-      title: json['title'],
+      id: json['id'] as String,
+      title: json['title'] as String,
       type: type,
       items: items,
-      isActive: json['isActive'] ?? true,
+      isActive: json['isActive'] as bool? ?? true,
       itemCount: json['itemCount'] as int?,
     );
   }
@@ -118,7 +118,7 @@ class HomeSectionService {
       final cachedSectionsJson = await _cacheService.getCachedHomeSections();
       if (cachedSectionsJson != null) {
         // Convert cached JSON to HomeSection objects
-        sections = cachedSectionsJson.map((json) => HomeSection.fromJson(json)).toList();
+        sections = cachedSectionsJson.map((json) => HomeSection.fromJson(json as Map<String, dynamic>)).toList();
         debugPrint('Using cached home sections (${sections.length} sections)');
 
         // Use session-based refresh logic instead of time-based
@@ -142,8 +142,8 @@ class HomeSectionService {
           final response = await _apiService.get('/home-sections/app/content');
 
           if (response.statusCode == 200) {
-            final List<dynamic> sectionsJson = response.data;
-            sections = sectionsJson.map((json) => HomeSection.fromJson(json)).toList();
+            final List<dynamic> sectionsJson = response.data as List<dynamic>;
+            sections = sectionsJson.map((json) => HomeSection.fromJson(json as Map<String, dynamic>)).toList();
 
             // Cache the sections for future use
             await _cacheService.cacheHomeSections(sections);
@@ -183,8 +183,8 @@ class HomeSectionService {
       final response = await _apiService.get('/home-sections/app/content');
 
       if (response.statusCode == 200) {
-        final List<dynamic> sectionsJson = response.data;
-        final List<HomeSection> sections = sectionsJson.map((json) => HomeSection.fromJson(json)).toList();
+        final List<dynamic> sectionsJson = response.data as List<dynamic>;
+        final List<HomeSection> sections = sectionsJson.map((json) => HomeSection.fromJson(json as Map<String, dynamic>)).toList();
 
         // Cache the sections for future use
         await _cacheService.cacheHomeSections(sections);
@@ -205,7 +205,7 @@ class HomeSectionService {
       final cachedSectionsJson = await _cacheService.getCachedHomeSections();
       if (cachedSectionsJson != null) {
         // Convert cached JSON to HomeSection objects
-        final sections = cachedSectionsJson.map((json) => HomeSection.fromJson(json)).toList();
+        final sections = cachedSectionsJson.map((json) => HomeSection.fromJson(json as Map<String, dynamic>)).toList();
         debugPrint('Retrieved ${sections.length} home sections from cache');
         return sections;
       }
@@ -230,17 +230,17 @@ class HomeSectionService {
       final response = await _apiService.get('/home-sections/app/section/$sectionId/items');
 
       if (response.statusCode == 200) {
-        final List<dynamic> itemsJson = response.data;
+        final List<dynamic> itemsJson = response.data as List<dynamic>;
         List<dynamic> items = [];
 
         // Parse the items based on the section type
         if (type == SectionType.COLLECTIONS) {
-          items = itemsJson.map((item) => Collection.fromJson(item)).toList();
+          items = itemsJson.map((item) => Collection.fromJson(item as Map<String, dynamic>)).toList();
         } else if (type == SectionType.SONGS || type == SectionType.SONG_LIST) {
           // Both SONGS and SONG_LIST contain Song objects, just displayed differently
-          items = itemsJson.map((item) => Song.fromJson(item)).toList();
+          items = itemsJson.map((item) => Song.fromJson(item as Map<String, dynamic>)).toList();
         } else if (type == SectionType.ARTISTS) {
-          items = itemsJson.map((item) => Artist.fromJson(item)).toList();
+          items = itemsJson.map((item) => Artist.fromJson(item as Map<String, dynamic>)).toList();
         } else if (type == SectionType.BANNER) {
           // For banner items, we'll just keep the raw JSON for now
           items = itemsJson;

@@ -98,8 +98,13 @@ class _ListScreenState extends State<ListScreen> {
     try {
       debugPrint('Loading ALL items from section ${widget.sectionId} via API');
 
-      // Always use API to get ALL items for "See all" functionality
-      // Don't use cached data as it only contains limited items (itemCount)
+      // For collections, we need to handle songCount properly
+      if (widget.listType == ListType.collections) {
+        await _loadSectionCollectionsWithSongCount();
+        return;
+      }
+
+      // For other types, use the section items API
       final items = await _homeSectionService.getSectionItems(
         widget.sectionId!,
         widget.sectionType!,
@@ -115,7 +120,7 @@ class _ListScreenState extends State<ListScreen> {
               _artists = items.cast<Artist>();
               break;
             case ListType.collections:
-              _collections = items.cast<Collection>();
+              // This case is handled above
               break;
           }
           _isLoading = false;
@@ -132,6 +137,90 @@ class _ListScreenState extends State<ListScreen> {
           _errorMessage = 'Error loading section items: $e';
           _isLoading = false;
         });
+      }
+    }
+  }
+
+  // Helper method to get the correct song count for a collection
+  int _getCollectionSongCount(Collection collection) {
+    // If songCount is available and > 0, use it
+    if (collection.songCount > 0) {
+      return collection.songCount;
+    }
+    
+    // Otherwise, try to use the songs array length
+    if (collection.songs != null && collection.songs!.isNotEmpty) {
+      return collection.songs!.length;
+    }
+    
+    // If both are unavailable, return 0
+    return 0;
+  }
+
+  // Special method to load collections with proper songCount
+  Future<void> _loadSectionCollectionsWithSongCount() async {
+    try {
+      debugPrint('Loading collections with proper songCount for section ${widget.sectionId}');
+      
+      // First try to get section-specific collections
+      final sectionItems = await _homeSectionService.getSectionItems(
+        widget.sectionId!,
+        widget.sectionType!,
+      );
+      
+      final List<Collection> collections = sectionItems.cast<Collection>();
+      
+      // Check if any collections have songCount = 0 (indicating missing data)
+      final collectionsWithMissingSongCount = collections.where((c) => c.songCount == 0).toList();
+      
+      if (collectionsWithMissingSongCount.isNotEmpty) {
+        debugPrint('Found ${collectionsWithMissingSongCount.length} collections with missing songCount, fetching complete data');
+        
+        // Get complete collection data for collections with missing songCount
+        for (int i = 0; i < collections.length; i++) {
+          if (collections[i].songCount == 0) {
+            try {
+              final completeCollection = await _collectionService.getCollectionById(collections[i].id);
+              collections[i] = completeCollection;
+              debugPrint('Updated collection ${completeCollection.title} with songCount: ${completeCollection.songCount}');
+            } catch (e) {
+              debugPrint('Error fetching complete data for collection ${collections[i].id}: $e');
+              // Keep the original collection if we can't fetch complete data
+            }
+          }
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _collections = collections;
+          _isLoading = false;
+        });
+        debugPrint('Loaded ${collections.length} collections with proper songCount data');
+      }
+    } catch (e) {
+      debugPrint('Error loading collections with songCount: $e');
+      
+      // Fallback: try to load all collections
+      try {
+        debugPrint('Fallback: Loading all collections');
+        final allCollections = await _collectionService.getAllCollections();
+        
+        if (mounted) {
+          setState(() {
+            _collections = allCollections;
+            _isLoading = false;
+          });
+          debugPrint('Fallback successful: Loaded ${allCollections.length} collections');
+        }
+      } catch (fallbackError) {
+        debugPrint('Fallback also failed: $fallbackError');
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'Error loading collections: $fallbackError';
+            _isLoading = false;
+          });
+        }
       }
     }
   }
@@ -326,9 +415,9 @@ class _ListScreenState extends State<ListScreen> {
             children: [
               const Icon(Icons.error_outline, color: AppTheme.error, size: 48),
               const SizedBox(height: 16),
-              Text(
+              const Text(
                 'Error loading data',
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppTheme.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -672,9 +761,9 @@ class _ListScreenState extends State<ListScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Song count
+                      // Song count - use songCount if available, otherwise use songs array length
                       Text(
-                        "${collection.songCount} Songs",
+                        '${_getCollectionSongCount(collection)} Songs',
                         style: const TextStyle(
                           color: AppTheme.textSecondary,
                           fontSize: 14,

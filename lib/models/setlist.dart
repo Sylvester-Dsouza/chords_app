@@ -15,7 +15,8 @@ class Setlist {
   final String? shareCode;
   final bool allowEditing;
   final bool allowComments;
-  final bool isSharedWithMe; // Flag to indicate if this setlist is shared with the current user
+  final bool
+  isSharedWithMe; // Flag to indicate if this setlist is shared with the current user
 
   // Offline support
   final int version;
@@ -72,9 +73,14 @@ class Setlist {
     List<SetlistCollaborator>? collaboratorsData;
     try {
       if (json['collaborators'] != null) {
-        collaboratorsData = (json['collaborators'] as List)
-            .map((item) => SetlistCollaborator.fromJson(item))
-            .toList();
+        collaboratorsData =
+            (json['collaborators'] as List)
+                .map(
+                  (item) => SetlistCollaborator.fromJson(
+                    item as Map<String, dynamic>,
+                  ),
+                )
+                .toList();
       }
     } catch (e) {
       debugPrint('Error parsing collaborators data: $e');
@@ -85,9 +91,13 @@ class Setlist {
     List<SetlistActivity>? activitiesData;
     try {
       if (json['activities'] != null) {
-        activitiesData = (json['activities'] as List)
-            .map((item) => SetlistActivity.fromJson(item))
-            .toList();
+        activitiesData =
+            (json['activities'] as List)
+                .map(
+                  (item) =>
+                      SetlistActivity.fromJson(item as Map<String, dynamic>),
+                )
+                .toList();
       }
     } catch (e) {
       debugPrint('Error parsing activities data: $e');
@@ -98,9 +108,13 @@ class Setlist {
     List<SetlistComment>? commentsData;
     try {
       if (json['comments'] != null) {
-        commentsData = (json['comments'] as List)
-            .map((item) => SetlistComment.fromJson(item))
-            .toList();
+        commentsData =
+            (json['comments'] as List)
+                .map(
+                  (item) =>
+                      SetlistComment.fromJson(item as Map<String, dynamic>),
+                )
+                .toList();
       }
     } catch (e) {
       debugPrint('Error parsing comments data: $e');
@@ -112,23 +126,33 @@ class Setlist {
       name: json['name']?.toString() ?? '',
       description: json['description']?.toString(),
       customerId: json['customerId']?.toString() ?? '',
-      createdAt: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt']) ?? DateTime.now()
-          : DateTime.now(),
-      updatedAt: json['updatedAt'] != null
-          ? DateTime.tryParse(json['updatedAt']) ?? DateTime.now()
-          : DateTime.now(),
+      createdAt:
+          json['createdAt'] != null
+              ? DateTime.tryParse(json['createdAt'].toString()) ??
+                  DateTime.now()
+              : DateTime.now(),
+      updatedAt:
+          json['updatedAt'] != null
+              ? DateTime.tryParse(json['updatedAt'].toString()) ??
+                  DateTime.now()
+              : DateTime.now(),
       songs: songsData,
-      isPublic: json['isPublic'] ?? false,
-      isShared: json['isShared'] ?? false,
-      shareCode: json['shareCode'],
-      allowEditing: json['allowEditing'] ?? false,
-      allowComments: json['allowComments'] ?? true,
+      isPublic: (json['isPublic'] as bool?) ?? false,
+      isShared: (json['isShared'] as bool?) ?? false,
+      shareCode: json['shareCode']?.toString(),
+      allowEditing: (json['allowEditing'] as bool?) ?? false,
+      allowComments: (json['allowComments'] as bool?) ?? true,
       isSharedWithMe: json['isSharedWithMe'] == true,
-      version: json['version'] ?? 1,
-      lastSyncAt: json['lastSyncAt'] != null ? DateTime.tryParse(json['lastSyncAt']) : null,
-      isDeleted: json['isDeleted'] ?? false,
-      deletedAt: json['deletedAt'] != null ? DateTime.tryParse(json['deletedAt']) : null,
+      version: (json['version'] as int?) ?? 1,
+      lastSyncAt:
+          json['lastSyncAt'] != null
+              ? DateTime.tryParse(json['lastSyncAt'].toString())
+              : null,
+      isDeleted: (json['isDeleted'] as bool?) ?? false,
+      deletedAt:
+          json['deletedAt'] != null
+              ? DateTime.tryParse(json['deletedAt'].toString())
+              : null,
       collaborators: collaboratorsData,
       activities: activitiesData,
       comments: commentsData,
@@ -185,16 +209,20 @@ class SetlistCollaborator {
       customerId: json['customerId']?.toString() ?? '',
       permission: json['permission']?.toString() ?? 'VIEW',
       status: json['status']?.toString() ?? 'PENDING',
-      invitedAt: json['invitedAt'] != null
-          ? DateTime.tryParse(json['invitedAt']) ?? DateTime.now()
-          : DateTime.now(),
-      acceptedAt: json['acceptedAt'] != null
-          ? DateTime.tryParse(json['acceptedAt'])
-          : null,
-      lastActiveAt: json['lastActiveAt'] != null
-          ? DateTime.tryParse(json['lastActiveAt'])
-          : null,
-      customer: json['customer'],
+      invitedAt:
+          json['invitedAt'] != null
+              ? DateTime.tryParse(json['invitedAt'].toString()) ??
+                  DateTime.now()
+              : DateTime.now(),
+      acceptedAt:
+          json['acceptedAt'] != null
+              ? DateTime.tryParse(json['acceptedAt'].toString())
+              : null,
+      lastActiveAt:
+          json['lastActiveAt'] != null
+              ? DateTime.tryParse(json['lastActiveAt'].toString())
+              : null,
+      customer: json['customer'] as Map<String, dynamic>?,
     );
   }
 
@@ -236,12 +264,14 @@ class SetlistActivity {
       id: json['id']?.toString() ?? '',
       customerId: json['customerId']?.toString() ?? '',
       action: json['action']?.toString() ?? '',
-      details: json['details'],
-      timestamp: json['timestamp'] != null
-          ? DateTime.tryParse(json['timestamp']) ?? DateTime.now()
-          : DateTime.now(),
-      version: json['version'] ?? 1,
-      customer: json['customer'],
+      details: json['details'] as Map<String, dynamic>?,
+      timestamp:
+          json['timestamp'] != null
+              ? DateTime.tryParse(json['timestamp'].toString()) ??
+                  DateTime.now()
+              : DateTime.now(),
+      version: (json['version'] as int?) ?? 1,
+      customer: json['customer'] as Map<String, dynamic>?,
     );
   }
 }
@@ -276,9 +306,13 @@ class SetlistComment {
     List<SetlistComment>? repliesData;
     try {
       if (json['replies'] != null) {
-        repliesData = (json['replies'] as List)
-            .map((item) => SetlistComment.fromJson(item))
-            .toList();
+        repliesData =
+            (json['replies'] as List)
+                .map(
+                  (item) =>
+                      SetlistComment.fromJson(item as Map<String, dynamic>),
+                )
+                .toList();
       }
     } catch (e) {
       debugPrint('Error parsing comment replies: $e');
@@ -290,17 +324,22 @@ class SetlistComment {
       customerId: json['customerId']?.toString() ?? '',
       text: json['text']?.toString() ?? '',
       parentId: json['parentId']?.toString(),
-      createdAt: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt']) ?? DateTime.now()
-          : DateTime.now(),
-      updatedAt: json['updatedAt'] != null
-          ? DateTime.tryParse(json['updatedAt']) ?? DateTime.now()
-          : DateTime.now(),
-      isDeleted: json['isDeleted'] ?? false,
-      deletedAt: json['deletedAt'] != null
-          ? DateTime.tryParse(json['deletedAt'])
-          : null,
-      customer: json['customer'],
+      createdAt:
+          json['createdAt'] != null
+              ? DateTime.tryParse(json['createdAt'].toString()) ??
+                  DateTime.now()
+              : DateTime.now(),
+      updatedAt:
+          json['updatedAt'] != null
+              ? DateTime.tryParse(json['updatedAt'].toString()) ??
+                  DateTime.now()
+              : DateTime.now(),
+      isDeleted: (json['isDeleted'] as bool?) ?? false,
+      deletedAt:
+          json['deletedAt'] != null
+              ? DateTime.tryParse(json['deletedAt'].toString())
+              : null,
+      customer: json['customer'] as Map<String, dynamic>?,
       replies: repliesData,
     );
   }

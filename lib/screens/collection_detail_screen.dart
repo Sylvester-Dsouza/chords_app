@@ -119,7 +119,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         // Parse songs
         for (var songData in songsData) {
           try {
-            final song = Song.fromJson(songData);
+            final song = Song.fromJson(songData as Map<String, dynamic>);
             songs.add(song);
           } catch (e) {
             debugPrint('Error parsing song: $e');
@@ -218,7 +218,7 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
       final result = await _collectionService.getLikeStatus(_collection!.id);
 
       if (result['success'] == true && mounted) {
-        final bool isLiked = result['data']['isLiked'] ?? false;
+        final bool isLiked = result['data']['isLiked'] as bool? ?? false;
 
         // Only update if the like status has changed
         if (isLiked != _collection!.isLiked) {
@@ -336,13 +336,13 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message'] ?? 'Failed to update like status'),
+            content: Text(result['message'] as String? ?? 'Failed to update like status'),
             backgroundColor: Colors.red,
           ),
         );
       } else if (result['success'] == true && mounted) {
         // Update with the actual like count from the server if different
-        final serverLikeCount = result['data']['likeCount'];
+        final serverLikeCount = result['data']['likeCount'] as int?;
         if (serverLikeCount != null &&
             serverLikeCount != _collection!.likeCount) {
           setState(() {

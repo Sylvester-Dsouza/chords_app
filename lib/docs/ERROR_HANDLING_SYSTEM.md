@@ -9,6 +9,15 @@ The app implements a comprehensive error handling system that:
 2. Categorizes errors by type (network, authentication, permission, server)
 3. Presents user-friendly error messages with appropriate actions
 4. Provides recovery paths for different error scenarios
+5. Includes robust type safety for all error handling operations
+
+## Recent Updates
+
+### Type Safety Improvements (Latest)
+**Date**: Current  
+**Change**: Enhanced type safety in `ErrorWrapper.wrapStream()` method  
+**Impact**: Improved runtime stability and better error handling for stream operations  
+**Details**: Added explicit type annotations (`Object error, StackTrace stackTrace`) to stream error handlers to prevent potential type-related runtime errors and improve IDE support.
 
 ## Components
 
@@ -63,6 +72,24 @@ The error handling system integrates with the app's dependency injection system 
 - Centralized error handling through the `ErrorHandler` service
 - Integration with crash reporting via `CrashlyticsService`
 - Retry mechanisms through the `RetryService`
+
+### 5. RetryService Integration
+
+The error handling system works seamlessly with the `RetryService` to provide automatic retry capabilities:
+
+**Error Classification for Retries:**
+- `isRetryableError()`: Determines if an error should trigger a retry
+- `isNetworkError()`: Identifies network-related errors
+- `isAuthError()`: Identifies authentication errors (non-retryable)
+- `getRetryDelay()`: Calculates exponential backoff delays
+
+**Retry Strategies:**
+- **API Calls**: Automatic retry with authentication error exclusion
+- **Network Operations**: Retry only network-related failures
+- **Cache Operations**: Limited retries with shorter delays
+- **Circuit Breaker**: Prevents cascading failures
+
+For detailed retry service documentation, see [RETRY_SERVICE_API.md](RETRY_SERVICE_API.md).
 
 ## Error Recovery Paths
 

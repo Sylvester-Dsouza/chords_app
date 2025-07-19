@@ -452,13 +452,16 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
     // Calculate available height considering safe areas and system navigation
     final availableHeight = screenHeight - safeAreaBottom - viewInsetsBottom;
 
-    // Calculate responsive height (between 45% and 75% of available height)
-    final minHeight = availableHeight * 0.45;
-    final maxHeight = availableHeight * 0.75;
-    final preferredHeight = availableHeight * 0.6;
-
-    // Use the preferred height, but constrain it within min/max bounds
-    final bottomSheetHeight = preferredHeight.clamp(minHeight, maxHeight);
+    // Use a more consistent height approach that works well across all screen sizes
+    // Set a minimum height that ensures all content is visible
+    const minFixedHeight = 550.0; // Increased minimum height for better content visibility
+    const maxFixedHeight = 700.0; // Increased maximum height for larger screens
+    
+    // Calculate a responsive height but with better bounds
+    final responsiveHeight = availableHeight * 0.8; // Use 80% of available height (increased from 75%)
+    
+    // Use the responsive height but ensure it's within our fixed bounds
+    final bottomSheetHeight = responsiveHeight.clamp(minFixedHeight, maxFixedHeight);
 
     return Container(
       height: bottomSheetHeight,
@@ -506,14 +509,14 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
 
           // Add bottom spacing when no variations (single chord) or for piano
           if (_chordVariations.length <= 1 || _selectedInstrument == ChordInstrument.piano)
-            SizedBox(height: 32.0 + safeAreaBottom),
+            SizedBox(height: 40.0 + safeAreaBottom),
 
           // Position indicator and navigation row (hide for piano or when only 1 variation)
           if (_chordVariations.length > 1 && _selectedInstrument != ChordInstrument.piano)
             Padding(
               padding: EdgeInsets.only(
-                bottom: 32.0 + safeAreaBottom, // Increased bottom padding for better spacing
-                top: 8.0,
+                bottom: 40.0 + safeAreaBottom, // Further increased bottom padding for better spacing
+                top: 12.0, // Slightly increased top padding
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -590,22 +593,15 @@ class _ChordDiagramBottomSheetState extends State<ChordDiagramBottomSheet> {
                   color: isSelected ? AppTheme.primary : AppTheme.surfaceSecondary,
                   borderRadius: BorderRadius.circular(8.0),
                 ),
-                child: Column(
-                  children: [
-                    Text(
-                      instrument.icon,
-                      style: const TextStyle(fontSize: 20),
+                child: Center(
+                  child: Text(
+                    instrument.displayName,
+                    style: TextStyle(
+                      color: isSelected ? Colors.black : Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      instrument.displayName,
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : AppTheme.textPrimary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),

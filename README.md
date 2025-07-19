@@ -23,26 +23,64 @@ The app follows a clean architecture approach with:
 - **lib/config/** - App configuration and theming
 - **lib/core/** - Core utilities, service locator, and error handling
 - **lib/data/** - Data layer with repositories and data sources
-- **lib/models/** - Data models
+- **lib/models/** - Data models with type-safe JSON parsing
 - **lib/providers/** - State management
-- **lib/screens/** - UI screens
+- **lib/screens/** - UI screens with robust data handling
 - **lib/services/** - Business logic and services
 - **lib/utils/** - Utility functions
 - **lib/widgets/** - Reusable UI components
+
+### Type Safety and Data Handling
+
+The app implements comprehensive type safety measures throughout the data layer:
+
+- **Explicit Type Casting**: All JSON parsing uses explicit type casting to prevent runtime errors
+- **Null Safety**: Comprehensive null handling with meaningful fallback values
+- **Dynamic Data Validation**: Type checking before data extraction, especially for nested objects
+- **Error Isolation**: Parsing errors are caught and handled gracefully without breaking the UI
+- **Flexible Data Structures**: Handles varying API response formats (e.g., artist data as string or object)
+
+Recent improvements include enhanced type safety in the setlist management system, where song data extraction now uses explicit type casting and validation to handle dynamic API responses safely. Additionally, the ListScreen now implements intelligent collection loading strategies that preserve section-specific context while ensuring complete metadata is available for UI rendering, using selective data fetching to optimize performance.
+
+### Navigation Architecture
+
+The app uses Flutter's modern navigation system with custom patterns for data synchronization:
+
+- **PopScope Integration**: Uses Flutter 3.12+ `PopScope` widget for custom back navigation handling
+- **Data Synchronization**: Screens track modifications and communicate changes to parent screens
+- **Manual Navigation Control**: Custom navigation handlers prevent data loss and ensure proper state management
+- **Collaborative Editing Support**: Handles real-time collaboration with conflict resolution
+
+Key navigation features:
+- Modification tracking across screens
+- Automatic data refresh when returning from modified screens
+- Graceful handling of unsaved changes
+- Consistent back button behavior throughout the app
+
+For detailed navigation patterns, see [Navigation Patterns Documentation](lib/docs/NAVIGATION_PATTERNS.md).
 
 ### Service Architecture
 
 The app uses a centralized service locator pattern (GetIt) for dependency injection. All services are registered in `lib/core/service_locator.dart` and follow a lazy singleton pattern for memory efficiency.
 
+#### Data Loading Optimization
+
+The app implements intelligent data loading strategies that optimize for both performance and data completeness:
+
+- **Dual-Strategy Loading**: Different API endpoints are used based on data requirements (e.g., collections use dedicated API for complete metadata)
+- **Cache-First Approach**: Prioritizes cached data when available, with graceful fallback to API calls
+- **Context-Aware Loading**: Screens adapt their loading strategy based on navigation context and data needs
+- **Complete Data Integrity**: Ensures UI components receive complete data sets, preventing display issues
+
 #### Core Services
 - **ErrorHandler**: Centralized error handling and recovery
-- **RetryService**: Automatic retry logic for failed operations
+- **RetryService**: Comprehensive retry mechanism with exponential backoff and circuit breaker pattern
 - **CrashlyticsService**: Error reporting and crash analytics
 - **PerformanceService**: App performance monitoring
 - **ConnectivityService**: Network connectivity management
 
 #### Data Services
-- **ApiService**: HTTP client for backend communication
+- **ApiService**: HTTP client for backend communication with type-safe JSON parsing
 - **AuthService**: Firebase authentication integration
 - **CacheService**: Intelligent caching for offline support
 - **MemoryManager**: Memory usage monitoring and optimization
@@ -151,6 +189,145 @@ Helper methods for consistent styling:
 - `getTextColorForBackground()` - Get appropriate text color based on background
 - `cardDecoration` - Get consistent card decoration
 - `elevatedCardDecoration` - Get elevated card decoration
+
+## Testing
+
+The app includes a comprehensive testing infrastructure with multiple testing layers:
+
+### Testing Dependencies
+
+The following testing dependencies are configured in `pubspec.yaml`:
+
+- **mockito**: Mock object generation for unit testing
+- **build_runner**: Code generation for mocks and other build tasks
+- **test**: Core Dart testing framework
+- **fake_async**: Utilities for testing asynchronous code
+- **flutter_driver**: End-to-end testing framework
+- **integration_test**: Flutter integration testing support
+
+### Test Structure
+
+```
+test/
+├── unit/                    # Unit tests for services, providers, models
+├── widget/                  # Widget tests for UI components
+├── integration/             # Integration tests for complete flows
+└── helpers/                 # Test utilities and mock factories
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+flutter test
+
+# Run with coverage
+flutter test --coverage
+
+# Generate HTML coverage report
+./test_coverage.sh
+
+# Run specific test types
+flutter test --tags unit
+flutter test --tags widget
+flutter test --tags integration
+```
+
+### Test Coverage Goals
+
+- **Overall Coverage**: 80% minimum, 90% target
+- **Critical Business Logic**: 95% coverage required
+- **Services Layer**: 90% coverage required
+- **UI Components**: 75% coverage required
+
+For detailed testing documentation, see [test/README.md](test/README.md).
+
+## Error Handling and Retry System
+
+The app implements a robust error handling and retry system designed to provide a seamless user experience even when network or service issues occur.
+
+### Key Features
+
+- **Automatic Retry Logic**: Failed operations are automatically retried with exponential backoff
+- **Circuit Breaker Pattern**: Prevents cascading failures by temporarily disabling failing services
+- **Intelligent Error Classification**: Distinguishes between retryable and non-retryable errors
+- **User-Friendly Error Messages**: Technical errors are converted to user-friendly messages
+- **Comprehensive Logging**: Detailed logging for debugging and monitoring
+
+### Retry Strategies
+
+The system provides specialized retry methods for different types of operations:
+
+- **API Calls**: `RetryService.retryApiCall()` - Excludes authentication errors from retry
+- **Network Operations**: `RetryService.retryNetworkOperation()` - Focuses on connectivity issues
+- **Cache Operations**: `RetryService.retryCacheOperation()` - Optimized for local storage with fewer retries
+- **Fallback Operations**: `RetryService.executeFirstSuccessful()` - Tries multiple data sources in sequence
+
+### Example Usage
+
+```dart
+// Automatic API retry with fallback
+final songs = await RetryService.executeFirstSuccessful([
+  () => primaryApiService.getSongs(),
+  () => backupApiService.getSongs(),
+  () => cacheService.getCachedSongs(),
+], context: 'Loading songs with fallback');
+
+// Circuit breaker for critical services
+final circuitBreaker = RetryService.createCircuitBreaker(
+  name: 'Payment Service',
+  failureThreshold: 3,
+  timeout: Duration(seconds: 30),
+);
+```
+
+### Documentation
+
+For comprehensive documentation on the error handling and retry system:
+- [Error Handling System](lib/docs/ERROR_HANDLING_SYSTEM.md)
+- [Retry Service API](lib/docs/RETRY_SERVICE_API.md)
+
+## Configuration and Constants
+
+The app uses a centralized constants system for maintainability and consistency. All application constants are defined in `lib/core/constants.dart` and organized into logical categories.
+
+### Key Configuration Areas
+
+- **App Information**: Branding, naming, and app metadata
+- **UI Constants**: Spacing, sizing, animations, and visual elements
+- **API Configuration**: Timeouts, retry attempts, and network settings
+- **Firebase Configuration**: Authentication keys and project settings
+- **Audio Settings**: BPM ranges, metronome settings, and audio controls
+- **Cache Management**: Expiration times and memory limits
+- **Feature Flags**: Enable/disable features for different builds
+- **Performance Thresholds**: Memory limits and performance monitoring
+
+### Environment-Specific Constants
+
+The `EnvironmentConstants` class provides dynamic constants that adapt based on the build environment:
+
+```dart
+// Production vs Debug behavior
+static bool get isProduction => const bool.fromEnvironment('dart.vm.product');
+static Duration get cacheExpiration => isProduction 
+    ? const Duration(minutes: 30) 
+    : const Duration(minutes: 5);
+```
+
+For detailed information about all available constants and their usage, see the [Constants Reference Guide](lib/docs/CONSTANTS_REFERENCE.md).
+
+## Documentation
+
+The app includes comprehensive documentation in the `lib/docs/` directory:
+
+- **[Data Models API](lib/docs/DATA_MODELS_API.md)** - Data models, JSON parsing patterns, and type safety improvements
+- **[Constants Reference Guide](lib/docs/CONSTANTS_REFERENCE.md)** - Complete constants and configuration reference
+- **[Error Handling System](lib/docs/ERROR_HANDLING_SYSTEM.md)** - Complete error handling architecture
+- **[Retry Service API](lib/docs/RETRY_SERVICE_API.md)** - Retry mechanisms and circuit breaker patterns
+- **[Navigation Patterns](lib/docs/NAVIGATION_PATTERNS.md)** - Screen navigation and data synchronization patterns
+- **[Font System Documentation](lib/docs/FONT_USAGE_GUIDE.md)** - Typography and font management
+- **[Performance Monitoring](lib/docs/PERFORMANCE_UTILS_API.md)** - Performance optimization tools
+- **[Memory Management](lib/docs/MEMORY_LEAK_DETECTION.md)** - Memory leak detection and prevention
 
 ## Resources
 

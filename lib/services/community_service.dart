@@ -43,7 +43,7 @@ class CommunityService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return CommunitySetlistsResponse.fromJson(data);
+        return CommunitySetlistsResponse.fromJson(data as Map<String, dynamic>);
       } else {
         throw Exception(
           'Failed to load community setlists: ${response.statusCode}',
@@ -78,7 +78,7 @@ class CommunityService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return CommunitySetlistsResponse.fromJson(data);
+        return CommunitySetlistsResponse.fromJson(data as Map<String, dynamic>);
       } else {
         throw Exception(
           'Failed to load trending setlists: ${response.statusCode}',
@@ -116,7 +116,7 @@ class CommunityService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return CommunitySetlistsResponse.fromJson(data);
+        return CommunitySetlistsResponse.fromJson(data as Map<String, dynamic>);
       } else {
         throw Exception(
           'Failed to load liked setlists: ${response.statusCode}',
@@ -144,7 +144,7 @@ class CommunityService {
       );
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        return json.decode(response.body) as Map<String, dynamic>;
       } else if (response.statusCode == 409) {
         throw Exception('Already liked this setlist');
       } else {
@@ -172,7 +172,7 @@ class CommunityService {
       );
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        return json.decode(response.body) as Map<String, dynamic>;
       } else if (response.statusCode == 409) {
         throw Exception('Not liked this setlist');
       } else {
@@ -206,7 +206,8 @@ class CommunityService {
         if (response.data == null) {
           return {'success': true, 'viewCount': 1};
         }
-        return Map<String, dynamic>.from(response.data);
+        final setlistJson = Map<String, dynamic>.from(response.data as Map<dynamic, dynamic>);
+        return setlistJson;
       } else {
         debugPrint('❌ Failed to increment view count: ${response.statusCode}');
         // Return a default success response even on error to prevent UI disruption
@@ -236,7 +237,7 @@ class CommunityService {
       );
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        return json.decode(response.body) as Map<String, dynamic>;
       } else if (response.statusCode == 409) {
         throw Exception('Setlist is already public');
       } else {
@@ -266,7 +267,7 @@ class CommunityService {
       );
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        return json.decode(response.body) as Map<String, dynamic>;
       } else if (response.statusCode == 409) {
         throw Exception('Setlist is already private');
       } else {

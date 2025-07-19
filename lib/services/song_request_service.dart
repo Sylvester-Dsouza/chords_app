@@ -37,7 +37,7 @@ class SongRequestService {
       final response = await _apiService.get('/song-requests');
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
+        final List<dynamic> data = response.data as List<dynamic>;
         debugPrint('Received ${data.length} song requests from API');
 
         // Check if data is empty
@@ -49,7 +49,7 @@ class SongRequestService {
         try {
           // Parse song requests from API - use the hasUpvoted status directly from the backend
           final List<SongRequest> songRequests = data.map((item) {
-            final songRequest = SongRequest.fromJson(item);
+            final songRequest = SongRequest.fromJson(item as Map<String, dynamic>);
             debugPrint('Song request ${songRequest.id} - ${songRequest.songName} - hasUpvoted: ${songRequest.hasUpvoted}');
             return songRequest;
           }).toList();
@@ -77,7 +77,7 @@ class SongRequestService {
       final response = await _apiService.get('/song-requests/my-requests');
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
+        final List<dynamic> data = response.data as List<dynamic>;
         debugPrint('Received ${data.length} of my song requests from API');
 
         // Check if data is empty
@@ -88,7 +88,7 @@ class SongRequestService {
 
         try {
           final List<SongRequest> songRequests = data
-              .map((item) => SongRequest.fromJson(item))
+              .map((item) => SongRequest.fromJson(item as Map<String, dynamic>))
               .toList();
           debugPrint('Successfully parsed ${songRequests.length} song requests');
           return songRequests;
@@ -141,22 +141,22 @@ class SongRequestService {
 
       if (response.statusCode == 201) {
         debugPrint('Song request created successfully');
-        final createdRequest = SongRequest.fromJson(response.data);
+        final songRequest = SongRequest.fromJson(response.data as Map<String, dynamic>);
 
         // Since the user created this request, they should have it "upvoted" by default
         // Return a modified version with hasUpvoted set to true
         return SongRequest(
-          id: createdRequest.id,
-          songName: createdRequest.songName,
-          artistName: createdRequest.artistName,
-          youtubeLink: createdRequest.youtubeLink,
-          spotifyLink: createdRequest.spotifyLink,
-          notes: createdRequest.notes,
-          status: createdRequest.status,
-          upvotes: createdRequest.upvotes,
-          customerId: createdRequest.customerId,
-          createdAt: createdRequest.createdAt,
-          updatedAt: createdRequest.updatedAt,
+          id: songRequest.id,
+          songName: songRequest.songName,
+          artistName: songRequest.artistName,
+          youtubeLink: songRequest.youtubeLink,
+          spotifyLink: songRequest.spotifyLink,
+          notes: songRequest.notes,
+          status: songRequest.status,
+          upvotes: songRequest.upvotes,
+          customerId: songRequest.customerId,
+          createdAt: songRequest.createdAt,
+          updatedAt: songRequest.updatedAt,
           hasUpvoted: true, // Creator should have this as upvoted
         );
       } else {

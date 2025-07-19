@@ -49,15 +49,7 @@ class SongService {
         final List<dynamic> songsData = responseData['data'] as List<dynamic>;
         final Map<String, dynamic> pagination = responseData['pagination'] as Map<String, dynamic>;
 
-        final List<Song> songs = [];
-        for (var songJson in songsData) {
-          try {
-            final song = Song.fromJson(songJson);
-            songs.add(song);
-          } catch (e) {
-            debugPrint('Error parsing individual song: $e');
-          }
-        }
+        final List<Song> songs = songsData.map((json) => Song.fromJson(json as Map<String, dynamic>)).toList();
 
         debugPrint('Successfully fetched ${songs.length} songs (page $page of ${pagination['totalPages']})');
 
@@ -131,7 +123,7 @@ class SongService {
           for (var i = 0; i < data.length; i++) {
             try {
               final json = data[i];
-              final song = Song.fromJson(json);
+              final song = Song.fromJson(json as Map<String, dynamic>);
               songs.add(song);
             } catch (e) {
               debugPrint('Error parsing individual song: $e');
@@ -238,7 +230,7 @@ class SongService {
           for (var i = 0; i < data.length; i++) {
             try {
               final json = data[i];
-              final song = Song.fromJson(json);
+              final song = Song.fromJson(json as Map<String, dynamic>);
               songs.add(song);
             } catch (e) {
               debugPrint('Error parsing individual search result: $e');
@@ -300,7 +292,7 @@ class SongService {
               final json = data[i];
               debugPrint('Parsing artist song ${i+1}/${data.length}: ${json['title']}');
 
-              final song = Song.fromJson(json);
+              final song = Song.fromJson(json as Map<String, dynamic>);
               songs.add(song);
               debugPrint('Successfully parsed artist song: ${song.title}');
             } catch (e) {
@@ -352,7 +344,7 @@ class SongService {
         }
 
         try {
-          final song = Song.fromJson(data);
+          final song = Song.fromJson(data as Map<String, dynamic>);
           debugPrint('Successfully parsed song: ${song.title} by ${song.artist}');
 
           // Update the song in the cache with the fresh data
@@ -621,7 +613,7 @@ Jesus''',
               final json = filteredData[i];
               debugPrint('Parsing artist name song ${i+1}/${filteredData.length}: ${json['title']}');
 
-              final song = Song.fromJson(json);
+              final song = Song.fromJson(json as Map<String, dynamic>);
               songs.add(song);
               debugPrint('Successfully parsed artist name song: ${song.title}');
             } catch (e) {

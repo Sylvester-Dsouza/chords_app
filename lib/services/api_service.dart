@@ -474,8 +474,8 @@ class ApiService {
     debugPrint('Storing tokens from data: $data');
 
     // Check for tokens in the response
-    final String? accessToken = data['accessToken'];
-    final String? refreshToken = data['refreshToken'];
+    final String? accessToken = data['accessToken'] as String?;
+    final String? refreshToken = data['refreshToken'] as String?;
 
     if (accessToken != null) {
       try {
@@ -593,7 +593,7 @@ class ApiService {
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        await _storeTokens(response.data);
+        await _storeTokens(response.data as Map<String, dynamic>);
         return {
           'success': true,
           'data': response.data['customer'],
@@ -622,7 +622,7 @@ class ApiService {
               'Connection error. Please check if the server is running.';
         } else if (e.response?.data is Map &&
             e.response?.data['message'] != null) {
-          errorMessage = e.response?.data['message'];
+          errorMessage = e.response?.data['message'] as String;
 
           // Make error messages more user-friendly
           if (errorMessage.contains('already exists')) {
@@ -706,7 +706,7 @@ class ApiService {
       debugPrint('Login response: ${response.statusCode} - ${response.data}');
 
       if (response.statusCode == 200) {
-        await _storeTokens(response.data);
+        await _storeTokens(response.data as Map<String, dynamic>);
         return {
           'success': true,
           'data': response.data['customer'],
@@ -751,7 +751,7 @@ class ApiService {
               'Connection error. Please check if the server is running.';
         } else if (e.response?.data is Map &&
             e.response?.data['message'] != null) {
-          errorMessage = e.response?.data['message'];
+          errorMessage = e.response?.data['message'] as String;
         }
       }
 
@@ -806,7 +806,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        await _storeTokens(response.data);
+        await _storeTokens(response.data as Map<String, dynamic>);
         return {
           'success': true,
           'data': response.data['customer'],
@@ -852,7 +852,7 @@ class ApiService {
               'Connection error. Please check if the server is running.';
         } else if (e.response?.data is Map &&
             e.response?.data['message'] != null) {
-          errorMessage = e.response?.data['message'];
+          errorMessage = e.response?.data['message'] as String;
         }
       }
 

@@ -121,8 +121,8 @@ class SecureApiService {
         data: {'refreshToken': refreshToken},
       );
 
-      if (response.statusCode == 200 && response.data['accessToken'] != null) {
-        await _storeTokens(response.data);
+      if (response.statusCode == 200) {
+        await _storeTokens(response.data as Map<String, dynamic>);
         return true;
       }
 
@@ -136,18 +136,18 @@ class SecureApiService {
   // Store tokens securely
   Future<void> _storeTokens(Map<String, dynamic> data) async {
     try {
-      if (data['accessToken'] != null) {
+      if (data['access_token'] != null) {
         await _secureStorage.write(
           key: 'access_token',
-          value: data['accessToken'],
+          value: data['access_token'],
         );
         debugPrint('Stored access token');
       }
 
-      if (data['refreshToken'] != null) {
+      if (data['refresh_token'] != null) {
         await _secureStorage.write(
           key: 'refresh_token',
-          value: data['refreshToken'],
+          value: data['refresh_token'],
         );
         debugPrint('Stored refresh token');
       }
@@ -201,7 +201,7 @@ class SecureApiService {
       debugPrint('Registration response: ${response.statusCode}');
 
       if (response.statusCode == 201) {
-        await _storeTokens(response.data);
+        await _storeTokens(response.data as Map<String, dynamic>);
         return {
           'success': true,
           'data': response.data['user'] ?? response.data['customer'],
@@ -248,7 +248,7 @@ class SecureApiService {
       debugPrint('Login response: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        await _storeTokens(response.data);
+        await _storeTokens(response.data as Map<String, dynamic>);
         return {
           'success': true,
           'data': response.data['user'] ?? response.data['customer'],

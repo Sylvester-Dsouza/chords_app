@@ -63,7 +63,7 @@ class KaraokeService {
 
         if (data['songs'] != null) {
           final songs = (data['songs'] as List)
-              .map((json) => KaraokeSong.fromJson(json))
+              .map((json) => KaraokeSong.fromJson(json as Map<String, dynamic>))
               .toList();
           debugPrint('🎤 Parsed ${songs.length} karaoke songs');
           return songs;
@@ -107,7 +107,7 @@ class KaraokeService {
 
         if (data['songs'] != null) {
           final songs = (data['songs'] as List)
-              .map((json) => KaraokeSong.fromJson(json))
+              .map((json) => KaraokeSong.fromJson(json as Map<String, dynamic>))
               .toList();
           debugPrint('🎤 Parsed ${songs.length} popular karaoke songs');
           return songs;
@@ -151,7 +151,7 @@ class KaraokeService {
 
         if (data['songs'] != null) {
           final songs = (data['songs'] as List)
-              .map((json) => KaraokeSong.fromJson(json))
+              .map((json) => KaraokeSong.fromJson(json as Map<String, dynamic>))
               .toList();
           debugPrint('🎤 Parsed ${songs.length} recent karaoke songs');
           return songs;
@@ -186,7 +186,7 @@ class KaraokeService {
       );
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        return json.decode(response.body) as Map<String, dynamic>;
       } else {
         throw Exception('Failed to get download URL: ${response.statusCode}');
       }
@@ -241,7 +241,7 @@ class KaraokeService {
       );
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        return json.decode(response.body) as Map<String, dynamic>;
       }
 
       return null;

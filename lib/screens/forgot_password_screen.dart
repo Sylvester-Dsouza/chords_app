@@ -49,7 +49,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         } else {
           setState(() {
             _errorMessage =
-                result['message'] ?? 'Failed to send password reset email';
+                result['message'] as String? ?? 'Failed to send password reset email';
           });
           ToastUtil.showError(context, _errorMessage!);
         }

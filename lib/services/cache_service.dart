@@ -220,7 +220,7 @@ class CacheService {
         // Check if memory cache is still valid
         if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
           final songsJson = cacheMap['data'] as List;
-          final songs = songsJson.map((json) => Song.fromJson(json)).toList();
+          final songs = songsJson.map((json) => Song.fromJson(json as Map<String, dynamic>)).toList();
           debugPrint('Retrieved ${songs.length} songs from memory cache');
           return songs;
         }
@@ -238,7 +238,7 @@ class CacheService {
         // Check if persistent cache is still valid
         if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
           final songsJson = cacheMap['data'] as List;
-          final songs = songsJson.map((json) => Song.fromJson(json)).toList();
+          final songs = songsJson.map((json) => Song.fromJson(json as Map<String, dynamic>)).toList();
 
           // Update memory cache
           _memoryCache[_keySongs] = cacheMap;
@@ -290,7 +290,7 @@ class CacheService {
         // Check if memory cache is still valid
         if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
           final artistsJson = cacheMap['data'] as List;
-          final artists = artistsJson.map((json) => Artist.fromJson(json)).toList();
+          final artists = artistsJson.map((json) => Artist.fromJson(json as Map<String, dynamic>)).toList();
           debugPrint('Retrieved ${artists.length} artists from memory cache');
           return artists;
         }
@@ -308,7 +308,7 @@ class CacheService {
         // Check if persistent cache is still valid
         if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
           final artistsJson = cacheMap['data'] as List;
-          final artists = artistsJson.map((json) => Artist.fromJson(json)).toList();
+          final artists = artistsJson.map((json) => Artist.fromJson(json as Map<String, dynamic>)).toList();
 
           // Update memory cache
           _memoryCache[_keyArtists] = cacheMap;
@@ -360,7 +360,7 @@ class CacheService {
         // Check if memory cache is still valid
         if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
           final collectionsJson = cacheMap['data'] as List;
-          final collections = collectionsJson.map((json) => Collection.fromJson(json)).toList();
+          final collections = collectionsJson.map((json) => Collection.fromJson(json as Map<String, dynamic>)).toList();
           debugPrint('Retrieved ${collections.length} seasonal collections from memory cache');
           return collections;
         }
@@ -378,7 +378,7 @@ class CacheService {
         // Check if persistent cache is still valid
         if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
           final collectionsJson = cacheMap['data'] as List;
-          final collections = collectionsJson.map((json) => Collection.fromJson(json)).toList();
+          final collections = collectionsJson.map((json) => Collection.fromJson(json as Map<String, dynamic>)).toList();
 
           // Update memory cache
           _memoryCache[_keySeasonalCollections] = cacheMap;
@@ -430,7 +430,7 @@ class CacheService {
         // Check if memory cache is still valid
         if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
           final collectionsJson = cacheMap['data'] as List;
-          final collections = collectionsJson.map((json) => Collection.fromJson(json)).toList();
+          final collections = collectionsJson.map((json) => Collection.fromJson(json as Map<String, dynamic>)).toList();
           debugPrint('Retrieved ${collections.length} beginner collections from memory cache');
           return collections;
         }
@@ -448,7 +448,7 @@ class CacheService {
         // Check if persistent cache is still valid
         if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
           final collectionsJson = cacheMap['data'] as List;
-          final collections = collectionsJson.map((json) => Collection.fromJson(json)).toList();
+          final collections = collectionsJson.map((json) => Collection.fromJson(json as Map<String, dynamic>)).toList();
 
           // Update memory cache
           _memoryCache[_keyBeginnerCollections] = cacheMap;
@@ -500,7 +500,7 @@ class CacheService {
         // Check if memory cache is still valid
         if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
           final songsJson = cacheMap['data'] as List;
-          final songs = songsJson.map((json) => Song.fromJson(json)).toList();
+          final songs = songsJson.map((json) => Song.fromJson(json as Map<String, dynamic>)).toList();
           debugPrint('Retrieved ${songs.length} trending songs from memory cache');
           return songs;
         }
@@ -518,7 +518,7 @@ class CacheService {
         // Check if persistent cache is still valid
         if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
           final songsJson = cacheMap['data'] as List;
-          final songs = songsJson.map((json) => Song.fromJson(json)).toList();
+          final songs = songsJson.map((json) => Song.fromJson(json as Map<String, dynamic>)).toList();
 
           // Update memory cache
           _memoryCache[_keyTrendingSongs] = cacheMap;
@@ -570,7 +570,7 @@ class CacheService {
         // Check if memory cache is still valid
         if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
           final artistsJson = cacheMap['data'] as List;
-          final artists = artistsJson.map((json) => Artist.fromJson(json)).toList();
+          final artists = artistsJson.map((json) => Artist.fromJson(json as Map<String, dynamic>)).toList();
           debugPrint('Retrieved ${artists.length} top artists from memory cache');
           return artists;
         }
@@ -588,7 +588,7 @@ class CacheService {
         // Check if persistent cache is still valid
         if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
           final artistsJson = cacheMap['data'] as List;
-          final artists = artistsJson.map((json) => Artist.fromJson(json)).toList();
+          final artists = artistsJson.map((json) => Artist.fromJson(json as Map<String, dynamic>)).toList();
 
           // Update memory cache
           _memoryCache[_keyTopArtists] = cacheMap;
@@ -640,7 +640,7 @@ class CacheService {
         // Check if memory cache is still valid
         if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
           final songsJson = cacheMap['data'] as List;
-          final songs = songsJson.map((json) => Song.fromJson(json)).toList();
+          final songs = songsJson.map((json) => Song.fromJson(json as Map<String, dynamic>)).toList();
           debugPrint('Retrieved ${songs.length} new songs from memory cache');
           return songs;
         }
@@ -658,7 +658,7 @@ class CacheService {
         // Check if persistent cache is still valid
         if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
           final songsJson = cacheMap['data'] as List;
-          final songs = songsJson.map((json) => Song.fromJson(json)).toList();
+          final songs = songsJson.map((json) => Song.fromJson(json as Map<String, dynamic>)).toList();
 
           // Update memory cache
           _memoryCache[_keyNewSongs] = cacheMap;
@@ -684,7 +684,7 @@ class CacheService {
         'id': section.id,
         'title': section.title,
         'type': section.type.toString().split('.').last,
-        'items': _serializeItems(section.type, section.items),
+        'items': _serializeItems(section.type, section.items as List<dynamic>),
       }).toList();
 
       final cacheData = {
@@ -1031,7 +1031,7 @@ class CacheService {
         // Check if memory cache is still valid
         if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
           final setlistsJson = cacheMap['data'] as List;
-          final setlists = setlistsJson.map((json) => Setlist.fromJson(json)).toList();
+          final setlists = setlistsJson.map((json) => Setlist.fromJson(json as Map<String, dynamic>)).toList();
           debugPrint('📦 Retrieved ${setlists.length} setlists from memory cache');
           return setlists;
         }
@@ -1049,7 +1049,7 @@ class CacheService {
         // Check if persistent cache is still valid
         if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
           final setlistsJson = cacheMap['data'] as List;
-          final setlists = setlistsJson.map((json) => Setlist.fromJson(json)).toList();
+          final setlists = setlistsJson.map((json) => Setlist.fromJson(json as Map<String, dynamic>)).toList();
 
           // Update memory cache
           _memoryCache[_keySetlists] = cacheMap;
@@ -1101,7 +1101,7 @@ class CacheService {
         // Check if memory cache is still valid
         if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
           final likedSongsJson = cacheMap['data'] as List;
-          final likedSongs = likedSongsJson.map((json) => Song.fromJson(json)).toList();
+          final likedSongs = likedSongsJson.map((json) => Song.fromJson(json as Map<String, dynamic>)).toList();
           debugPrint('📦 Retrieved ${likedSongs.length} liked songs from memory cache');
           return likedSongs;
         }
@@ -1119,7 +1119,7 @@ class CacheService {
         // Check if persistent cache is still valid
         if (DateTime.now().millisecondsSinceEpoch < expirationTime) {
           final likedSongsJson = cacheMap['data'] as List;
-          final likedSongs = likedSongsJson.map((json) => Song.fromJson(json)).toList();
+          final likedSongs = likedSongsJson.map((json) => Song.fromJson(json as Map<String, dynamic>)).toList();
 
           // Update memory cache
           _memoryCache[_keyLikedSongs] = cacheMap;

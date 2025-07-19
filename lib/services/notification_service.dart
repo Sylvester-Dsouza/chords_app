@@ -71,10 +71,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
     await localNotifications.show(
       message.hashCode,
-      title,
-      body,
+      title as String?,
+      body as String?,
       platformChannelSpecifics,
-      payload: message.data['notificationId'] ?? message.messageId,
+      payload: message.data['notificationId'] as String? ?? message.messageId,
     );
 
     debugPrint('✅ Background notification displayed: $title');
@@ -306,8 +306,8 @@ class NotificationService {
         debugPrint('✅ Using notification payload: $title - $body');
       } else if (message.data.isNotEmpty) {
         // Data-only message - extract from data payload
-        title = message.data['title'] ?? 'New Notification';
-        body = message.data['body'] ?? 'You have a new notification';
+        title = message.data['title'] as String? ?? 'New Notification';
+        body = message.data['body'] as String? ?? 'You have a new notification';
         debugPrint('✅ Using data payload: $title - $body');
       } else {
         debugPrint('❌ No notification or data payload found');
@@ -353,7 +353,7 @@ class NotificationService {
         title,
         body,
         platformChannelSpecifics,
-        payload: message.data['notificationId'] ?? message.messageId,
+        payload: message.data['notificationId'] as String? ?? message.messageId,
       );
 
       debugPrint('✅ Local notification displayed successfully');
@@ -598,9 +598,9 @@ class NotificationService {
       final response = await _apiService.get('/notifications/customer/history');
 
       if (response.data is List) {
-        return response.data;
+        return response.data as List<dynamic>;
       } else if (response.data is Map && response.data['data'] is List) {
-        return response.data['data'];
+        return response.data['data'] as List<dynamic>;
       } else {
         debugPrint('Unexpected notification history response format: ${response.data.runtimeType}');
         return [];

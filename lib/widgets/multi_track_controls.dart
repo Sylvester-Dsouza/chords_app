@@ -13,9 +13,9 @@ class MultiTrackControls extends StatefulWidget {
   final Duration position;
   final Duration duration;
   final VoidCallback onPlayPause;
-  final Function(Duration) onSeek;
-  final Function(TrackType) onToggleTrackMute;
-  final Function(TrackType, double) onSetTrackVolume;
+  final void Function(Duration) onSeek;
+  final void Function(TrackType) onToggleTrackMute;
+  final void Function(TrackType, double) onSetTrackVolume;
 
   const MultiTrackControls({
     super.key,

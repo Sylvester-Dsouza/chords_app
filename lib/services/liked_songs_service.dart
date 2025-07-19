@@ -38,7 +38,7 @@ class LikedSongsService {
 
           // Otherwise return the cached data
           final List<dynamic> likedSongsData = jsonDecode(likedSongsJson);
-          return likedSongsData.map((json) => Song.fromJson(json)).toList();
+          return likedSongsData.map((json) => Song.fromJson(json as Map<String, dynamic>)).toList();
         }
       }
       _lastGetLikedSongsTime = now;
@@ -50,7 +50,8 @@ class LikedSongsService {
       if (likedSongsJson != null) {
         final List<dynamic> likedSongsData = jsonDecode(likedSongsJson);
         debugPrint('Found ${likedSongsData.length} liked songs in local storage');
-        localLikedSongs = likedSongsData.map((json) => Song.fromJson(json)).toList();
+        final likedSongs = likedSongsData.map((json) => Song.fromJson(json as Map<String, dynamic>)).toList();
+        localLikedSongs = likedSongs;
       } else {
         debugPrint('No liked songs found in local storage');
       }
@@ -68,7 +69,7 @@ class LikedSongsService {
           final updatedJson = await _secureStorage.read(key: _likedSongsKey);
           if (updatedJson != null) {
             final List<dynamic> updatedData = jsonDecode(updatedJson);
-            localLikedSongs = updatedData.map((json) => Song.fromJson(json)).toList();
+            localLikedSongs = updatedData.map((json) => Song.fromJson(json as Map<String, dynamic>)).toList();
             debugPrint('Returning ${localLikedSongs.length} liked songs after forced sync');
           }
         } else {
@@ -168,7 +169,7 @@ class LikedSongsService {
 
       // Convert server data to Song objects
       final List<Song> serverLikedSongs = serverData.map((json) {
-        final song = Song.fromJson(json);
+        final song = Song.fromJson(json as Map<String, dynamic>);
         song.isLiked = true; // Mark as liked
         return song;
       }).toList();
@@ -354,8 +355,8 @@ class LikedSongsService {
 
           // Parse the response
           bool isLikedOnServer = false;
-          if (response.data is Map && response.data.containsKey('isLiked')) {
-            isLikedOnServer = response.data['isLiked'] ?? false;
+          if (response.data is Map && (response.data as Map).containsKey('isLiked')) {
+            isLikedOnServer = response.data['isLiked'] as bool? ?? false;
           }
 
           debugPrint('Song $songId liked status - Local: $isLikedLocally, Server: $isLikedOnServer');

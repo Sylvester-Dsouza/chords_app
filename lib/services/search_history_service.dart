@@ -147,9 +147,9 @@ class SearchHistoryService extends ChangeNotifier {
       final historyJson = prefs.getString(_searchHistoryKey);
 
       if (historyJson != null) {
-        final List<dynamic> historyList = json.decode(historyJson);
-        _searchHistory = historyList
-          .map((item) => SearchHistoryItem.fromJson(item))
+        final List<dynamic> historyData = jsonDecode(historyJson) as List<dynamic>;
+        _searchHistory = historyData
+          .map((item) => SearchHistoryItem.fromJson(item as Map<String, dynamic>))
           .toList();
       }
     } catch (e) {
@@ -162,7 +162,7 @@ class SearchHistoryService extends ChangeNotifier {
   Future<void> _saveSearchHistory() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final historyJson = json.encode(
+      final historyJson = jsonEncode(
         _searchHistory.map((item) => item.toJson()).toList()
       );
       await prefs.setString(_searchHistoryKey, historyJson);
@@ -178,7 +178,7 @@ class SearchHistoryService extends ChangeNotifier {
       final suggestionsJson = prefs.getString(_searchSuggestionsKey);
 
       if (suggestionsJson != null) {
-        final List<dynamic> suggestionsList = json.decode(suggestionsJson);
+        final List<dynamic> suggestionsList = jsonDecode(suggestionsJson);
         _searchSuggestions = suggestionsList.cast<String>();
       } else {
         // Initialize with default suggestions
@@ -195,7 +195,7 @@ class SearchHistoryService extends ChangeNotifier {
   Future<void> _saveSuggestions() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final suggestionsJson = json.encode(_searchSuggestions);
+      final suggestionsJson = jsonEncode(_searchSuggestions);
       await prefs.setString(_searchSuggestionsKey, suggestionsJson);
     } catch (e) {
       debugPrint('Error saving search suggestions: $e');
@@ -278,12 +278,12 @@ class SearchHistoryItem {
 
   factory SearchHistoryItem.fromJson(Map<String, dynamic> json) {
     return SearchHistoryItem(
-      query: json['query'],
+      query: json['query'] as String,
       type: SearchType.values.firstWhere(
         (type) => type.toString() == json['type'],
         orElse: () => SearchType.songs,
       ),
-      timestamp: DateTime.parse(json['timestamp']),
+      timestamp: DateTime.parse(json['timestamp'] as String),
     );
   }
 

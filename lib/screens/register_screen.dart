@@ -334,7 +334,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         } else {
           // Show error message
           setState(() {
-            _errorMessage = result['message'] ?? 'Registration failed';
+            _errorMessage = result['message'] as String? ?? 'Registration failed';
           });
           _safeShowErrorToast(_errorMessage!);
 

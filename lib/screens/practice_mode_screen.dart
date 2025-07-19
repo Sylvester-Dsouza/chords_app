@@ -31,9 +31,9 @@ class _PracticeModeScreenState extends State<PracticeModeScreen> {
 
   
   // Song data
-  String get _songTitle => widget.songData['title'] ?? 'Unknown Song';
-  String get _songContent => widget.songData['content'] ?? '';
-  int get _originalTempo => widget.songData['tempo'] ?? 120;
+  String get _songTitle => widget.songData['title'] as String? ?? 'Unknown Song';
+  String get _songContent => widget.songData['content'] as String? ?? '';
+  int get _originalTempo => widget.songData['tempo'] as int? ?? 120;
 
   @override
   void initState() {

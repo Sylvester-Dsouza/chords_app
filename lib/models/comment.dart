@@ -33,26 +33,26 @@ class Comment {
 
   factory Comment.fromJson(Map<String, dynamic> json) {
     return Comment(
-      id: json['id'] ?? '',
-      songId: json['songId'] ?? '',
-      customerId: json['customerId'] ?? '',
-      customerName: json['customer'] != null ? json['customer']['name'] : 'Anonymous',
-      customerProfilePicture: json['customer'] != null ? json['customer']['profilePicture'] : null,
-      text: json['text'] ?? '',
+      id: json['id']?.toString() ?? '',
+      songId: json['songId']?.toString() ?? '',
+      customerId: json['customerId']?.toString() ?? '',
+      customerName: json['customer'] != null ? (json['customer'] as Map<String, dynamic>)['name']?.toString() ?? 'Anonymous' : 'Anonymous',
+      customerProfilePicture: json['customer'] != null ? (json['customer'] as Map<String, dynamic>)['profilePicture']?.toString() : null,
+      text: json['text']?.toString() ?? '',
       createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
+          ? DateTime.parse(json['createdAt'].toString())
           : DateTime.now(),
       updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'])
+          ? DateTime.parse(json['updatedAt'].toString())
           : DateTime.now(),
-      parentId: json['parentId'],
+      parentId: json['parentId']?.toString(),
       replies: json['replies'] != null
-          ? List<Comment>.from(json['replies'].map((x) => Comment.fromJson(x)))
+          ? List<Comment>.from((json['replies'] as List).map((dynamic x) => Comment.fromJson(x as Map<String, dynamic>)))
           : [],
-      likesCount: json['likesCount'] ?? 0,
-      isLiked: json['isLiked'] ?? false,
-      isDeleted: json['isDeleted'] ?? false,
-      deletedAt: json['deletedAt'] != null ? DateTime.parse(json['deletedAt']) : null,
+      likesCount: (json['likesCount'] as int?) ?? 0,
+      isLiked: (json['isLiked'] as bool?) ?? false,
+      isDeleted: (json['isDeleted'] as bool?) ?? false,
+      deletedAt: json['deletedAt'] != null ? DateTime.parse(json['deletedAt'].toString()) : null,
     );
   }
 

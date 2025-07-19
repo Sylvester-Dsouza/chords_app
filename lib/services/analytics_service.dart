@@ -26,7 +26,7 @@ class AnalyticsService {
       });
 
       if (response.statusCode == 200 && response.data['sessionId'] != null) {
-        _sessionId = response.data['sessionId'];
+        _sessionId = response.data['sessionId'] as String?;
         debugPrint('Analytics session initialized: $_sessionId');
       }
     } catch (e) {

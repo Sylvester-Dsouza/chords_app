@@ -13,8 +13,8 @@ class ChordTimingService extends ChangeNotifier {
   final Map<String, List<ChordTiming>> _chordTimings = {};
 
   // Callbacks
-  Function(String chord, int beat)? onChordChange;
-  Function(String section)? onSectionChange;
+  void Function(String chord, int beat)? onChordChange;
+  void Function(String section)? onSectionChange;
 
   // Getters
   String? get currentChord => _currentChord;
@@ -38,9 +38,9 @@ class ChordTimingService extends ChangeNotifier {
     _sections.clear();
     _chordTimings.clear();
 
-    String chordSheet = songData['chordSheet'] ?? '';
-    int? tempo = songData['tempo'];
-    String? timeSignature = songData['timeSignature'];
+    final String chordSheet = songData['chordSheet'] as String? ?? '';
+    final int? tempo = songData['tempo'] as int?;
+    final String? timeSignature = songData['timeSignature'] as String?;
 
     // Parse the chord sheet into sections
     _parseChordSheet(chordSheet, tempo, timeSignature);
@@ -60,12 +60,17 @@ class ChordTimingService extends ChangeNotifier {
       if (trimmedLine.startsWith('{') && trimmedLine.endsWith('}')) {
         // Save previous section if it exists
         if (currentSectionLines.isNotEmpty) {
-          _processSectionLines(currentSectionName, currentSectionLines, beatCounter);
+          _processSectionLines(
+            currentSectionName,
+            currentSectionLines,
+            beatCounter,
+          );
           beatCounter += _calculateSectionBeats(currentSectionLines);
         }
 
         // Start new section
-        currentSectionName = trimmedLine.substring(1, trimmedLine.length - 1).toLowerCase();
+        currentSectionName =
+            trimmedLine.substring(1, trimmedLine.length - 1).toLowerCase();
         currentSectionLines.clear();
       } else if (trimmedLine.isNotEmpty) {
         currentSectionLines.add(trimmedLine);
@@ -74,7 +79,11 @@ class ChordTimingService extends ChangeNotifier {
 
     // Process the last section
     if (currentSectionLines.isNotEmpty) {
-      _processSectionLines(currentSectionName, currentSectionLines, beatCounter);
+      _processSectionLines(
+        currentSectionName,
+        currentSectionLines,
+        beatCounter,
+      );
     }
 
     // If no sections were found, create a default section
@@ -83,7 +92,11 @@ class ChordTimingService extends ChangeNotifier {
     }
   }
 
-  void _processSectionLines(String sectionName, List<String> lines, int startBeat) {
+  void _processSectionLines(
+    String sectionName,
+    List<String> lines,
+    int startBeat,
+  ) {
     List<ChordTiming> chordTimings = [];
     int currentBeat = startBeat;
 
@@ -114,11 +127,13 @@ class ChordTimingService extends ChangeNotifier {
     int beatOffset = 0;
     for (RegExpMatch match in matches) {
       String chord = match.group(1) ?? '';
-      chords.add(ChordTiming(
-        chord: chord,
-        beat: startBeat + beatOffset,
-        duration: 4, // Default 4 beats per chord
-      ));
+      chords.add(
+        ChordTiming(
+          chord: chord,
+          beat: startBeat + beatOffset,
+          duration: 4, // Default 4 beats per chord
+        ),
+      );
       beatOffset += 4;
     }
 
@@ -129,7 +144,9 @@ class ChordTimingService extends ChangeNotifier {
     // Estimate beats per line based on chord count
     RegExp chordRegex = RegExp(r'\[([^\]]+)\]');
     int chordCount = chordRegex.allMatches(line).length;
-    return chordCount > 0 ? chordCount * 4 : 4; // 4 beats per chord, minimum 4 beats
+    return chordCount > 0
+        ? chordCount * 4
+        : 4; // 4 beats per chord, minimum 4 beats
   }
 
   int _calculateSectionBeats(List<String> lines) {
@@ -156,9 +173,15 @@ class ChordTimingService extends ChangeNotifier {
   }
 
   String _formatSectionName(String name) {
-    return name.split(' ').map((word) =>
-      word.isNotEmpty ? word[0].toUpperCase() + word.substring(1) : word
-    ).join(' ');
+    return name
+        .split(' ')
+        .map(
+          (word) =>
+              word.isNotEmpty
+                  ? word[0].toUpperCase() + word.substring(1)
+                  : word,
+        )
+        .join(' ');
   }
 
   // Beat tracking
@@ -199,7 +222,8 @@ class ChordTimingService extends ChangeNotifier {
       );
 
       int sectionLength = section.endBeat - section.startBeat + 1;
-      int adjustedBeat = section.startBeat + ((beat - section.startBeat) % sectionLength);
+      int adjustedBeat =
+          section.startBeat + ((beat - section.startBeat) % sectionLength);
       beat = adjustedBeat;
     }
 
